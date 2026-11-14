@@ -7,7 +7,7 @@ Live risk list. The demo fallbacks table lives in the [priority plan](../Cortex%
 | Risk | Impact | Mitigation | Issue |
 | --- | --- | --- | --- |
 | Meta toolkit does not deliver camera frames on Gen 1 glasses | T0-1 | Phone capture fallback posting to the same `POST /moments` ([ADR 0003](decisions/0003-capture-path.md)) | #2, #4 |
-| Native capture app needs a Mac with Xcode 26.4+ and an iPhone on iOS 17.2+. Its owner (@ashzaeen) has no iPhone, so testing needs a teammate's iPhone | T0-1 | Confirm a Mac and test iPhone on #36; build against Mock Device Kit first; the web phone capture stays as the fallback | #36, #39 |
+| Native capture app needs a Mac with Xcode 26.4+ and an iPhone on iOS 17.2+. The iOS lead is @ahnafzabir-utd; confirm who has the Mac and whose iPhone runs it (@ashzaeen has none) | T0-1 | Confirm a Mac and test iPhone on #36; build against Mock Device Kit first; the web phone capture stays as the fallback | #36, #39 |
 | iPhone Safari limits: HTTPS for camera and mic, audio only after a tap, capture stops on screen lock | T0-1, T0-8 | Vercel HTTPS (#38), a Start button that unlocks audio, Wake Lock ([ADR 0005](decisions/0005-dashboard-stack.md)) | #37, #38 |
 | Caller camera frames: how they reach our code is unverified | T0-10 | Read Chert's video guide first (`chert guide video`) | #5 |
 | Chert trial clock: the plan says not to start the trial early | T0-10 | See note below; confirm how the track's free 48-hour line is issued | #6 |

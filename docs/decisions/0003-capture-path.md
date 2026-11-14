@@ -1,7 +1,7 @@
 # 0003: Capture path
 
 - **Status:** Accepted (2026-11-14, @ashzaeen)
-- **Decider:** team, recorded by @ashzaeen. Build: iOS app @ashzaeen (#36), camera streaming @ahnafzabir-utd (#39), glasses testing @794KHSameer (#2)
+- **Decider:** team, recorded by @ashzaeen. Build: iOS app lead @ahnafzabir-utd (#36, #39; [apps/capture/glasses/README.md](../../apps/capture/glasses/README.md)), glasses testing @794KHSameer (#2)
 - **Issue:** #2, #3, #4, #36, #39
 - **Date:** 2026-11-14
 

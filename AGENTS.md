@@ -38,7 +38,7 @@ If code and a document disagree, fix the document in the same commit.
 | Contracts | `contracts/` | `area:contracts` | @ClosetCoderSad (backend lead) |
 | Backend: memory API and agent brain | `apps/backend/` | `area:backend` | @ClosetCoderSad (backend lead) |
 | Dashboard | `apps/dashboard/` | `area:dashboard` | @ashzaeen |
-| Capture: glasses and phone | `apps/capture/` | `area:capture` | @794KHSameer (hardware and Meta glasses lead); iOS app in `apps/capture/glasses/`: @ashzaeen, camera streaming: @ahnafzabir-utd |
+| Capture: glasses and phone | `apps/capture/` | `area:capture` | @794KHSameer (hardware and Meta glasses lead); iOS app (`apps/capture/glasses/`, everything iOS): @ahnafzabir-utd |
 | Call agent: Chert and LiveKit | `apps/call-agent/` | `area:call` | @ahnafzabir-utd (Chert lead) |
 | Demo: fixtures, script, rehearsal | `fixtures/`, `docs/DEMO_SCRIPT.md` | `area:demo` | @ashzaeen |
 | Infra: tooling, CI, scripts | `Makefile`, `scripts/`, `.github/` | `area:infra` | @ashzaeen |

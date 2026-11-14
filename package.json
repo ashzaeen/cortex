@@ -1,0 +1,19 @@
+{
+  "name": "cortex-repo-tooling",
+  "private": true,
+  "description": "Repo-wide tooling only (mock API, contract checks, status). Area code keeps its own dependencies.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "mock": "prism mock contracts/openapi.yaml --port 4010 --host 127.0.0.1",
+    "lint:contracts": "redocly lint contracts/openapi.yaml",
+    "test:contracts": "node scripts/check-contracts.mjs"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.56.1",
+    "@stoplight/prism-cli": "5.16.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "yaml": "2.9.1"
+  }
+}

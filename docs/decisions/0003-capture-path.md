@@ -1,8 +1,8 @@
 # 0003: Capture path
 
 - **Status:** Proposed (not decided; depends on the Gen 1 spike)
-- **Decider:** capture owner (TODO: handle), with the team at the M0 go/no-go
-- **Issue:** see the M0 spikes on Gen 1 glasses, latency and the phone fallback
+- **Decider:** capture owner (@794KHSameer), with the team at the M0 go/no-go
+- **Issue:** #2, #3, #4
 - **Date:** 2026-11-14
 
 ## Context

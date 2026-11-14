@@ -9,31 +9,31 @@ info:
     Mock it with `make mock` (Prism, port 4010).
 x-examples:
   # Shared example entities, reused below via YAML aliases (*Name). Mock responses use them.
-  PriyaIntroMoment: &PriyaIntroMoment
+  AshIntroMoment: &AshIntroMoment
     id: mom_live_001
     ts: "2026-11-15T14:02:11-06:00"
     source: glasses
     mode: focus
-    transcript: "This is Priya from Acme."
+    transcript: "This is Ash from Acme."
     caption: "A person in a blue jacket at a booth with an Acme banner."
     snapshot_url: "fixtures/snapshots/placeholder-booth.svg"
     place: "HackUTA expo hall"
-    person_ids: [per_priya]
+    person_ids: [per_ash]
     off_record: false
-  PriyaPromiseMoment: &PriyaPromiseMoment
+  AshPromiseMoment: &AshPromiseMoment
     id: mom_live_002
     ts: "2026-11-15T14:02:40-06:00"
     source: glasses
     mode: focus
     transcript: "I'll send you the deck Friday."
-    caption: "Priya holding a phone, Acme banner behind her."
+    caption: "Ash holding a phone, Acme banner behind them."
     snapshot_url: "fixtures/snapshots/placeholder-booth.svg"
     place: "HackUTA expo hall"
-    person_ids: [per_priya]
+    person_ids: [per_ash]
     off_record: false
-  Priya: &Priya
-    id: per_priya
-    name: Priya
+  Ash: &Ash
+    id: per_ash
+    name: Ash
     company: Acme
     role: null
     consent: introduction
@@ -41,10 +41,10 @@ x-examples:
     topics: [Q4 launch]
     notes: null
     name_confidence: 0.95
-  PriyaPromise: &PriyaPromise
+  AshPromise: &AshPromise
     id: prm_live_001
     direction: waiting_on
-    person_id: per_priya
+    person_id: per_ash
     what: "Send the deck"
     due: { date: "2026-11-20", inferred: false, text: "Friday" }
     status: confirmed
@@ -53,17 +53,17 @@ x-examples:
     id: act_live_001
     type: follow_up_email
     status: sent
-    person_id: per_priya
+    person_id: per_ash
     draft:
-      to: "priya@acme.example"
+      to: "ash@acme.example"
       subject: "Great meeting you at HackUTA"
-      body: "Hi Priya, great to meet you today. Looking forward to the deck on Friday."
+      body: "Hi Ash, great to meet you today. Looking forward to the deck on Friday."
     source_moment_ids: [mom_live_001, mom_live_002]
   FollowUpReceipt: &FollowUpReceipt
     id: rcp_act_001
     kind: action
     created_at: "2026-11-15T14:05:30-06:00"
-    summary: "Sent follow-up email to Priya (Acme)."
+    summary: "Sent follow-up email to Ash (Acme)."
     action_id: act_live_001
     source_moment_ids: [mom_live_001, mom_live_002]
     undo: { available: true, until: "2026-11-15T14:06:00-06:00" }
@@ -119,7 +119,7 @@ paths:
             example:
               ts: "2026-11-15T14:02:11-06:00"
               source: glasses
-              transcript: "This is Priya from Acme."
+              transcript: "This is Ash from Acme."
               snapshot_base64: null
       responses:
         "201":
@@ -127,7 +127,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "./schemas/moment.schema.json" }
-              example: *PriyaIntroMoment
+              example: *AshIntroMoment
         "400": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
     get:
@@ -149,8 +149,8 @@ paths:
                   items: { type: array, items: { $ref: "./schemas/moment.schema.json" } }
               example:
                 items:
-                  - *PriyaPromiseMoment
-                  - *PriyaIntroMoment
+                  - *AshPromiseMoment
+                  - *AshIntroMoment
 
   /moments/search:
     get:
@@ -179,7 +179,7 @@ paths:
                         score: { type: number }
               example:
                 results:
-                  - moment: *PriyaPromiseMoment
+                  - moment: *AshPromiseMoment
                     score: 0.91
 
   /moments/{id}:
@@ -221,7 +221,7 @@ paths:
               properties:
                 question: { type: string, minLength: 1 }
                 channel: { type: string, enum: [voice, dashboard, call] }
-            example: { question: "What did Priya promise me?", channel: voice }
+            example: { question: "What did Ash promise me?", channel: voice }
       responses:
         "200":
           description: Answer with sources
@@ -229,11 +229,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AskAnswer" }
               example:
-                answer: "Priya from Acme promised to send you the deck by Friday, Nov 20."
-                spoken: "Priya promised to send you the deck by Friday."
+                answer: "Ash from Acme promised to send you the deck by Friday, Nov 20."
+                spoken: "Ash promised to send you the deck by Friday."
                 grounded: true
                 sources:
-                  - *PriyaPromiseMoment
+                  - *AshPromiseMoment
                 receipt_id: rcp_ask_001
 
   /people:
@@ -253,7 +253,7 @@ paths:
                   items: { type: array, items: { $ref: "./schemas/person.schema.json" } }
               example:
                 items:
-                  - *Priya
+                  - *Ash
     post:
       tags: [people]
       operationId: createPerson
@@ -276,7 +276,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "./schemas/person.schema.json" }
-              example: *Priya
+              example: *Ash
 
   /people/{id}/brief:
     parameters:
@@ -292,17 +292,17 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Brief" }
               example:
-                person: *Priya
-                spoken: "Priya, Acme. You met today and talked about the Q4 launch. She promised to send the deck by Friday; that is still open."
+                person: *Ash
+                spoken: "Ash, Acme. You met today and talked about the Q4 launch. Ash promised to send the deck by Friday; that is still open."
                 bullets:
-                  - "Priya, Acme; met today"
+                  - "Ash, Acme; met today"
                   - "Talked about the Q4 launch"
                   - "Open: deck by Friday (waiting on)"
                 open_promises:
-                  - *PriyaPromise
+                  - *AshPromise
                 sources:
-                  - *PriyaIntroMoment
-                  - *PriyaPromiseMoment
+                  - *AshIntroMoment
+                  - *AshPromiseMoment
         "404": { $ref: "#/components/responses/Error" }
 
   /promises:
@@ -326,7 +326,7 @@ paths:
                   items: { type: array, items: { $ref: "./schemas/promise.schema.json" } }
               example:
                 items:
-                  - *PriyaPromise
+                  - *AshPromise
     post:
       tags: [promises]
       operationId: createPromise
@@ -350,7 +350,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "./schemas/promise.schema.json" }
-              example: *PriyaPromise
+              example: *AshPromise
 
   /promises/{id}/confirm:
     parameters:
@@ -365,7 +365,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "./schemas/promise.schema.json" }
-              example: *PriyaPromise
+              example: *AshPromise
         "404": { $ref: "#/components/responses/Error" }
 
   /actions/propose:

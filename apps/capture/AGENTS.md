@@ -1,6 +1,6 @@
 # apps/capture: agent notes
 
-- **Owns:** the glasses and phone capture clients. Label `area:capture`. Owner: TODO handle.
+- **Owns:** the glasses and phone capture clients. Label `area:capture`. Owner: @794KHSameer (hardware and Meta glasses lead).
 - **Stack:** not chosen; depends on the Gen 1 toolkit spike (ADR 0003). Build the phone fallback early either way.
 - **Run alone:** post to the mock (`make mock`, `CORTEX_API_URL=http://127.0.0.1:4010`); the mock validates your payload.
 - **Contract:** `POST /moments` with `MomentIngest`; check `GET /privacy` before posting.

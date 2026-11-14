@@ -7,7 +7,7 @@ Every coding agent and every human starts here. `CLAUDE.md` only imports this fi
 Cortex is a second brain for Ray-Ban Meta Gen 1 glasses plus a companion dashboard. It remembers what the wearer sees and hears, answers from that memory with proof (the source moment), and takes follow-up actions the user approves. Modes (Focus, Student, Life, Assist) are presets over one shared memory. Calls come in over FaceTime through Chert, which bridges into a LiveKit room our own agent joins. The glasses have no display, so output is audio plus the dashboard. No face recognition.
 
 **Goal:** win the HackUTA 2026 main track and the Chert Best Use of FaceTime track with one flawless 3-minute demo:
-Meet Priya → her promise is tracked → ask with proof → spoken brief → approved follow-up email with undo → FaceTime finale where the caller's camera is saved and Cortex answers from memory. Full script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
+Meet Ash → Ash's promise is tracked → ask with proof → spoken brief → approved follow-up email with undo → FaceTime finale where the caller's camera is saved and Cortex answers from memory. Full script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 **Before any task, read the two source-of-truth files in the repo root:**
 - PRD: [Project Cortex - Product Concept for HackUTA 2026.md](Project%20Cortex%20-%20Product%20Concept%20for%20HackUTA%202026.md)
@@ -35,12 +35,12 @@ If code and a document disagree, fix the document in the same PR.
 
 | Area | Path | Label | Owner |
 | --- | --- | --- | --- |
-| Contracts | `contracts/` | `area:contracts` | backend lead (TODO: GitHub handle) |
-| Backend: memory API and agent brain | `apps/backend/` | `area:backend` | backend lead (TODO) |
-| Dashboard | `apps/dashboard/` | `area:dashboard` | TODO |
-| Capture: glasses and phone | `apps/capture/` | `area:capture` | TODO |
-| Call agent: Chert and LiveKit | `apps/call-agent/` | `area:call` | TODO |
-| Demo: fixtures, script, rehearsal | `fixtures/`, `docs/DEMO_SCRIPT.md` | `area:demo` | TODO |
+| Contracts | `contracts/` | `area:contracts` | @ClosetCoderSad (backend lead) |
+| Backend: memory API and agent brain | `apps/backend/` | `area:backend` | @ClosetCoderSad (backend lead) |
+| Dashboard | `apps/dashboard/` | `area:dashboard` | @ashzaeen |
+| Capture: glasses and phone | `apps/capture/` | `area:capture` | @794KHSameer (hardware and Meta glasses lead) |
+| Call agent: Chert and LiveKit | `apps/call-agent/` | `area:call` | @ahnafzabir-utd (Chert lead) |
+| Demo: fixtures, script, rehearsal | `fixtures/`, `docs/DEMO_SCRIPT.md` | `area:demo` | @ashzaeen |
 | Infra: tooling, CI, scripts | `Makefile`, `scripts/`, `.github/` | `area:infra` | @ashzaeen |
 
 Owners are also in [.github/CODEOWNERS](.github/CODEOWNERS). Each area has its own `README.md` and `AGENTS.md`; read the one for the area you touch.

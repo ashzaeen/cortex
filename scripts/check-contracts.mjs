@@ -51,10 +51,10 @@ for (const [type, path] of Object.entries(fixtures)) {
 // 3. Shared openapi examples validate (x-examples, reused via YAML aliases).
 const spec = parse(read("contracts/openapi.yaml"), { maxAliasCount: -1 });
 const exampleTypes = {
-  PriyaIntroMoment: "Moment",
-  PriyaPromiseMoment: "Moment",
-  Priya: "Person",
-  PriyaPromise: "Promise",
+  AshIntroMoment: "Moment",
+  AshPromiseMoment: "Moment",
+  Ash: "Person",
+  AshPromise: "Promise",
   FollowUp: "Action",
   FollowUpReceipt: "Receipt",
 };

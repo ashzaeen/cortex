@@ -1,8 +1,8 @@
 # 0001: Backend stack
 
 - **Status:** Proposed (not decided)
-- **Decider:** backend lead (TODO: handle)
-- **Issue:** see `type:decision` issue "Decide backend stack (ADR 0001)"
+- **Decider:** backend lead (@ClosetCoderSad)
+- **Issue:** #8
 - **Date:** 2026-11-14
 
 ## Context

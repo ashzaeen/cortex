@@ -1,8 +1,8 @@
 # 0002: Data store
 
 - **Status:** Proposed (not decided)
-- **Decider:** backend lead (TODO: handle)
-- **Issue:** see `type:decision` issue "Decide data store (ADR 0002)"
+- **Decider:** backend lead (@ClosetCoderSad)
+- **Issue:** #9
 - **Date:** 2026-11-14
 
 ## Context

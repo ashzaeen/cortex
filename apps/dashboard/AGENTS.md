@@ -1,6 +1,6 @@
 # apps/dashboard: agent notes
 
-- **Owns:** the web dashboard. Label `area:dashboard`. Owner: TODO handle.
+- **Owns:** the web dashboard. Label `area:dashboard`. Owner: @ashzaeen.
 - **Stack:** Proposed Next.js with TypeScript; confirm it in the first dashboard issue before scaffolding. Add `apps/dashboard/Makefile` (`setup`, `test`, `lint`) and a `dev` npm script so the root `make dev` picks it up.
 - **Run alone:** `make dev` (mock API at `http://127.0.0.1:4010`). Never require the real backend to render. Read the API base URL from `CORTEX_API_URL`.
 - **Contract:** [contracts/openapi.yaml](../../contracts/openapi.yaml); live updates come from `GET /events` (SSE). Generate types from the contract rather than writing them by hand.

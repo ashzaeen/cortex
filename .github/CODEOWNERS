@@ -1,11 +1,12 @@
-# Area owners. Until teammates' handles are known, @ashzaeen owns everything.
-# TODO: replace each commented line's placeholder with the real handle and uncomment it.
+# Area owners (see the area map in AGENTS.md). Later lines win.
 * @ashzaeen
 
-# /contracts/          @TODO-backend-lead
-# /apps/backend/       @TODO-backend-lead
-# /apps/dashboard/     @TODO-dashboard-owner
-# /apps/capture/       @TODO-capture-owner
-# /apps/call-agent/    @TODO-call-owner
-# /fixtures/           @TODO-demo-owner
-# /docs/DEMO_SCRIPT.md @TODO-demo-owner
+/contracts/          @ClosetCoderSad
+/apps/backend/       @ClosetCoderSad
+/apps/capture/       @794KHSameer
+/apps/call-agent/    @ahnafzabir-utd
+/apps/dashboard/     @ashzaeen
+/fixtures/           @ashzaeen
+/docs/DEMO_SCRIPT.md @ashzaeen
+/docs/decisions/0001-backend-stack.md @ClosetCoderSad
+/docs/decisions/0002-data-store.md    @ClosetCoderSad

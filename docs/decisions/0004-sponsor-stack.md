@@ -1,8 +1,8 @@
 # 0004: Sponsor stack (call agent, speech, models)
 
 - **Status:** Proposed (not decided)
-- **Decider:** call owner (TODO: handle) with the backend lead
-- **Issue:** see the M0 Chert and LiveKit spikes
+- **Decider:** call owner (@ahnafzabir-utd) with the backend lead (@ClosetCoderSad)
+- **Issue:** #5, #6, #7, #11
 - **Date:** 2026-11-14
 
 ## Context

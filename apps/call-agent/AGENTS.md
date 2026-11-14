@@ -1,6 +1,6 @@
 # apps/call-agent: agent notes
 
-- **Owns:** the Chert and LiveKit agent. Label `area:call`. Owner: TODO handle.
+- **Owns:** the Chert and LiveKit agent. Label `area:call`. Owner: @ahnafzabir-utd (Chert lead).
 - **Stack:** not chosen (ADR 0004: LiveKit Agents in Python or Node).
 - **Run alone:** run the Cortex side against the mock (`make mock`). Real calls need a Chert line, our LiveKit project and a verified iPhone; those steps are `needs-human`.
 - **Contract:** talk to Cortex only through [contracts/openapi.yaml](../../contracts/openapi.yaml): `POST /ask` (channel `call`), `GET /people/{id}/brief`, `POST /moments` (source `call`). Never read the data store directly.

@@ -1,6 +1,6 @@
 # Plan: tiers and ids
 
-The priority plan is the source of truth: [Cortex Core Priority Plan - Flawless Demo.md](../Cortex%20Core%20Priority%20Plan%20-%20Flawless%20Demo.md). This page only carries the tier list and the ids used in issues and [STATUS.md](STATUS.md).
+The priority plan is the source of truth: [Cortex Core Priority Plan - Flawless Demo.md](../Cortex%20Core%20Priority%20Plan%20-%20Flawless%20Demo.md). This page only carries the tier list and the ids used in issues and [STATUS.md](STATUS.md). Examples use the name **Ash** where the plan says Priya (see [RISKS.md](RISKS.md), item 8).
 
 ## Tier 0: must work (if any fails, the demo fails)
 
@@ -8,10 +8,10 @@ The priority plan is the source of truth: [Cortex Core Priority Plan - Flawless 
 | --- | --- | --- |
 | T0-1 | Capture to backend: camera and mic (glasses, or phone fallback) into one ingest pipeline storing transcript, caption, snapshot, timestamp | Saying a sentence and showing an object produces a stored moment within a few seconds |
 | T0-2 | Shared memory with search that returns the source moment | Asking about something from earlier returns the right moment, every time, on the seeded data |
-| T0-3 | Network skill: introduction creates a contact card | "This is Priya from Acme" produces a correct card with the moment linked |
+| T0-3 | Network skill: introduction creates a contact card | "This is Ash from Acme" produces a correct card with the moment linked |
 | T0-4 | Waiting-on tracker with a one-tap confirm chip | A spoken promise becomes a tracked item with who, what and due date |
 | T0-5 | Ask with a proof receipt | A voice question gets a spoken answer and a receipt showing the source moment |
-| T0-6 | Pre-meeting brief, spoken | "Brief me on Priya" returns a correct 20-second brief from stored data |
+| T0-6 | Pre-meeting brief, spoken | "Brief me on Ash" returns a correct 20-second brief from stored data |
 | T0-7 | Action loop for one action: follow-up email | Propose, confirm, send (or save draft), then a receipt with undo |
 | T0-8 | Live dashboard: Live, Timeline, Ask, Proof receipts | Updates appear on screen within seconds while the demo runs |
 | T0-9 | Privacy minimums: pause or off-the-record, and delete a moment | Both work on stage and are visible to judges |

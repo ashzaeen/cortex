@@ -1,6 +1,6 @@
 # 0002: Data store
 
-- **Status:** Proposed (not decided)
+- **Status:** Accepted (2026-11-14, by Md Abrar Al Zabir)
 - **Decider:** backend lead (@ClosetCoderSad)
 - **Issue:** #9
 - **Date:** 2026-11-14
@@ -18,7 +18,7 @@ Each moment stores a timestamp, transcript, caption, snapshot reference and an e
 - Cons: schema migrations; hosting choice still needed.
 
 ## Decision
-Not decided. The backend lead records it here and marks the ADR Accepted.
+**Option A: MongoDB Atlas with Atlas Vector Search** for memory (moments, people, promises, actions, receipts, embeddings), plus **Tiger Data (Postgres + TimescaleDB)** for the time index and audit log. Tiger Data is optional: with `TIGER_DATABASE_URL` empty the backend runs on MongoDB alone. Offline dev and tests use mongomock with local cosine search, and seeded fixtures load at startup, which covers the venue-wifi risk.
 
 ## Consequences
 Seed loading (`make seed`) and delete semantics are implemented by the backend against whichever store wins.

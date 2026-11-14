@@ -1,0 +1,5 @@
+[
+  { "id": "per_sam", "name": "Sam Rivera", "company": "Globex", "role": "Recruiter", "consent": "introduction", "introduced_moment_id": "mom_seed_001", "topics": ["internships", "ML infra"], "notes": null, "name_confidence": 0.97 },
+  { "id": "per_dana", "name": "Dana Kim", "company": "Initech", "role": "Engineering manager", "consent": "introduction", "introduced_moment_id": "mom_seed_004", "topics": ["edge devices", "hiring"], "notes": null, "name_confidence": 0.93 },
+  { "id": "per_lee", "name": "Prof. Morgan Lee", "company": "Example University", "role": "Professor, CSE 3310", "consent": "explicit", "introduced_moment_id": "mom_seed_006", "topics": ["CSE 3310", "project demo"], "notes": "Consent recorded for lecture capture.", "name_confidence": 0.9 }
+]

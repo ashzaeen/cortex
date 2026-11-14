@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "promise.schema.json",
+  "title": "Promise",
+  "description": "A commitment heard in conversation. waiting_on: someone owes the user; i_owe: the user owes someone.",
+  "type": "object",
+  "required": ["id", "direction", "person_id", "what", "due", "status", "source_moment_id"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^prm_[A-Za-z0-9_-]+$" },
+    "direction": { "type": "string", "enum": ["waiting_on", "i_owe"] },
+    "person_id": { "type": "string", "pattern": "^per_" },
+    "what": { "type": "string", "minLength": 1 },
+    "due": {
+      "type": "object",
+      "required": ["date", "inferred", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "date": { "type": ["string", "null"], "format": "date" },
+        "inferred": { "type": "boolean", "description": "True if the date was inferred rather than stated." },
+        "text": { "type": ["string", "null"], "description": "The words used, e.g. \"Friday\"." }
+      }
+    },
+    "status": { "type": "string", "enum": ["proposed", "confirmed", "done", "dismissed"], "description": "proposed = confirm chip shown; confirmed = on the Waiting on list." },
+    "source_moment_id": { "type": "string", "pattern": "^mom_" }
+  }
+}

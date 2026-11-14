@@ -1,0 +1,620 @@
+openapi: 3.1.0
+info:
+  title: Cortex API
+  version: 0.1.0-proposed
+  description: |
+    Status: PROPOSED. Draft contract between capture, backend, dashboard and call agent.
+    The backend lead may change it through the contract-change process in AGENTS.md.
+    Entity schemas live in ./schemas and are the single source of truth.
+    Mock it with `make mock` (Prism, port 4010).
+x-examples:
+  # Shared example entities, reused below via YAML aliases (*Name). Mock responses use them.
+  PriyaIntroMoment: &PriyaIntroMoment
+    id: mom_live_001
+    ts: "2026-11-15T14:02:11-06:00"
+    source: glasses
+    mode: focus
+    transcript: "This is Priya from Acme."
+    caption: "A person in a blue jacket at a booth with an Acme banner."
+    snapshot_url: "fixtures/snapshots/placeholder-booth.svg"
+    place: "HackUTA expo hall"
+    person_ids: [per_priya]
+    off_record: false
+  PriyaPromiseMoment: &PriyaPromiseMoment
+    id: mom_live_002
+    ts: "2026-11-15T14:02:40-06:00"
+    source: glasses
+    mode: focus
+    transcript: "I'll send you the deck Friday."
+    caption: "Priya holding a phone, Acme banner behind her."
+    snapshot_url: "fixtures/snapshots/placeholder-booth.svg"
+    place: "HackUTA expo hall"
+    person_ids: [per_priya]
+    off_record: false
+  Priya: &Priya
+    id: per_priya
+    name: Priya
+    company: Acme
+    role: null
+    consent: introduction
+    introduced_moment_id: mom_live_001
+    topics: [Q4 launch]
+    notes: null
+    name_confidence: 0.95
+  PriyaPromise: &PriyaPromise
+    id: prm_live_001
+    direction: waiting_on
+    person_id: per_priya
+    what: "Send the deck"
+    due: { date: "2026-11-20", inferred: false, text: "Friday" }
+    status: confirmed
+    source_moment_id: mom_live_002
+  FollowUp: &FollowUp
+    id: act_live_001
+    type: follow_up_email
+    status: sent
+    person_id: per_priya
+    draft:
+      to: "priya@acme.example"
+      subject: "Great meeting you at HackUTA"
+      body: "Hi Priya, great to meet you today. Looking forward to the deck on Friday."
+    source_moment_ids: [mom_live_001, mom_live_002]
+  FollowUpReceipt: &FollowUpReceipt
+    id: rcp_act_001
+    kind: action
+    created_at: "2026-11-15T14:05:30-06:00"
+    summary: "Sent follow-up email to Priya (Acme)."
+    action_id: act_live_001
+    source_moment_ids: [mom_live_001, mom_live_002]
+    undo: { available: true, until: "2026-11-15T14:06:00-06:00" }
+servers:
+  - url: http://localhost:4010
+    description: Prism mock (make mock / make dev)
+  - url: http://localhost:8000
+    description: Local backend (port TBD by the backend lead)
+tags:
+  - name: moments
+  - name: ask
+  - name: people
+  - name: promises
+  - name: actions
+  - name: receipts
+  - name: privacy
+  - name: modes
+  - name: events
+  - name: health
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean }
+              example: { ok: true }
+
+  /moments:
+    post:
+      tags: [moments]
+      operationId: ingestMoment
+      summary: Ingest a moment from glasses, phone, call or dashboard (T0-1)
+      description: |
+        One ingest pipeline for every capture source. The backend transcribes, captions and
+        stores the moment, links people by introduction, detects promises, and emits
+        moment.created (plus person.created / promise.proposed) on /events.
+        Returns 409 if capture is paused or off-the-record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MomentIngest" }
+            example:
+              ts: "2026-11-15T14:02:11-06:00"
+              source: glasses
+              transcript: "This is Priya from Acme."
+              snapshot_base64: null
+      responses:
+        "201":
+          description: Stored moment
+          content:
+            application/json:
+              schema: { $ref: "./schemas/moment.schema.json" }
+              example: *PriyaIntroMoment
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    get:
+      tags: [moments]
+      operationId: listMoments
+      summary: Timeline, newest first
+      parameters:
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: Moments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/moment.schema.json" } }
+              example:
+                items:
+                  - *PriyaPromiseMoment
+                  - *PriyaIntroMoment
+
+  /moments/search:
+    get:
+      tags: [moments]
+      operationId: searchMoments
+      summary: Search memory; always returns the source moments (T0-2)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 5 } }
+      responses:
+        "200":
+          description: Ranked results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [moment, score]
+                      properties:
+                        moment: { $ref: "./schemas/moment.schema.json" }
+                        score: { type: number }
+              example:
+                results:
+                  - moment: *PriyaPromiseMoment
+                    score: 0.91
+
+  /moments/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    delete:
+      tags: [privacy]
+      operationId: deleteMoment
+      summary: Delete a moment and everything derived from it (T0-9)
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema: { $ref: "./schemas/receipt.schema.json" }
+              example:
+                id: rcp_del_001
+                kind: deletion
+                created_at: "2026-11-15T14:09:00-06:00"
+                summary: "Deleted 1 moment and its transcript, caption, snapshot and embedding."
+                action_id: null
+                source_moment_ids: []
+                undo: { available: false, until: null }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /ask:
+    post:
+      tags: [ask]
+      operationId: ask
+      summary: Answer a question from memory with proof (T0-5)
+      description: Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question, channel]
+              properties:
+                question: { type: string, minLength: 1 }
+                channel: { type: string, enum: [voice, dashboard, call] }
+            example: { question: "What did Priya promise me?", channel: voice }
+      responses:
+        "200":
+          description: Answer with sources
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AskAnswer" }
+              example:
+                answer: "Priya from Acme promised to send you the deck by Friday, Nov 20."
+                spoken: "Priya promised to send you the deck by Friday."
+                grounded: true
+                sources:
+                  - *PriyaPromiseMoment
+                receipt_id: rcp_ask_001
+
+  /people:
+    get:
+      tags: [people]
+      operationId: listPeople
+      summary: Contact cards
+      responses:
+        "200":
+          description: People
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/person.schema.json" } }
+              example:
+                items:
+                  - *Priya
+    post:
+      tags: [people]
+      operationId: createPerson
+      summary: Create a contact card from an introduction (T0-3)
+      description: Usually created by the backend during ingest; this endpoint lets the dashboard add or correct a person by hand.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, introduced_moment_id]
+              properties:
+                name: { type: string, minLength: 1 }
+                company: { type: [string, "null"] }
+                introduced_moment_id: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "./schemas/person.schema.json" }
+              example: *Priya
+
+  /people/{id}/brief:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    get:
+      tags: [people]
+      operationId: briefPerson
+      summary: Pre-meeting brief, about 20 seconds spoken (T0-6)
+      responses:
+        "200":
+          description: Brief
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Brief" }
+              example:
+                person: *Priya
+                spoken: "Priya, Acme. You met today and talked about the Q4 launch. She promised to send the deck by Friday; that is still open."
+                bullets:
+                  - "Priya, Acme; met today"
+                  - "Talked about the Q4 launch"
+                  - "Open: deck by Friday (waiting on)"
+                open_promises:
+                  - *PriyaPromise
+                sources:
+                  - *PriyaIntroMoment
+                  - *PriyaPromiseMoment
+        "404": { $ref: "#/components/responses/Error" }
+
+  /promises:
+    get:
+      tags: [promises]
+      operationId: listPromises
+      summary: Waiting on and I owe lists (T0-4)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [proposed, confirmed, done, dismissed] } }
+        - { name: direction, in: query, schema: { type: string, enum: [waiting_on, i_owe] } }
+        - { name: person_id, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Promises
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/promise.schema.json" } }
+              example:
+                items:
+                  - *PriyaPromise
+    post:
+      tags: [promises]
+      operationId: createPromise
+      summary: Propose a promise (shows a confirm chip)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [direction, person_id, what, source_moment_id]
+              properties:
+                direction: { type: string, enum: [waiting_on, i_owe] }
+                person_id: { type: string }
+                what: { type: string }
+                due_text: { type: [string, "null"] }
+                source_moment_id: { type: string }
+      responses:
+        "201":
+          description: Proposed promise
+          content:
+            application/json:
+              schema: { $ref: "./schemas/promise.schema.json" }
+              example: *PriyaPromise
+
+  /promises/{id}/confirm:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [promises]
+      operationId: confirmPromise
+      summary: One-tap confirm; moves the promise to its list
+      responses:
+        "200":
+          description: Confirmed promise
+          content:
+            application/json:
+              schema: { $ref: "./schemas/promise.schema.json" }
+              example: *PriyaPromise
+        "404": { $ref: "#/components/responses/Error" }
+
+  /actions/propose:
+    post:
+      tags: [actions]
+      operationId: proposeAction
+      summary: Propose a follow-up email with its source moments (T0-7)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, person_id]
+              properties:
+                type: { type: string, enum: [follow_up_email] }
+                person_id: { type: string }
+                source_moment_ids: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Proposed action
+          content:
+            application/json:
+              schema: { $ref: "./schemas/action.schema.json" }
+              example: *FollowUp
+
+  /actions/{id}/confirm:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [actions]
+      operationId: confirmAction
+      summary: Approve; send or save as draft, and write a receipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deliver]
+              properties:
+                deliver: { type: string, enum: [send, draft] }
+                draft:
+                  type: object
+                  description: Optional user edits to the draft
+                  properties:
+                    to: { type: string }
+                    subject: { type: string }
+                    body: { type: string }
+      responses:
+        "200":
+          description: Done, with receipt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+              example:
+                action: *FollowUp
+                receipt: *FollowUpReceipt
+
+  /actions/{id}/undo:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [actions]
+      operationId: undoAction
+      summary: Undo while the undo window is open
+      responses:
+        "200":
+          description: Undone, with receipt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /receipts:
+    get:
+      tags: [receipts]
+      operationId: listReceipts
+      summary: Proof receipts, newest first
+      responses:
+        "200":
+          description: Receipts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/receipt.schema.json" } }
+              example:
+                items:
+                  - *FollowUpReceipt
+
+  /privacy:
+    get:
+      tags: [privacy]
+      operationId: getPrivacy
+      summary: Current capture state
+      responses:
+        "200":
+          description: State
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivacyState" }
+              example: { state: capturing, since: "2026-11-15T14:00:00-06:00" }
+
+  /privacy/pause:
+    post:
+      tags: [privacy]
+      operationId: setPrivacy
+      summary: Pause, go off-the-record, or resume capture (T0-9)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [state]
+              properties:
+                state: { type: string, enum: [capturing, paused, off_record] }
+            example: { state: off_record }
+      responses:
+        "200":
+          description: New state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrivacyState" }
+              example: { state: off_record, since: "2026-11-15T14:08:00-06:00" }
+
+  /modes:
+    get:
+      tags: [modes]
+      operationId: listModes
+      summary: Mode presets; one is active
+      responses:
+        "200":
+          description: Modes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/mode.schema.json" } }
+              example:
+                items:
+                  - id: focus
+                    name: Focus
+                    captures: [meeting audio, whiteboard snapshots]
+                    speaks: on request or at meeting end
+                    proposes: [follow-up email]
+                    allowed_actions: [follow_up_email]
+                    active: true
+
+  /events:
+    get:
+      tags: [events]
+      operationId: streamEvents
+      summary: Live event stream for the dashboard (Server-Sent Events)
+      description: |
+        Each SSE message has `event: <type>` and `data: <JSON>`. Types:
+        moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
+        action.proposed, action.updated, receipt.created, privacy.changed, call.started, call.ended.
+        The data payload is the affected entity (see components.schemas.Event).
+        Prism returns the example once; real streaming comes from the backend.
+      responses:
+        "200":
+          description: Event stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+              example: |
+                event: moment.created
+                data: {"type":"moment.created","at":"2026-11-15T14:02:12-06:00","data":{"id":"mom_live_001"}}
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: not_found, message: "No such moment." } }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+    MomentIngest:
+      type: object
+      description: What capture sends. At least one of transcript, audio_base64, snapshot_base64 or snapshot_url.
+      required: [ts, source]
+      properties:
+        ts: { type: string, format: date-time }
+        source: { type: string, enum: [glasses, phone, call, dashboard] }
+        mode: { type: string, enum: [focus, student, life, assist] }
+        transcript: { type: [string, "null"], description: "If capture already transcribed it." }
+        audio_base64: { type: [string, "null"], description: "Short audio clip if not transcribed on device." }
+        snapshot_base64: { type: [string, "null"], description: "JPEG snapshot." }
+        snapshot_url: { type: [string, "null"] }
+        call_id: { type: [string, "null"], description: "Set by the call agent for caller-camera moments." }
+    AskAnswer:
+      type: object
+      required: [answer, spoken, grounded, sources, receipt_id]
+      properties:
+        answer: { type: string, description: "Full answer for the dashboard." }
+        spoken: { type: string, description: "Short version for TTS." }
+        grounded: { type: boolean, description: "False when memory has nothing to support an answer." }
+        sources: { type: array, items: { $ref: "./schemas/moment.schema.json" } }
+        receipt_id: { type: string }
+    Brief:
+      type: object
+      required: [person, spoken, bullets, open_promises, sources]
+      properties:
+        person: { $ref: "./schemas/person.schema.json" }
+        spoken: { type: string, description: "About 20 seconds when spoken." }
+        bullets: { type: array, maxItems: 3, items: { type: string } }
+        open_promises: { type: array, items: { $ref: "./schemas/promise.schema.json" } }
+        sources: { type: array, items: { $ref: "./schemas/moment.schema.json" } }
+    ActionResult:
+      type: object
+      required: [action, receipt]
+      properties:
+        action: { $ref: "./schemas/action.schema.json" }
+        receipt: { $ref: "./schemas/receipt.schema.json" }
+    PrivacyState:
+      type: object
+      required: [state, since]
+      properties:
+        state: { type: string, enum: [capturing, paused, off_record] }
+        since: { type: string, format: date-time }
+    Event:
+      type: object
+      required: [type, at, data]
+      properties:
+        type:
+          type: string
+          enum: [moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, call.started, call.ended]
+        at: { type: string, format: date-time }
+        data: { type: object }

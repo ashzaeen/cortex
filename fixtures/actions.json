@@ -1,0 +1,3 @@
+[
+  { "id": "act_seed_001", "type": "follow_up_email", "status": "sent", "person_id": "per_sam", "draft": { "to": "sam.rivera@globex.example", "subject": "Thanks for the chat at the career fair", "body": "Hi Sam, thanks for telling me about the Globex internships. Looking forward to the application link." }, "source_moment_ids": ["mom_seed_001", "mom_seed_002"] }
+]

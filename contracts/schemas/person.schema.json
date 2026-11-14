@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "person.schema.json",
+  "title": "Person",
+  "description": "A contact card. People enter memory only by introduction or explicit consent; no face recognition.",
+  "type": "object",
+  "required": ["id", "name", "company", "consent", "introduced_moment_id", "topics", "name_confidence"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^per_[A-Za-z0-9_-]+$" },
+    "name": { "type": "string", "minLength": 1 },
+    "company": { "type": ["string", "null"] },
+    "role": { "type": ["string", "null"] },
+    "consent": { "type": "string", "enum": ["introduction", "explicit"] },
+    "introduced_moment_id": { "type": "string", "pattern": "^mom_", "description": "The moment of the introduction (proof)." },
+    "topics": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": ["string", "null"] },
+    "name_confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Below 0.8 the dashboard asks the user to confirm the spelling." }
+  }
+}

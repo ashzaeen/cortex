@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mode.schema.json",
+  "title": "Mode",
+  "description": "A preset over the one shared memory. Memory is never split by mode.",
+  "type": "object",
+  "required": ["id", "name", "captures", "speaks", "proposes", "allowed_actions", "active"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "enum": ["focus", "student", "life", "assist"] },
+    "name": { "type": "string" },
+    "captures": { "type": "array", "items": { "type": "string" } },
+    "speaks": { "type": "string", "description": "When Cortex speaks up unprompted." },
+    "proposes": { "type": "array", "items": { "type": "string" } },
+    "allowed_actions": { "type": "array", "items": { "type": "string", "enum": ["follow_up_email"] } },
+    "active": { "type": "boolean" }
+  }
+}

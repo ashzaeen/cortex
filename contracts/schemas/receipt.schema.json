@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "receipt.schema.json",
+  "title": "Receipt",
+  "description": "Proof of something Cortex answered or did, linked to its source moments, with undo where possible.",
+  "type": "object",
+  "required": ["id", "kind", "created_at", "summary", "action_id", "source_moment_ids", "undo"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^rcp_[A-Za-z0-9_-]+$" },
+    "kind": { "type": "string", "enum": ["answer", "action", "capture", "deletion"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "summary": { "type": "string" },
+    "action_id": { "type": ["string", "null"], "pattern": "^act_" },
+    "source_moment_ids": { "type": "array", "items": { "type": "string", "pattern": "^mom_" } },
+    "undo": {
+      "type": "object",
+      "required": ["available", "until"],
+      "additionalProperties": false,
+      "properties": {
+        "available": { "type": "boolean" },
+        "until": { "type": ["string", "null"], "format": "date-time" }
+      }
+    }
+  }
+}

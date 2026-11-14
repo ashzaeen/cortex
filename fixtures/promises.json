@@ -1,0 +1,4 @@
+[
+  { "id": "prm_seed_001", "direction": "waiting_on", "person_id": "per_sam", "what": "Send the internship application link", "due": { "date": "2026-11-11", "inferred": false, "text": "by Wednesday" }, "status": "confirmed", "source_moment_id": "mom_seed_002" },
+  { "id": "prm_seed_002", "direction": "i_owe", "person_id": "per_dana", "what": "One-page prototype summary", "due": { "date": "2026-11-16", "inferred": false, "text": "by Monday" }, "status": "confirmed", "source_moment_id": "mom_seed_005" }
+]

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "moment.schema.json",
+  "title": "Moment",
+  "description": "One captured moment: what was heard and seen at a point in time. The unit of memory and of proof.",
+  "type": "object",
+  "required": ["id", "ts", "source", "mode", "transcript", "caption", "snapshot_url", "person_ids", "off_record"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^mom_[A-Za-z0-9_-]+$" },
+    "ts": { "type": "string", "format": "date-time", "description": "When it happened (capture time, not storage time)." },
+    "source": { "type": "string", "enum": ["glasses", "phone", "call", "dashboard", "seed"] },
+    "mode": { "type": "string", "enum": ["focus", "student", "life", "assist"] },
+    "transcript": { "type": ["string", "null"], "description": "What was said, as text." },
+    "caption": { "type": ["string", "null"], "description": "What was seen, as a short caption." },
+    "snapshot_url": { "type": ["string", "null"], "description": "URL or repo-relative path of the stored snapshot." },
+    "place": { "type": ["string", "null"] },
+    "person_ids": { "type": "array", "items": { "type": "string", "pattern": "^per_" }, "description": "People linked by introduction or consent. Never by face recognition." },
+    "off_record": { "type": "boolean", "description": "True if captured while off-the-record; such moments are not stored, so stored moments are always false unless kept by explicit user choice." }
+  }
+}

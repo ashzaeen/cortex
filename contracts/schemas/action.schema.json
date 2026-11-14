@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "action.schema.json",
+  "title": "Action",
+  "description": "A follow-up action Cortex proposes and the user approves. Tier 0 has one type: follow_up_email.",
+  "type": "object",
+  "required": ["id", "type", "status", "person_id", "draft", "source_moment_ids"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^act_[A-Za-z0-9_-]+$" },
+    "type": { "type": "string", "enum": ["follow_up_email"] },
+    "status": { "type": "string", "enum": ["proposed", "sent", "draft_saved", "undone", "dismissed", "failed"] },
+    "person_id": { "type": "string", "pattern": "^per_" },
+    "draft": {
+      "type": "object",
+      "required": ["to", "subject", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "to": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" }
+      }
+    },
+    "source_moment_ids": { "type": "array", "items": { "type": "string", "pattern": "^mom_" }, "minItems": 1 }
+  }
+}

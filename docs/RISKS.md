@@ -6,14 +6,14 @@ Live risk list. The demo fallbacks table lives in the [priority plan](../Cortex%
 
 | Risk | Impact | Mitigation | Issue |
 | --- | --- | --- | --- |
-| Meta toolkit does not deliver camera frames on Gen 1 glasses | T0-1 | Phone capture fallback posting to the same `POST /moments` ([ADR 0003](decisions/0003-capture-path.md)) | M0 spike |
-| Caller camera frames: how they reach our code is unverified | T0-10 | Read Chert's video guide first (`chert guide video`) | M0 spike |
-| Chert trial clock: the plan says not to start the trial early | T0-10 | See note below; confirm how the track's free 48-hour line is issued | M0 spike |
-| No team iPhone confirmed for iMessage verification | T0-10 | Confirm a teammate's iPhone in M0 (`needs-human`) | M0 spike |
-| Chert limits: 5-minute calls, one call per line, greet within 10 s, connector must stay running | Demo | Call beat fits in 60 s; laptop hosts agent and connector; greeting test in M0 | M0 spike |
-| Latency of speech, vision and answers | Demo | Pre-compute and cache the brief and Priya answers before going on stage | T0-11 |
-| Retrieval hallucination | Trust | Answer only from retrieved moments; say "I don't have that" otherwise | T0-2, T0-5 |
-| Venue wifi | Demo | Phone hotspot, seeded data cached locally | T0-11 |
+| Meta toolkit does not deliver camera frames on Gen 1 glasses | T0-1 | Phone capture fallback posting to the same `POST /moments` ([ADR 0003](decisions/0003-capture-path.md)) | #2, #4 |
+| Caller camera frames: how they reach our code is unverified | T0-10 | Read Chert's video guide first (`chert guide video`) | #5 |
+| Chert trial clock: the plan says not to start the trial early | T0-10 | See note below; confirm how the track's free 48-hour line is issued | #6 |
+| No team iPhone confirmed for iMessage verification | T0-10 | Confirm a teammate's iPhone in M0 (`needs-human`) | #6, #12 |
+| Chert limits: 5-minute calls, one call per line, greet within 10 s, connector must stay running | Demo | Call beat fits in 60 s; laptop hosts agent and connector; greeting test in M0 | #11 |
+| Latency of speech, vision and answers | Demo | Pre-compute and cache the brief and Priya answers before going on stage | #23 |
+| Retrieval hallucination | Trust | Answer only from retrieved moments; say "I don't have that" otherwise | #14, #17 |
+| Venue wifi | Demo | Phone hotspot, seeded data cached locally | #23 |
 | Scope creep | Demo | Tier rule in AGENTS.md; feature freeze 6 h before judging | - |
 
 **Chert trial note (2026-11-14):** a Chert onboarding (`onboard --plan trial --stack demo`) was started from @ashzaeen's machine before this repo existed. Browser sign-in completed and a Chert project was created, but phone verification was not finished and the process was stopped. Check with `chert onboard --status` and in the Chert console whether the trial clock has started, before relying on the 48-hour window.

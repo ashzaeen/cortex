@@ -23,4 +23,6 @@ Tier 0 must pass twice in a row before any Tier 1 work starts. Done-when tests: 
 | item | state | notes |
 | --- | --- | --- |
 | Mock API from `contracts/openapi.yaml` (`make dev`) | works | Prism on port 4010; verified locally 2026-11-14 during repo setup |
+| Stateful mock with Ash demo driver (`apps/dashboard/mock`, #37) | works | 66-check contract test passes locally 2026-11-14; runs in `make check` |
+| Dashboard placeholder UI on the mock (`make dev`) | works | Live, Timeline, Ask, Receipts, Privacy over the `/api` proxy with SSE; smoke-tested locally 2026-11-14. Not yet T0-8: no Vercel or iPhone test |
 | Contract and fixture validation (`make check`) | works | Passes locally 2026-11-14; CI runs it on every push to main |

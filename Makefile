@@ -17,7 +17,7 @@ setup: $(TOOLS) ## Install repo tooling and each area's dependencies
 	@$(NODE) scripts/areas.mjs setup
 	@echo "setup: done. Copy .env.example to .env and fill in only the keys your area needs."
 
-dev: $(TOOLS) ## Mock API on :4010, plus the dashboard if it exists (CORTEX_API_URL overrides the mock)
+dev: $(TOOLS) ## Stateful mock on :4010 + dashboard on :3000 (MOCK=prism for Prism; CORTEX_API_URL for a real backend)
 	@$(NODE) scripts/dev.mjs
 
 mock: $(TOOLS) ## Mock API only, from contracts/openapi.yaml

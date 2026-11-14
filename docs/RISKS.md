@@ -22,9 +22,9 @@ Live risk list. The demo fallbacks table lives in the [priority plan](../Cortex%
 
 - Owners: @ClosetCoderSad (backend, contracts), @ahnafzabir-utd (call), @794KHSameer (capture), @ashzaeen (dashboard, demo, infra; assumed from the PRD's "Dashboard and demo" role, change if wrong). Teammates must accept their collaborator invites before issues can be assigned to them and before CODEOWNERS review requests work.
 - GitHub Project board was skipped: the `gh` token lacks the `project` scope. To add it: `gh auth refresh -s project`, then create a board with columns Backlog, Ready, In progress, In review, Done.
-- Branch protection: done, see below. Raise the approval count to 1 after the feature freeze if the team wants a second pair of eyes.
+- Workflow: no branches or PRs; everyone pulls, merges locally, runs `make check` and pushes to `main` (team decision, 2026-11-14).
 
-Branch protection on `main` is on (2026-11-14): a PR and the passing `check` CI job are required, force pushes and deletion are blocked, and 0 approvals are required for hackathon speed. Admins are not enforced, so @ashzaeen can still push an emergency fix; do not use that for normal work.
+Branch protection on `main` (2026-11-14): direct pushes allowed; force pushes and branch deletion are blocked so nobody can wipe others' work. CI runs `make check` on every push; a red run means fix `main` first. Risk: a bad push can break `main` for everyone, so `make check` after `git pull` and before `git push` is mandatory.
 
 ## Where this setup differs from the source files (the files win)
 

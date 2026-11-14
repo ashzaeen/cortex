@@ -1,6 +1,6 @@
 # apps/backend
 
-Memory API and agent brain. Implements [contracts/openapi.yaml](../../contracts/openapi.yaml) as written, or changes it through a `contract-change` PR.
+Memory API and agent brain. Implements [contracts/openapi.yaml](../../contracts/openapi.yaml) as written, or changes it through the `contract-change` process in AGENTS.md.
 
 **Stack: Proposed, not chosen.** The backend lead decides in [ADR 0001](../../docs/decisions/0001-backend-stack.md) (Python FastAPI or TypeScript) and [ADR 0002](../../docs/decisions/0002-data-store.md) (MongoDB Atlas or Postgres with pgvector). Until then this folder holds only the planned layout:
 

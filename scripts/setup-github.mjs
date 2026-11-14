@@ -19,7 +19,7 @@ const LABELS = [
   ["type:decision", "5319e7", "Needs an ADR decision"],
   ["status:in-progress", "0e8a16", "Claimed and being worked on"],
   ["status:blocked", "e99695", "Cannot continue; names the blocking issue"],
-  ["status:needs-review", "0e8a16", "PR open, waiting for review"],
+  ["status:needs-review", "0e8a16", "Pushed; waiting for someone to run the done-when test"],
   ["needs-human", "d93f0b", "Only a person can decide or act"],
   ["contract-change", "f9d0c4", "Changes contracts/; affected owners mentioned"],
   ["agent-ready", "0e8a16", "Clear enough for an agent to start"],

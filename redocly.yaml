@@ -2,7 +2,7 @@
 extends:
   - recommended
 rules:
-  security-defined: off          # auth is out of scope for the demo; add it via a contract-change PR if needed
+  security-defined: off          # auth is out of scope for the demo; add it through the contract-change process if needed
   no-server-example.com: off     # localhost servers are intentional (mock and local backend)
   info-license: off
   tag-description: off

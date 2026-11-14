@@ -33,7 +33,7 @@ test: $(TOOLS) ## Contract tests (schemas, fixtures, ids), status guard, then ea
 	@$(NODE) scripts/check-status.mjs
 	@$(NODE) scripts/areas.mjs test
 
-check: lint test ## Everything CI runs; must pass before a PR merges
+check: lint test ## Everything CI runs; must pass after `git pull` and before every push
 	@echo "check: all passed"
 
 seed: $(TOOLS) ## Validate fixtures and load them into the backend (when it exists)

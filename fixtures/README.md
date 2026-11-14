@@ -16,4 +16,4 @@ Fake seed data shared by every area. **No real personal data**: fake names, `.ex
 
 Recall questions for testing T0-2: "Where did I leave my keys?", "What did Sam promise me?", "When are the CSE 3310 demos?", "What do I owe Dana?"
 
-When you change fixtures, keep them valid (`make check`) and mention `area:demo` in the PR.
+When you change fixtures, keep them valid (`make check`) and mention `area:demo` on the issue.

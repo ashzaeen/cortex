@@ -1,6 +1,6 @@
 # Status: what works right now
 
-Source of truth for what works. Update it in the same PR as the change. States: `not started`, `in progress`, `works`, `broken`. Mark `works` only after you ran the done-when test yourself, and fill in last verified as `YYYY-MM-DD @handle`. `make check` rejects a `works` row with no last-verified entry.
+Source of truth for what works. Update it in the same push as the change. States: `not started`, `in progress`, `works`, `broken`. Mark `works` only after you ran the done-when test yourself, and fill in last verified as `YYYY-MM-DD @handle`. `make check` rejects a `works` row with no last-verified entry.
 
 Tier 0 must pass twice in a row before any Tier 1 work starts. Done-when tests: [PLAN.md](PLAN.md). Process: pinned issue [#1 Status board](https://github.com/ashzaeen/cortex/issues/1).
 
@@ -23,4 +23,4 @@ Tier 0 must pass twice in a row before any Tier 1 work starts. Done-when tests: 
 | item | state | notes |
 | --- | --- | --- |
 | Mock API from `contracts/openapi.yaml` (`make dev`) | works | Prism on port 4010; verified locally 2026-11-14 during repo setup |
-| Contract and fixture validation (`make check`) | works | Passes locally 2026-11-14; CI runs it on every PR and push to main |
+| Contract and fixture validation (`make check`) | works | Passes locally 2026-11-14; CI runs it on every push to main |

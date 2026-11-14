@@ -28,4 +28,4 @@ curl localhost:4010/people
 
 ## Change it
 
-Follow "Contract changes" in the root [AGENTS.md](../AGENTS.md): label the PR `contract-change`, list the affected areas, mention their owners, and update the fixtures and examples in the same PR. Prefer additive changes.
+Follow "Contract changes" in the root [AGENTS.md](../AGENTS.md): use an issue labeled `contract-change` that lists the affected areas and mentions their owners, and update the fixtures and examples in the same push. Prefer additive changes.

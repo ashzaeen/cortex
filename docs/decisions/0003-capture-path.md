@@ -1,24 +1,40 @@
 # 0003: Capture path
 
-- **Status:** Proposed (not decided; depends on the Gen 1 spike)
-- **Decider:** capture owner (@794KHSameer), with the team at the M0 go/no-go
-- **Issue:** #2, #3, #4
+- **Status:** Accepted (2026-11-14, @ashzaeen; @794KHSameer owns the build)
+- **Decider:** team, recorded by @ashzaeen; capture owner @794KHSameer
+- **Issue:** #2, #3, #4, #36
 - **Date:** 2026-11-14
 
 ## Context
-Apps do not run on the glasses; a phone app receives camera frames and audio. It is not yet verified that Meta's Wearables Device Access Toolkit supports Gen 1 glasses and delivers frames at a usable rate. Either way, capture posts moments to one endpoint, `POST /moments`, so the rest of the system does not change.
+Apps do not run on the glasses: a phone app receives camera frames and audio. Meta's docs (checked 2026-11-14) say:
+- The Wearables Device Access Toolkit ships **only as native iOS (Swift Package) and Android SDKs**. There is no web or JavaScript SDK. Meta's "Web Apps" track runs only on Meta Ray-Ban Display glasses and gives a phone web page no camera access.
+- **Ray-Ban Meta Gen 1 and Gen 2 are supported devices**, but "capability availability varies by device", so Gen 1 camera streaming still needs the #2 test.
+- Toolkit 1.0.1 needs Meta AI app V292, glasses firmware V128, iOS 17.2+ and Xcode 26.4+.
+- Developer mode in the Meta AI app lets an unpublished app use our own glasses with no review.
+- Mock Device Kit simulates camera streaming from the phone camera or a video file, so the app can be built before the glasses are in hand.
+
+Sources: [FAQ](https://developers.meta.com/wearables/faq/), [getting started](https://wearables.developer.meta.com/docs/develop/dat/getting-started-toolkit/), [version dependencies](https://wearables.developer.meta.com/docs/develop/dat/version-dependencies/), [Mock Device Kit](https://wearables.developer.meta.com/docs/develop/dat/mock-device-kit/), [iOS SDK](https://github.com/facebook/meta-wearables-dat-ios).
 
 ## Options
-### A. Glasses through the Meta toolkit (native iOS Swift or Android Kotlin app)
-- Pros: the real product story; hands-free.
-- Cons: Gen 1 support and frame rate unverified; native build, developer mode and app registration take time.
+### A. Native capture app for the glasses camera, built now
+- Pros: the PRD's story ("it sees what you see") from day one.
+- Cons: needs a Mac with Xcode 26.4+, an iPhone on iOS 17.2+, and developer mode; Gen 1 streaming is still unverified.
 
-### B. Phone fallback: phone camera and mic posting to `POST /moments`
-- Pros: works today; could be a small mobile web page or native app; the glasses can stay in the story for audio.
-- Cons: less impressive; the wearer holds a phone.
+### B. Web only; add the native app only if #2 passes
+- Pros: the demo never depends on it.
+- Cons: the pitch is "what you see and show it" until the spike passes.
+
+### C. Never use the glasses camera
+- Pros: simplest.
+- Cons: gives up the main hardware story.
 
 ## Decision
-Not decided. Decide at the M0 go/no-go; switch to B the same day if A fails. Building B early is a safe fallback either way.
+**A.** Everything the wearer and judges see is a responsive, iPhone-first web app ([ADR 0005](0005-dashboard-stack.md)). Alongside it, a **small native iOS capture app** (Swift, starting from Meta's CameraAccess sample) streams the glasses camera and posts moments to `POST /moments` with `source: "glasses"`. It does nothing else: no screens beyond connect, capture state and pause.
+
+The **phone fallback stays**: the web app's capture screen uses the iPhone camera and mic and posts the same payload with `source: "phone"`. If #2 shows Gen 1 cannot stream, the demo switches to it the same day.
 
 ## Consequences
-Both paths send the same `MomentIngest` payload, so backend and dashboard are unaffected.
+- `apps/capture/glasses/`: native iOS app (Swift). Build against Mock Device Kit first, then the real glasses.
+- `apps/capture/phone/`: becomes a route in the web dashboard, not a separate app (agree the folder move with @794KHSameer).
+- Glasses audio: the glasses act as a Bluetooth mic and speakers for the web app.
+- Needs a human: a Mac with Xcode 26.4+, an iPhone on iOS 17.2+, the glasses on firmware V128, developer mode enabled. See docs/RISKS.md.

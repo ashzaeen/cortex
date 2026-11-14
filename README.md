@@ -23,8 +23,8 @@ Every area runs alone against the mock API at `http://localhost:4010` and the se
 | --- | --- |
 | `contracts/` | OpenAPI contract and JSON Schemas shared by all areas |
 | `apps/backend/` | Memory API and agent brain (stack: Proposed, see ADR 0001) |
-| `apps/dashboard/` | Companion web dashboard (Proposed: Next.js) |
-| `apps/capture/` | Glasses and phone capture client |
+| `apps/dashboard/` | Companion web app, iPhone first (Next.js, ADR 0005) |
+| `apps/capture/` | Native iOS glasses capture app, plus the phone fallback (ADR 0003) |
 | `apps/call-agent/` | Chert and LiveKit call agent |
 | `fixtures/` | Fake seed data used by every area |
 | `scripts/` | Status, seed, checks and GitHub label setup |

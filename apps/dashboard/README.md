@@ -1,8 +1,8 @@
 # apps/dashboard
 
-Companion web dashboard: **Live, Timeline, Ask, Proof receipts, Modes, Privacy.** The glasses have no display, so this is where judges see memory working.
+Companion web app: **Live, Timeline, Ask, Proof receipts, Modes, Privacy**, plus the phone capture screen. The glasses have no display, so this is where the wearer and the judges see memory working. Designed for iPhone Safari first; the same app on the laptop is the judges' view.
 
-**Stack: Proposed, Next.js with TypeScript.** Not scaffolded yet. The dashboard owner confirms the stack in the first dashboard issue.
+**Stack: Accepted in [ADR 0005](../../docs/decisions/0005-dashboard-stack.md).** Next.js with TypeScript, Tailwind CSS with shadcn/ui, a same-origin `/api` proxy to `CORTEX_API_URL`, a stateful mock in `mock/` (#37), deployed on Vercel (#38). Not scaffolded yet.
 
 ## Run it alone
 

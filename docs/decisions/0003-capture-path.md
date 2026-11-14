@@ -1,8 +1,8 @@
 # 0003: Capture path
 
-- **Status:** Accepted (2026-11-14, @ashzaeen; @794KHSameer owns the build)
-- **Decider:** team, recorded by @ashzaeen; capture owner @794KHSameer
-- **Issue:** #2, #3, #4, #36
+- **Status:** Accepted (2026-11-14, @ashzaeen)
+- **Decider:** team, recorded by @ashzaeen. Build: iOS app @ashzaeen (#36), camera streaming @ahnafzabir-utd (#39), glasses testing @794KHSameer (#2)
+- **Issue:** #2, #3, #4, #36, #39
 - **Date:** 2026-11-14
 
 ## Context

@@ -1,6 +1,6 @@
 # apps/capture: agent notes
 
-- **Owns:** the glasses and phone capture clients. Label `area:capture`. Owner: @794KHSameer (hardware and Meta glasses lead).
+- **Owns:** the glasses and phone capture clients. Label `area:capture`. Owner: @794KHSameer (hardware and Meta glasses lead, #2, #3, #10). The iOS app (`glasses/`, #36) is @ashzaeen's; camera streaming inside it (#39) is @ahnafzabir-utd's.
 - **Stack (ADR 0003, Accepted):** native iOS (Swift) app for the glasses camera (#36), built against Mock Device Kit first; the phone fallback is a screen in the web dashboard.
 - **Run alone:** post to the mock (`make mock`, `CORTEX_API_URL=http://127.0.0.1:4010`); the mock validates your payload.
 - **Contract:** `POST /moments` with `MomentIngest`; check `GET /privacy` before posting.

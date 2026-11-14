@@ -368,6 +368,27 @@ paths:
               example: *AshPromise
         "404": { $ref: "#/components/responses/Error" }
 
+  /actions:
+    get:
+      tags: [actions]
+      operationId: listActions
+      summary: Actions, for example proposed emails waiting for approval
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [proposed, sent, draft_saved, undone, dismissed, failed] } }
+      responses:
+        "200":
+          description: Actions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/action.schema.json" } }
+              example:
+                items:
+                  - *FollowUp
+
   /actions/propose:
     post:
       tags: [actions]

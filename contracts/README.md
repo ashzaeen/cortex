@@ -12,7 +12,7 @@
 | `POST /people`, `GET /people`, `GET /people/{id}/brief` | Contact cards and the spoken brief | T0-3, T0-6 |
 | `POST /promises`, `POST /promises/{id}/confirm`, `GET /promises` | Waiting on and I owe | T0-4 |
 | `POST /ask` | Answer plus sources plus receipt id | T0-5, T0-10 |
-| `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | T0-7 |
+| `GET /actions`, `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | T0-7 |
 | `GET /privacy`, `POST /privacy/pause`, `DELETE /moments/{id}` | Pause, off-the-record, delete | T0-9 |
 | `GET /events` | Live updates for the dashboard | T0-8 |
 | `GET /modes`, `GET /health` | Mode presets, liveness | - |

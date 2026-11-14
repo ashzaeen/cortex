@@ -3,7 +3,7 @@
 Everything flows through one shared memory, so modes are presets over it and channels (glasses, phone, dashboard, FaceTime) are adapters to it. The interface between every box below is [contracts/openapi.yaml](../contracts/openapi.yaml). Accepted: capture path ([ADR 0003](decisions/0003-capture-path.md)) and dashboard stack ([ADR 0005](decisions/0005-dashboard-stack.md)). Still Proposed: backend stack, data store and call-agent stack (ADRs 0001, 0002, 0004).
 
 ```
- Glasses (native iOS) ──┐ 
+ Glasses (native iOS) ───┐
                          ├─► apps/capture ──POST /moments──┐
  Phone camera + mic ─────┘   (fallback, same endpoint)     │
                                                            ▼

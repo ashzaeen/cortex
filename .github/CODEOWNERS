@@ -1,0 +1,11 @@
+# Area owners. Until teammates' handles are known, @ashzaeen owns everything.
+# TODO: replace each commented line's placeholder with the real handle and uncomment it.
+* @ashzaeen
+
+# /contracts/          @TODO-backend-lead
+# /apps/backend/       @TODO-backend-lead
+# /apps/dashboard/     @TODO-dashboard-owner
+# /apps/capture/       @TODO-capture-owner
+# /apps/call-agent/    @TODO-call-owner
+# /fixtures/           @TODO-demo-owner
+# /docs/DEMO_SCRIPT.md @TODO-demo-owner

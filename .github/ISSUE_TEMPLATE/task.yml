@@ -1,0 +1,41 @@
+name: Task
+description: Build work with a done-when test
+labels: ["type:task"]
+body:
+  - type: markdown
+    attributes:
+      value: "Add one `tier:*` and one `area:*` label. Add `agent-ready` only when an agent could start from this issue alone."
+  - type: input
+    id: tier0
+    attributes:
+      label: Tier 0 id
+      description: T0-1 to T0-11 from docs/PLAN.md, or "none"
+      placeholder: T0-3
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What to build and why, in a few lines. Link the PRD or plan section.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when (acceptance criteria)
+      description: The test that proves it works. Copy it from docs/PLAN.md for Tier 0 items.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Contracts and dependencies
+      description: Endpoints or schemas used; blocking issues (Blocked by #n).
+  - type: textarea
+    id: verify
+    attributes:
+      label: How to verify
+      description: Exact commands or demo steps a reviewer can run.

@@ -1,0 +1,32 @@
+name: Bug
+description: Something that worked, or should work, is broken
+labels: ["type:bug"]
+body:
+  - type: input
+    id: tier0
+    attributes:
+      label: Tier 0 id affected
+      description: If a Tier 0 item breaks, also set its row in docs/STATUS.md to "broken".
+      placeholder: T0-5 or none
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or evidence
+      description: No secrets or real personal data.
+      render: shell

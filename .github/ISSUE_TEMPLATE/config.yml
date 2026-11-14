@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Rules for agents and humans
+    url: https://github.com/ashzaeen/cortex/blob/main/AGENTS.md
+    about: Read AGENTS.md before opening or claiming an issue.

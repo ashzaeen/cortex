@@ -16,14 +16,16 @@ def _norm(s: str) -> str:
 
 
 def parse_due(text: str | None, date_hint: str | None = None, inferred: bool = False) -> dict:
-    if date_hint:
+    # Weekdays, tomorrow and today are resolved here, not by the model: it does not know today's date.
+    low = (text or "").lower()
+    today = now().astimezone(tz()).date()
+    relative = any(re.search(rf"\b{d}\b", low) for d in DAYS) or any(w in low for w in ("tomorrow", "today", "tonight"))
+    if date_hint and not relative:
         try:
             date.fromisoformat(date_hint)
             return {"date": date_hint, "inferred": bool(inferred), "text": text}
         except ValueError:
             pass
-    low = (text or "").lower()
-    today = now().astimezone(tz()).date()
     day = next((d for d in DAYS if re.search(rf"\b{d}\b", low)), None)
     if day:
         delta = (DAYS.index(day) - today.weekday()) % 7 or 7

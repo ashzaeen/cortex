@@ -78,7 +78,11 @@ class GeminiLLM:
     def _json(self, prompt: str, parts=None, model: str | None = None, temperature: float = 0.2) -> dict:
         from google.genai import types
 
-        contents = list(parts or []) + [prompt]
+        from core.timeutil import now, tz
+
+        # Without this the model guesses the year, so "Friday" became a 2023 date.
+        today = now().astimezone(tz()).strftime("%A %Y-%m-%d %H:%M")
+        contents = list(parts or []) + [f"Current local date and time: {today}.\n\n{prompt}"]
         config = types.GenerateContentConfig(response_mime_type="application/json", temperature=temperature)
         for attempt in range(3):
             try:

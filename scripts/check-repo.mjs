@@ -14,7 +14,9 @@ const SECRET_PATTERNS = [
   [/\bAKIA[0-9A-Z]{16}\b/, "AWS access key"],
   [/\bgh[pousr]_[A-Za-z0-9]{30,}/, "GitHub token"],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "private key"],
-  [/\b(LIVEKIT_API_SECRET|LIVEKIT_API_KEY|CHERT_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY)=\S+/, "filled-in key"],
+  // A filled-in key; placeholders such as YOUR_KEY, <key>, ${VAR} or "changeme" are allowed.
+  [/\b(LIVEKIT_API_SECRET|LIVEKIT_API_KEY|CHERT_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|LLM_API_KEY|GEMINI_API_KEY)=(?!YOUR_|<|\$\{|changeme\b|xxx|""|'')\S+/, "filled-in key"],
+  [/\bAIza[0-9A-Za-z_-]{35}\b/, "Google API key"],
   [/(mongodb(\+srv)?|postgres(ql)?):\/\/[^\s:@<]+:[^\s@<>]+@/, "database URL with password"],
 ];
 for (const f of files) {

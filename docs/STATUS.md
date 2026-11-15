@@ -15,7 +15,7 @@ Tier 0 must pass twice in a row before any Tier 1 work starts. Done-when tests: 
 | T0-7 | Action loop: follow-up email with undo | not started | - | [#19](https://github.com/ashzaeen/cortex/issues/19) | |
 | T0-8 | Live dashboard: Live, Timeline, Ask, Proof receipts | not started | - | [#20](https://github.com/ashzaeen/cortex/issues/20) | |
 | T0-9 | Privacy: pause or off-the-record, delete a moment | not started | - | [#21](https://github.com/ashzaeen/cortex/issues/21) | |
-| T0-10 | Chert inbound call with caller camera, answered from memory | not started | - | [#22](https://github.com/ashzaeen/cortex/issues/22) | |
+| T0-10 | Chert inbound call with caller camera, answered from memory | in progress | - | [#22](https://github.com/ashzaeen/cortex/issues/22) | Per @ahnafzabir-utd's handoff (docs/CHERT_CALL_LAYER_HANDOFF.md): inbound call, greeting on bridge_ready and caller camera to Gemini work on real calls. Not yet answering from Cortex memory or saving moments. |
 | T0-11 | Demo reliability: seeded data, frozen script, backup video | not started | - | [#23](https://github.com/ashzaeen/cortex/issues/23) | |
 
 ## Tooling (not Tier 0)

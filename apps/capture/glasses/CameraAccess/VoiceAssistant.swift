@@ -24,6 +24,7 @@ final class VoiceAssistant {
   private var recognitionTask: SFSpeechRecognitionTask?
   private var silenceTask: Task<Void, Never>?
   private var onCommand: ((String) -> Void)?
+  private var isTapInstalled = false
 
   var isListening: Bool { state == .listening }
 
@@ -57,10 +58,14 @@ final class VoiceAssistant {
 
       let inputNode = audioEngine.inputNode
       let format = inputNode.outputFormat(forBus: 0)
-      inputNode.removeTap(onBus: 0)
+      guard format.sampleRate > 0, format.channelCount > 0 else {
+        throw VoiceAssistantError.noAudioInput
+      }
+      removeAudioTapIfNeeded()
       inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
         request.append(buffer)
       }
+      isTapInstalled = true
       audioEngine.prepare()
       try audioEngine.start()
       state = .listening
@@ -165,7 +170,7 @@ final class VoiceAssistant {
     if audioEngine.isRunning {
       audioEngine.stop()
     }
-    audioEngine.inputNode.removeTap(onBus: 0)
+    removeAudioTapIfNeeded()
     recognitionRequest?.endAudio()
     recognitionTask?.cancel()
     recognitionTask = nil
@@ -186,6 +191,12 @@ final class VoiceAssistant {
     try session.setActive(true)
   }
 
+  private func removeAudioTapIfNeeded() {
+    guard isTapInstalled else { return }
+    audioEngine.inputNode.removeTap(onBus: 0)
+    isTapInstalled = false
+  }
+
   private func requestSpeechPermission() async -> Bool {
     await withCheckedContinuation { continuation in
       SFSpeechRecognizer.requestAuthorization { status in
@@ -200,6 +211,17 @@ final class VoiceAssistant {
       AVAudioApplication.requestRecordPermission { granted in
         continuation.resume(returning: granted)
       }
+    }
+  }
+}
+
+private enum VoiceAssistantError: LocalizedError {
+  case noAudioInput
+
+  var errorDescription: String? {
+    switch self {
+    case .noAudioInput:
+      "No microphone input is available. Reconnect the Ray-Bans or select an iPhone microphone."
     }
   }
 }

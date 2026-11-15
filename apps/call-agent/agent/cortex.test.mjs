@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 import { after, before, beforeEach, describe, it } from 'node:test';
-import { callIdFromIdentity, createCortexClient, memoryActions } from './cortex.mjs';
+import { callIdFromIdentity, createCortexClient, isLocalUrl, localApiWarning, memoryActions } from './cortex.mjs';
 
 // ---- a fake Cortex API: records requests, answers from a script
 let server, base, seen, script;
@@ -147,5 +147,23 @@ describe('saveWhatYouSee', () => {
     const out = await act.saveWhatYouSee({});
     assert.deepEqual([out.saved, out.reason], [false, 'paused']);
     assert.equal('transcript' in seen[0].body, false);
+  });
+});
+
+describe('localApiWarning', () => {
+  const HOSTED = 'https://api-production-47227cba.up.railway.app';
+  it('treats only this-machine addresses as local', () => {
+    for (const u of ['http://127.0.0.1:4010', 'http://localhost:8000', 'http://[::1]:8000', 'http://0.0.0.0:8000', 'http://127.1.2.3']) assert.equal(isLocalUrl(u), true, u);
+    for (const u of [HOSTED, 'https://cortex.example.com', 'not a url', '']) assert.equal(isLocalUrl(u), false, u);
+  });
+  it('warns on a LiveKit worker that points at the local mock, set or left at the default', () => {
+    assert.match(localApiWarning(undefined, true), /not set/);
+    assert.match(localApiWarning('', true), /not set/);
+    assert.match(localApiWarning('http://localhost:8000', true), /"http:\/\/localhost:8000"/);
+  });
+  it('stays quiet for a hosted address, and on a laptop in Chert rooms where the local mock is expected', () => {
+    assert.equal(localApiWarning(HOSTED, true), null);
+    assert.equal(localApiWarning(undefined, false), null);
+    assert.equal(localApiWarning('http://127.0.0.1:4010', false), null);
   });
 });

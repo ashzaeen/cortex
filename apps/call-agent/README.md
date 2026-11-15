@@ -8,7 +8,7 @@ The FaceTime call layer. A Chert line bridges an iPhone FaceTime call into a Liv
 
 1. Greet within 10 seconds of the bridge being ready, or Chert ends the call.
 2. Answer from memory: `POST /ask` with `channel: "call"`, and `GET /people/{id}/brief`. Built as the Gemini tools `ask_memory` and `brief_person`.
-3. Save what the caller's camera shows: `POST /moments` with `source: "call"` and `call_id`. Built as the tool `save_what_you_see`, which saves the newest camera frame **only when the caller asks** (a person may be in the picture; whether to also save automatically is open question 4 in the handoff). Nothing is sent while capture is paused or off the record (the backend answers 409 and the agent tells the caller).
+3. Save what the caller's camera shows: `POST /moments` with `source: "call"` and `call_id`. Built as the tool `save_what_you_see`, which saves the newest camera frame **only when the caller asks** (a person may be in the picture; decided on request, not automatic, by @ashzaeen on 2026-11-15). In the demo the presenter says "save this" while holding the card up. Nothing is sent while capture is paused or off the record (the backend answers 409 and the agent tells the caller).
 4. Tell the dashboard about the call: `POST /calls/started` when the caller joins and `POST /calls/ended` on shutdown, so the Live pill shows "On Call" and the Call Cortex sheet runs its 5:00 timer. Best effort: it never blocks or ends a call.
 5. Video back to the caller is **Tier 1** (fallback: an iMessage attachment).
 
@@ -23,6 +23,10 @@ Chert's skill file is at https://app.trychert.com/skills.md and its docs are at 
 ## Connect it to Cortex
 
 Set `CORTEX_API_URL` in `agent/.env.local` (default `http://127.0.0.1:4010`, the stateful mock from `make dev`). The hosted backend is in [STATUS.md](../../docs/STATUS.md); its database is the demo data, so point real test calls at it only on purpose (saved moments and "On Call" events show on the live dashboard).
+
+## Hosting
+
+The plan is that no laptop runs any Cortex or Chert process. Whether Chert's connector (`chert dev`) can run on a server is researched in [ADR 0006](../../docs/decisions/0006-call-agent-hosting.md) (Proposed, not yet tried). On a hosted agent, `CORTEX_API_URL` must be the hosted backend: the agent logs a warning at startup when it runs on a LiveKit worker and the address is still local.
 
 ## Test it
 

@@ -97,7 +97,7 @@ Also useful: `GET /mode` (current mode), and a way for the call agent to report 
 1. Who owns wiring the call agent to the backend, and when does the backend expose the functions above?
 2. What does the agent show on video for a proof receipt (a card image, or the live dashboard)?
 3. Can glasses footage feed a call, or is the call camera always the phone's?
-4. Do we want the agent to save a snapshot automatically when a caller shows something, or only when they say so?
+4. ~~Do we want the agent to save a snapshot automatically when a caller shows something, or only when they say so?~~ **Decided 2026-11-15 (@ashzaeen): only when the caller asks.** The demo script's "Cortex saves it" needs the presenter to say "save this".
 5. Which phones must be verified or joined before the demo (judge phones, teammate phones)?
 
 ## 9. References

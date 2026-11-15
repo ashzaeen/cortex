@@ -3,9 +3,9 @@ import { AutoSubscribe, defineAgent, voice } from '@livekit/agents';
 import { realtime } from '@livekit/agents-plugin-google';
 import { LocalVideoTrack, TrackSource, VideoBufferType, VideoFrame, VideoSource } from '@livekit/rtc-node';
 import { drawFace, FPS, HEIGHT, WIDTH } from './face.mjs';
-import { runAgent } from './chert-rooms.mjs';
+import { runAgent, usesOwnLiveKit } from './chert-rooms.mjs';
 import { greetOnBridgeReady } from './greet.mjs';
-import { callIdFromIdentity, createCortexClient, memoryActions } from './cortex.mjs';
+import { callIdFromIdentity, createCortexClient, localApiWarning, memoryActions } from './cortex.mjs';
 import { cortexTools } from './cortex-tools.mjs';
 import { startCallerVision } from './vision.mjs';
 
@@ -91,6 +91,13 @@ const agent = defineAgent({
 });
 
 export default agent;
+
+// Hosted setups fail quietly if the Cortex API address is still the local mock, so say so at startup.
+const apiWarning = process.env.CORTEX_WARNED ? null : localApiWarning(process.env.CORTEX_API_URL, usesOwnLiveKit());
+if (apiWarning) {
+  console.warn(JSON.stringify({ cortex: 'warning', message: apiWarning }));
+  process.env.CORTEX_WARNED = '1'; // the worker's job processes re-import this file and inherit the env: say it once
+}
 
 // Your own LiveKit project when .env.local has its three LIVEKIT_ values; otherwise Chert rooms through chert dev.
 runAgent(agent, { file: fileURLToPath(import.meta.url), agentName: process.env.AGENT_NAME || 'video-agent' });

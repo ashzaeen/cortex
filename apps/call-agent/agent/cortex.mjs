@@ -8,6 +8,7 @@
 // Every method returns a result object and never throws: a missing or slow Cortex API must not end a call.
 
 const CHERT_IDENTITY_PREFIX = 'chert-bridge-';
+export const DEFAULT_API_URL = 'http://127.0.0.1:4010'; // the local stateful mock (make dev)
 const FRESH_FRAME_MS = 5000; // a saved picture must be this recent (the caller may have muted the camera)
 
 const log = (event, extra = {}) => console.log(JSON.stringify({ cortex: event, ...extra }));
@@ -18,10 +19,35 @@ export function callIdFromIdentity(identity) {
   return id.startsWith(CHERT_IDENTITY_PREFIX) ? id.slice(CHERT_IDENTITY_PREFIX.length) : id;
 }
 
+/** True for a URL that only works on the machine it is read on (localhost, 127.x, ::1, 0.0.0.0). */
+export function isLocalUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^\[|\]$/g, '');
+    return host === 'localhost' || host === '::1' || host === '0.0.0.0' || host.endsWith('.localhost') || /^127\./.test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A warning for the one setup that fails quietly: an agent on a real LiveKit worker (the hosted setup) whose
+ * Cortex API address is the local mock. Every memory lookup would then answer "memory is not reachable".
+ * Returns the text to log, or null when the setup is fine. On a laptop in Chert rooms (no LiveKit keys) the
+ * local mock is expected, so there is no warning.
+ * @param {string | undefined} apiUrl the CORTEX_API_URL value (empty or undefined means the default)
+ * @param {boolean} onLiveKitWorker true when the agent runs with its own LiveKit keys
+ */
+export function localApiWarning(apiUrl, onLiveKitWorker) {
+  const url = apiUrl || DEFAULT_API_URL;
+  if (!onLiveKitWorker || !isLocalUrl(url)) return null;
+  return `CORTEX_API_URL is ${apiUrl ? `"${url}"` : `not set (default ${DEFAULT_API_URL})`}, which is this machine's own address, but the agent runs on a LiveKit worker. ` +
+    'Set CORTEX_API_URL to the hosted Cortex API, or every memory lookup, save and call report will fail.';
+}
+
 /**
  * @param {{ baseUrl?: string, fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
  */
-export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || 'http://127.0.0.1:4010', fetchImpl = fetch, timeoutMs = 12000 } = {}) {
+export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, fetchImpl = fetch, timeoutMs = 12000 } = {}) {
   const base = baseUrl.replace(/\/+$/, '');
 
   async function request(method, path, body, ms = timeoutMs) {

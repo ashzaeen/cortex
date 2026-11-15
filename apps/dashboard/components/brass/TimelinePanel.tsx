@@ -147,7 +147,7 @@ export function TimelinePanel({ moments, people, promises, ids, selected, onSele
         ))}
       </div>
       {top && (
-        <button type="button" onClick={onWaitingOn} className="press mt-1.5 flex flex-none flex-wrap items-center justify-between gap-2 border-t border-edge px-3.5 pb-2 pt-3.5 text-left">
+        <button type="button" onClick={onWaitingOn} className="press mt-1.5 flex min-h-11 flex-none flex-wrap items-center justify-between gap-2 border-t border-edge px-3.5 pb-2 pt-3.5 text-left">
           <span className="text-sm text-text-2">Waiting On: {who?.name ?? "someone"}, {top.what.replace(/^Send /i, "").toLowerCase()}</span>
           <Tag tone={chip!.tone}>{chip!.text}</Tag>
         </button>

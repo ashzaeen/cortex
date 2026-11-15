@@ -62,7 +62,7 @@ function TopBar({ signedIn }: { signedIn: boolean }) {
 // ------------------------------------------------------------------ hero
 function Hero({ signedIn, userName, authReady, notice }: Omit<Props, "notice"> & { notice: string | null }) {
   return (
-    <section className="grid items-center gap-10 pt-12 md:pt-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14" aria-labelledby="hero-title">
+    <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-10 pt-12 md:pt-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14" aria-labelledby="hero-title">
       <div className="rise flex flex-col gap-7" style={{ animationDelay: "200ms" }}>
         <span className="t-label">A second brain for Ray-Ban Meta</span>
         <h1 id="hero-title" className="font-voice font-medium tracking-[-0.02em]" style={{ fontSize: "clamp(2.75rem, 1.6rem + 4.2vw, 4.75rem)", lineHeight: 1.04 }}>
@@ -216,7 +216,7 @@ function HowItWorks() {
         <Label>How It Works</Label>
         <h2 id="how-title" className="t-title" style={{ fontSize: "clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem)" }}>Remember, Prove, Follow Through</h2>
       </div>
-      <ol className="grid gap-4 md:grid-cols-3 md:gap-6">
+      <ol className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-3 md:gap-6">
         {STEPS.map((s, k) => (
           <li key={s.title} className="nested lift flex flex-col gap-4 p-7" style={{ borderRadius: "var(--r-xl)" }}>
             <div className="flex items-center justify-between">
@@ -250,17 +250,17 @@ function Modes({ mode, setMode }: { mode: Mode["id"]; setMode: (m: Mode["id"]) =
   }, [auto, reduce, mode, setMode]);
   const c = MODE_COPY[mode];
   return (
-    <section id="modes" aria-labelledby="modes-title" className="grid scroll-mt-28 items-center gap-10 lg:grid-cols-2 lg:gap-14">
+    <section id="modes" aria-labelledby="modes-title" className="grid scroll-mt-28 grid-cols-[minmax(0,1fr)] items-center gap-10 lg:grid-cols-2 lg:gap-14">
       <div className="flex flex-col gap-3">
         <Label>Modes</Label>
         <h2 id="modes-title" className="t-title" style={{ fontSize: "clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem)" }}>One Memory, Four Ways to Use It</h2>
         <p className="t-callout max-w-[32rem]">A mode changes what Cortex listens for and what it offers to do. The memory underneath is the same, so a promise made in Focus is still there in Life.</p>
       </div>
       <div className="glass flex flex-col gap-6 p-6 md:p-8">
-        <div role="radiogroup" aria-label="Mode" className="flex flex-wrap gap-1.5 self-start rounded-pill bg-fill-soft p-1.5">
+        <div role="radiogroup" aria-label="Mode" className="grid w-full grid-cols-4 gap-1 rounded-pill bg-fill-soft p-1.5 sm:flex sm:w-auto sm:flex-wrap sm:gap-1.5 sm:self-start">
           {MODE_ORDER.map((m) => (
             <button key={m} type="button" role="radio" aria-checked={m === mode} onClick={() => { setAuto(false); setMode(m); }}
-              className={`press relative min-h-11 rounded-pill px-4 text-[0.9375rem] font-semibold sm:px-5 ${m === mode ? "text-ink" : "text-text"}`}>
+              className={`press relative min-h-11 rounded-pill px-1 text-sm font-semibold min-[360px]:text-[0.9375rem] sm:px-5 ${m === mode ? "text-ink" : "text-text"}`}>
               {m === mode && <motion.span layoutId="landing-mode" transition={SPRING_SNAPPY} className="absolute inset-0 rounded-pill bg-brass" aria-hidden="true" />}
               <span className="relative">{MODE_LABEL[m]}</span>
             </button>
@@ -294,7 +294,7 @@ function Trust() {
         <Label>Privacy</Label>
         <h2 id="privacy-title" className="t-title" style={{ fontSize: "clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem)" }}>You Stay in Control</h2>
       </div>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         {TRUST.map((t) => (
           <li key={t.title} className="flex flex-col gap-3 border-t border-edge pt-5">
             <t.icon size={22} strokeWidth={1.5} className="text-brass" aria-hidden="true" />

@@ -12,11 +12,11 @@ export const sourceLabel = (m: Moment) =>
   ({ glasses: m.transcript ? "glasses mic" : "glasses camera", phone: "phone", call: "FaceTime call", seed: "earlier capture", dashboard: "typed" })[m.source];
 
 /** Compact, single-row proof (design.md 11.4 item 3): label, one line of note, framed thumbnail. */
-export function ProofRow({ m, sid, note, onOpen }: { m: Moment; sid: string; note?: string; onOpen?: () => void }) {
+export function ProofRow({ m, sid, note, onOpen, label = "PROOF" }: { m: Moment; sid: string; note?: string; onOpen?: () => void; label?: string }) {
   return (
-    <button type="button" onClick={onOpen} className="nested press flex h-[64px] w-full flex-none items-center gap-3 px-4 text-left" style={{ borderRadius: "var(--r-lg)" }}>
+    <button type="button" onClick={onOpen} className="proof-row nested press flex h-[64px] w-full flex-none items-center gap-3 px-4 text-left hover:bg-fill-press" style={{ borderRadius: "var(--r-lg)" }}>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="t-data truncate text-brass">PROOF {sid} - {timecode(m.ts)} - {sourceLabel(m).toUpperCase()}</span>
+        <span className="t-data truncate text-brass">{label} {sid} - {timecode(m.ts)} - {sourceLabel(m).toUpperCase()}</span>
         <span className="t-footnote truncate">{note ?? m.caption ?? (m.place ? `At ${m.place}` : "Open the moment for details.")}</span>
       </div>
       <Frame src={snapshotSrc(m.snapshot_url)} alt={m.caption ?? "Captured frame"} selected className="w-[60px]" ratio="16 / 10" />
@@ -44,12 +44,13 @@ type Props = {
   thinking: boolean;
   searched: number;
   proof: Moment | null;
+  loading?: boolean;
   ids: Map<string, string>;
   onOpenAsk: () => void;
   onOpenMoment: (id: string) => void;
 };
 
-export function AskPanel({ question, answer, thinking, searched, proof, ids, onOpenAsk, onOpenMoment }: Props) {
+export function AskPanel({ question, answer, thinking, searched, proof, loading = false, ids, onOpenAsk, onOpenMoment }: Props) {
   // The hero quote: the answer's lead source when Cortex answered, otherwise the selected moment.
   const lead = answer?.grounded ? answer.sources[0] : proof ?? undefined;
   const hero = lead ? (lead.transcript ? curly(lead.transcript) : lead.caption ?? "Snapshot saved.") : null;
@@ -58,22 +59,22 @@ export function AskPanel({ question, answer, thinking, searched, proof, ids, onO
     : undefined;
 
   return (
-    <section id="ask" aria-labelledby="ask-label" className="glass flex h-full flex-col gap-3 overflow-hidden p-6 md:p-7">
+    <section id="ask" aria-labelledby="ask-label" className="ask-card glass flex h-full flex-col gap-3 overflow-hidden p-6 md:p-7" aria-busy={loading || thinking}>
       <Label as="h2" id="ask-label" className="flex-none">Ask Your Memory</Label>
       <div className="flex flex-none items-center gap-3">
         <button type="button" onClick={onOpenAsk} className={`press min-h-11 min-w-0 flex-1 rounded-md text-left ${thinking ? "shimmer shimmer-once" : ""}`}>
-          <span className="t-question block truncate">{question}</span>
+          <span className={`t-question line-clamp-2 lg:line-clamp-1 ${question ? "" : "text-text-4"}`}>{question || "What did Ash promise me?"}</span>
         </button>
         <IconButton label="Ask by voice or text" onClick={onOpenAsk}><Mic size={20} strokeWidth={1.5} /></IconButton>
       </div>
 
       {/* The quote area takes whatever height is left; the type scales to it (container units). */}
       <div aria-live="polite" className="ask-quote-area relative min-h-0 flex-1">
-        {thinking ? (
+        {thinking || loading ? (
           <div className="flex h-full flex-col justify-center gap-3">
             <div className="skeleton shimmer h-[22cqh] max-h-10 w-11/12" />
             <div className="skeleton shimmer h-[22cqh] max-h-10 w-2/3" />
-            <span className="t-label">Searching {searched} Moments</span>
+            {thinking && <span className="t-label">Searching {searched} Moments</span>}
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -109,8 +110,16 @@ export function AskPanel({ question, answer, thinking, searched, proof, ids, onO
         )}
       </div>
 
-      {!thinking && lead && !(answer && !answer.grounded) && (
-        <ProofRow m={lead} sid={ids.get(lead.id) ?? "m?"} note={note} onOpen={() => onOpenMoment(lead.id)} />
+      {/* The source arrives a beat after the quote (design.md 12.3). Unanswered, the row says LATEST, not PROOF. */}
+      {!thinking && !loading && lead && !(answer && !answer.grounded) && (
+        <motion.div
+          key={`${answer?.receipt_id ?? "idle"}:${lead.id}`}
+          className="flex-none"
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <ProofRow m={lead} sid={ids.get(lead.id) ?? "m?"} note={note} label={answer?.grounded ? "PROOF" : "LATEST"} onOpen={() => onOpenMoment(lead.id)} />
+        </motion.div>
       )}
     </section>
   );

@@ -5,17 +5,17 @@
 - `openapi.yaml`: every endpoint, including the live event stream (`GET /events`, Server-Sent Events). Its examples are what the mock returns.
 - `schemas/*.schema.json`: JSON Schema (2020-12) for Moment, Person, Promise, Action, Receipt and Mode. `openapi.yaml` references them, and `fixtures/` is validated against them.
 
-| Endpoint | Purpose | Tier 0 |
+| Endpoint | Purpose | Demo checklist |
 | --- | --- | --- |
-| `POST /moments` | Ingest from glasses, phone, call or dashboard | T0-1 |
-| `GET /moments`, `GET /moments/search?q=` | Timeline and search, always with source moments | T0-2, T0-8 |
-| `POST /people`, `GET /people`, `GET /people/{id}/brief` | Contact cards and the spoken brief | T0-3, T0-6 |
-| `POST /promises`, `POST /promises/{id}/confirm`, `GET /promises` | Waiting on and I owe | T0-4 |
-| `POST /ask` | Answer plus sources plus receipt id | T0-5, T0-10 |
-| `GET /actions`, `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | T0-7 |
-| `GET /privacy`, `POST /privacy/pause`, `DELETE /moments/{id}` | Pause, off-the-record, delete | T0-9 |
-| `POST /calls/started`, `POST /calls/ended`, `GET /calls/current` | The call agent reports a live FaceTime call (emits `call.started` and `call.ended`); the dashboard reads the call in progress | T0-10, T0-8 |
-| `GET /events` | Live updates for the dashboard | T0-8 |
+| `POST /moments` | Ingest from glasses, phone, call or dashboard | D-1 |
+| `GET /moments`, `GET /moments/search?q=` | Timeline and search, always with source moments | D-2, D-8 |
+| `POST /people`, `GET /people`, `GET /people/{id}/brief` | Contact cards and the spoken brief | D-3, D-6 |
+| `POST /promises`, `POST /promises/{id}/confirm`, `GET /promises` | Waiting on and I owe | D-4 |
+| `POST /ask` | Answer plus sources plus receipt id | D-5, D-10 |
+| `GET /actions`, `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | D-7 |
+| `GET /privacy`, `POST /privacy/pause`, `DELETE /moments/{id}` | Pause, off-the-record, delete | D-9 |
+| `POST /calls/started`, `POST /calls/ended`, `GET /calls/current` | The call agent reports a live FaceTime call (emits `call.started` and `call.ended`); the dashboard reads the call in progress | D-10, D-8 |
+| `GET /events` | Live updates for the dashboard | D-8 |
 | `GET /modes`, `GET /health` | Mode presets, liveness | - |
 
 ## Use it

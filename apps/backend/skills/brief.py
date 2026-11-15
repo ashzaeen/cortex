@@ -1,4 +1,4 @@
-"""Pre-meeting brief (T0-6): about 20 seconds spoken, three bullets, open promises and source moments.
+"""Pre-meeting brief (D-6): about 20 seconds spoken, three bullets, open promises and source moments.
 The model writes it from stored data only; if its output is unusable a template built from the same data
 is used, so the brief never fails on stage. Results are cached until that person's data changes."""
 from core import contract, db

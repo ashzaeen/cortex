@@ -1,4 +1,4 @@
-"""DELETE /moments/{id} (T0-9): remove a moment and everything derived from it.
+"""DELETE /moments/{id} (D-9): remove a moment and everything derived from it.
 
 Removed: the moment (transcript, caption, embedding), its snapshot file, promises sourced from it, people
 introduced by it (and their promises), its Tiger Data timeline row, and its id from other records.

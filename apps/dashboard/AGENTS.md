@@ -5,7 +5,7 @@
 - **Run alone:** `make dev` (stateful mock at `http://127.0.0.1:4010`, dashboard at `:3000`). Never require the real backend to render. The server reads the API base URL from `CORTEX_API_URL`; the browser only ever calls `/api/*`.
 - **Mock (`mock/`):** fakes skills with text rules and has an Ash demo driver (`/_demo/*`). Keep it contract-true (`npm test` validates every response) and never let it grow into the backend.
 - **Contract:** [contracts/openapi.yaml](../../contracts/openapi.yaml); live updates come from `GET /events` (SSE). Generate types from the contract rather than writing them by hand.
-- **Done-when test (T0-8):** updates appear on screen within seconds while the demo runs (Live, Timeline, Ask, Proof receipts). The dashboard also shows the T0-3 card, the T0-4 confirm chip, the T0-5 receipt, the T0-7 undo and the T0-9 controls.
+- **Done-when test (D-8):** updates appear on screen within seconds while the demo runs (Live, Timeline, Ask, Proof receipts). The dashboard also shows the D-3 card, the D-4 confirm chip, the D-5 receipt, the D-7 undo and the D-9 controls.
 - **Rules:** every answer shows its source moment; capture state is always visible; delete is one tap and gives a receipt.
 
 <!-- BEGIN:nextjs-agent-rules -->

@@ -39,7 +39,7 @@ check: lint test ## Everything CI runs; must pass after `git pull` and before ev
 seed: $(TOOLS) ## Validate fixtures and load them into the backend (when it exists)
 	@$(NODE) scripts/seed.mjs
 
-status: ## Tier 0 status table and open Tier 0 issues
+status: ## Demo checklist status and open checklist issues
 	@$(NODE) scripts/status.mjs
 
 github-setup: ## Create or update labels and milestones (needs gh)

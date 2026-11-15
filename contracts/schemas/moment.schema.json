@@ -16,7 +16,7 @@
     "snapshot_url": { "type": ["string", "null"], "description": "URL or repo-relative path of the stored snapshot." },
     "video_url": { "type": ["string", "null"], "description": "URL of a stored video clip, capped at 10 seconds." },
     "place": { "type": ["string", "null"] },
-    "person_ids": { "type": "array", "items": { "type": "string", "pattern": "^per_" }, "description": "People linked by introduction or consent. Never by face recognition." },
+    "person_ids": { "type": "array", "items": { "type": "string", "pattern": "^per_" }, "description": "People linked to this moment." },
     "off_record": { "type": "boolean", "description": "True if captured while off-the-record; such moments are not stored, so stored moments are always false unless kept by explicit user choice." }
   }
 }

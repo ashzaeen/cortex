@@ -1,5 +1,5 @@
-"""Network skill (T0-3): "This is Ash from Acme" -> contact card linked to the introduction moment.
-No face recognition: people enter memory only by introduction or explicit consent."""
+"""Network skill (D-3): "This is Ash from Acme" -> contact card linked to the introduction moment.
+Today people enter memory by introduction or an explicit add."""
 import re
 from datetime import datetime, timedelta
 

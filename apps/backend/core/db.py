@@ -1,6 +1,7 @@
 """MongoDB Atlas: the memory store ("what happened"). Document _id is the contract id.
 
 Collections: moments (+ embedding), people, promises, actions, receipts, modes, state (privacy).
+Each user's memory is its own database (core/user.py): col() always resolves in the current user's.
 """
 import logging
 
@@ -36,6 +37,29 @@ def init():
 
 
 def col(name: str):
+    """A collection in the current user's database (MONGODB_DB for the default user). For a signed-in user,
+    memory collections also show the shared default memory (core/merged.py)."""
+    if _db is None:
+        init()
+    from core import merged, user
+
+    mine = _client[user.db_name()][name]
+    if user.current() == user.DEFAULT or name not in merged.MERGED:
+        return mine
+    return merged.Merged(mine, _db[name], name)
+
+
+def own(name: str):
+    """Only the current user's own database, never the shared memory (seeding, resets)."""
+    if _db is None:
+        init()
+    from core import user
+
+    return _client[user.db_name()][name]
+
+
+def shared(name: str):
+    """A collection shared by every user (caches only, never memory)."""
     if _db is None:
         init()
     return _db[name]
@@ -54,8 +78,12 @@ def ping() -> bool:
 
 
 def reset():
+    """Delete the current user's memory."""
     for name in ("moments", "people", "promises", "actions", "receipts", "modes", "state", "drafts"):
-        col(name).delete_many({})
+        own(name).delete_many({})
+    from core import user
+
+    user.forget_ready()
 
 
 def ensure_indexes():

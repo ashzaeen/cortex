@@ -1,4 +1,4 @@
-"""Waiting-on tracker (T0-4): a spoken promise becomes a proposed item (confirm chip) with who, what, due.
+"""Waiting-on tracker (D-4): a spoken promise becomes a proposed item (confirm chip) with who, what, due.
 One tap confirms it. Vague dates keep date=null and the words in due.text, never a guessed deadline."""
 import re
 from datetime import date, timedelta
@@ -46,7 +46,7 @@ def _insert(direction: str, person_id: str, what: str, due: dict, source_moment_
     db.col("promises").insert_one(doc)
     out = contract.promise(doc)
     events.publish("promise.proposed", out)
-    tiger.log_action(tiger.USER, now(), None, "promise.proposed", "cortex", {"promise_id": doc["_id"]})
+    tiger.log_action(tiger.user(), now(), None, "promise.proposed", "cortex", {"promise_id": doc["_id"]})
     return doc
 
 
@@ -88,7 +88,7 @@ def confirm(promise_id: str) -> dict:
         db.col("promises").update_one({"_id": promise_id}, {"$set": {"status": "confirmed", "confirmed_at": now()}})
         p = db.col("promises").find_one({"_id": promise_id})
         events.publish("promise.confirmed", contract.promise(p))
-        tiger.log_action(tiger.USER, now(), None, "promise.confirmed", "user", {"promise_id": promise_id})
+        tiger.log_action(tiger.user(), now(), None, "promise.confirmed", "user", {"promise_id": promise_id})
         # Demo beat 5: Cortex proposes the follow-up email for the person who made the promise
         from actions import followup
 

@@ -48,7 +48,7 @@ def set_privacy(state: str) -> dict:
     current = privacy()
     if current["state"] != state:
         db.col("state").update_one({"_id": "privacy"}, {"$set": {"state": state, "since": now()}})
-        tiger.log_action(tiger.USER, now(), None, f"privacy.{state}", "user")
+        tiger.log_action(tiger.user(), now(), None, f"privacy.{state}", "user")
     out = privacy_out()
     events.publish("privacy.changed", out)
     return out

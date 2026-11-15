@@ -6,15 +6,15 @@ Nov 14, 2026 · @Ashzaeen
 
 This is the full list of what Cortex must support, grouped from capture to demo readiness, with a priority tag on every feature so the team builds in the right order. It is built from the PRD, the Core Priority Plan, the `contracts/` folder and the repo docs as of Nov 14, 2026. Where the PRD and the priority plan disagree, the plan wins (AGENTS.md rule), and examples use **Ash** in place of the PRD's "Priya".
 
-**Priority tags**
+**Tags (no gating).** The tier system was scrapped on 2026-11-15: nothing is gated, and any feature can be built at any time. The tags below are kept only to show where a feature came from; they are not build rules.
 
-| Tag | Meaning | Build rule |
-| --- | --- | --- |
-| T0 | Tier 0, must work (ids T0-1 to T0-11). If one fails, the demo fails. | Build first. Nothing else until all pass twice in a row. |
-| T1 | Tier 1 stretch (ids T1-1 to T1-5), in a fixed order. | Only after Tier 0 passes twice and the script is rehearsed. |
-| Should | In the PRD's Must or Should ship list but not in a plan tier. | Build only after T0 and T1; confirm with the team first. |
-| Roadmap | Planned after the hackathon. | Pitch slide only, not built. |
-| Cut | Explicitly cut for the hackathon. | Do not build. Show as roadmap in the pitch. |
+| Tag | Meaning now |
+| --- | --- |
+| T0 | On the demo checklist (ids D-1 to D-11, docs/PLAN.md): the demo needs it on stage. |
+| T1 | Former stretch item (old ids T1-1 to T1-5). Buildable any time. |
+| Should | From the PRD's Must or Should ship list. Buildable any time. |
+| Roadmap | Was planned for after the hackathon. Buildable any time. |
+| Cut | Was cut for the hackathon. Buildable any time, face recognition included. |
 
 **Feature format.** Each feature has an id, a priority tag, the repo area that owns it (`area:*` label), a description of what it is, the requirements that must be built, and a done-when test where one exists.
 
@@ -34,7 +34,7 @@ This is the full list of what Cortex must support, grouped from capture to demo 
 | 10 | Platform | Contracts, backend services, events, tooling, hosting | backend, infra |
 | 11 | Demo readiness | Hero script, seed data, fallbacks, rehearsal, freeze | demo |
 
-The last two sections list the roadmap and cut items, then trace every Tier 0 id to the features that deliver it.
+The last two sections list the roadmap and cut items, then trace every demo checklist id to the features that deliver it.
 
 ## 1. Capture and input
 
@@ -42,7 +42,7 @@ Everything Cortex knows enters through one door: a moment posted to a single ing
 
 ### CAP-1 Glasses capture via Meta toolkit
 
-**Priority:** T0 (T0-1) · **Area:** capture (hardware lead @794KHSameer, iOS app @ahnafzabir-utd)
+**Priority:** T0 (D-1) · **Area:** capture (hardware lead @794KHSameer, iOS app @ahnafzabir-utd)
 
 A native iOS app (Swift) built on Meta's Wearables Device Access Toolkit receives camera frames and mic audio from the teammate's Gen 1 Ray-Ban Meta glasses and forwards them to the backend.
 
@@ -54,7 +54,7 @@ A native iOS app (Swift) built on Meta's Wearables Device Access Toolkit receive
 
 ### CAP-2 Phone capture fallback
 
-**Priority:** T0 (T0-1 fallback) · **Area:** capture, dashboard
+**Priority:** T0 (D-1 fallback) · **Area:** capture, dashboard
 
 The dashboard's Capture tab posts a camera snapshot plus what was said as a `phone` moment, using the same `POST /moments` as the glasses.
 
@@ -95,7 +95,7 @@ Snapshots are taken on cues rather than continuously: "remember this", picking s
 
 ### CAP-6 Capture state indicator
 
-**Priority:** T0 (supports T0-9) · **Area:** capture, dashboard
+**Priority:** T0 (supports D-9) · **Area:** capture, dashboard
 
 Capture state must always be visible and audible.
 
@@ -119,7 +119,7 @@ Every moment records where it came from: `glasses`, `phone`, `call` or `dashboar
 
 ### CAP-9 Single ingest pipeline
 
-**Priority:** T0 (T0-1) · **Area:** backend (`memory/ingest.py`)
+**Priority:** T0 (D-1) · **Area:** backend (`memory/ingest.py`)
 
 `POST /moments` is the only way data enters memory.
 
@@ -144,7 +144,7 @@ A moment is the atomic unit of memory: one captured utterance or snapshot.
 
 ### MEM-2 Memory search
 
-**Priority:** T0 (T0-2) · **Area:** backend (`memory/search.py`)
+**Priority:** T0 (D-2) · **Area:** backend (`memory/search.py`)
 
 `GET /moments/search?q=` finds moments by plain-language query across audio and vision.
 
@@ -154,15 +154,15 @@ A moment is the atomic unit of memory: one captured utterance or snapshot.
 
 ### MEM-3 Timeline listing
 
-**Priority:** T0 (T0-8) · **Area:** backend
+**Priority:** T0 (D-8) · **Area:** backend
 
 `GET /moments` returns moments newest first, with `since` and `limit` filters, to power the dashboard timeline.
 
 ### MEM-4 People store (contact cards)
 
-**Priority:** T0 (T0-3) · **Area:** backend (`skills/network.py`)
+**Priority:** T0 (D-3) · **Area:** backend (`skills/network.py`)
 
-A person is a contact card created only by introduction or consent.
+A person is a contact card, today created by introduction or consent.
 
 - Fields: id (`per_*`), name, company, role, topics, last seen, introduced-moment id.
 - Later moments within 5 minutes of an introduction link to that person.
@@ -170,7 +170,7 @@ A person is a contact card created only by introduction or consent.
 
 ### MEM-5 Promises store
 
-**Priority:** T0 (T0-4) · **Area:** backend (`skills/promises.py`)
+**Priority:** T0 (D-4) · **Area:** backend (`skills/promises.py`)
 
 A promise is a tracked commitment in either direction.
 
@@ -179,7 +179,7 @@ A promise is a tracked commitment in either direction.
 
 ### MEM-6 Ask with proof
 
-**Priority:** T0 (T0-5) · **Area:** backend (`skills/ask.py`)
+**Priority:** T0 (D-5) · **Area:** backend (`skills/ask.py`)
 
 `POST /ask` answers a question from memory and returns the answer, a short spoken version, a `grounded` flag, the source moments and a receipt id.
 
@@ -225,13 +225,13 @@ Simple lists filled by voice ("add this to my shopping list", "log this receipt"
 
 ### MEM-12 Retention and cascade delete
 
-**Priority:** T0 (T0-9) · **Area:** backend (`memory/delete.py`)
+**Priority:** T0 (D-9) · **Area:** backend (`memory/delete.py`)
 
 Keep text, embeddings and a small snapshot set only; discard raw video after processing. Deleting a moment removes everything derived from it (see PRIV-2).
 
 ## 3. Modes
 
-A mode is a preset over the same memory. It changes what Cortex captures, what it surfaces unprompted, how it speaks, and which actions it may take. The Tier 0 hero flow needs no mode switch: one preset is active (the contract requires exactly one active mode at all times). The first visible second mode is Tier 1 (T1-4).
+A mode is a preset over the same memory. It changes what Cortex captures, what it surfaces unprompted, how it speaks, and which actions it may take. The hero flow needs no mode switch: one preset is active (the contract requires exactly one active mode at all times). A second, visibly different mode (old id T1-4) is buildable any time.
 
 ### MODE-1 Mode framework
 
@@ -348,9 +348,9 @@ Every skill is written to the same contract so skills stay easy to add and easy 
 
 ### SKL-1 Network (lead skill)
 
-**Priority:** T0 (T0-3) · **Area:** backend (`skills/network.py`) · **Best mode:** any
+**Priority:** T0 (D-3) · **Area:** backend (`skills/network.py`) · **Best mode:** any
 
-Logs a person by introduction and the promises made, then drafts the follow-up. No face recognition: people enter memory only by introduction or consent.
+Logs a person by introduction and the promises made, then drafts the follow-up. Today people enter memory by introduction or consent.
 
 - **Trigger:** "This is Ash from Acme", "remember this person", or an Add person tap in the app.
 - **Inputs:** the name and company stated, the conversation that follows, time and place. A photo is saved only if the user takes one.
@@ -379,7 +379,7 @@ Logs a person by introduction and the promises made, then drafts the follow-up. 
 
 ### SKL-2 Waiting-on tracker
 
-**Priority:** T0 (T0-4) · **Area:** backend (`skills/promises.py`) · **Best mode:** any
+**Priority:** T0 (D-4) · **Area:** backend (`skills/promises.py`) · **Best mode:** any
 
 Tracks what other people promise you (waiting on) and what you promise them (I owe), with the source moment, and nudges when something is overdue.
 
@@ -402,12 +402,12 @@ Tracks what other people promise you (waiting on) and what you promise them (I o
 - **WAI-3 Waiting on and I owe lists:** two lists with who, what, due and source.
 - **WAI-4 Due-date handling:** stated dates parsed; inferred dates labeled; vague dates left null.
 - **WAI-5 Overdue nudges:** voice and app nudges with a daily cap and quiet hours (T1 and later).
-- **WAI-6 Follow-up draft offer:** proposes the follow-up email when a promise is confirmed or overdue (feeds the action loop, T0-7).
+- **WAI-6 Follow-up draft offer:** proposes the follow-up email when a promise is confirmed or overdue (feeds the action loop, D-7).
 - **WAI-7 Close out:** "got it" or a done tap closes the item.
 
 ### SKL-3 Pre-meeting brief
 
-**Priority:** T0 (T0-6) · **Area:** backend (`skills/brief.py`) · **Best mode:** Focus
+**Priority:** T0 (D-6) · **Area:** backend (`skills/brief.py`) · **Best mode:** Focus
 
 A 20-second spoken summary of past conversations, interests and open promises for a person or event.
 
@@ -464,7 +464,7 @@ Cortex does not stop at remembering: every commitment it hears becomes a propose
 
 ### ACT-1 The five-step loop
 
-**Priority:** T0 (T0-7, one action) · **Area:** backend (`actions/followup.py`)
+**Priority:** T0 (D-7, one action) · **Area:** backend (`actions/followup.py`)
 
 1. **Notice:** detect a commitment, deadline, question or need in what was seen or said ("I'll send you the slides Friday").
 2. **Propose:** turn it into a concrete action with details filled in, spoken in one short sentence.
@@ -474,9 +474,9 @@ Cortex does not stop at remembering: every commitment it hears becomes a propose
 
 ### ACT-2 Follow-up email
 
-**Priority:** T0 (T0-7) · **Area:** backend (`actions/followup.py`, `actions/email.py`)
+**Priority:** T0 (D-7) · **Area:** backend (`actions/followup.py`, `actions/email.py`)
 
-The one Tier 0 action. After a promise is confirmed, Cortex proposes a follow-up email to that person with its source moments.
+The one action on the demo checklist. After a promise is confirmed, Cortex proposes a follow-up email to that person with its source moments.
 
 - `POST /actions/propose` with type `follow_up_email`, a person id and source moment ids creates a proposed action; `action.proposed` is emitted.
 - `POST /actions/{id}/confirm` with `deliver: send` or `draft`, and optional user edits to to, subject and body, completes it and writes a receipt.
@@ -510,7 +510,7 @@ Anything that sends, spends or shares needs a spoken or tapped yes. Every action
 
 **Priority:** Should (PRD Must ship, not in a plan tier) · **Area:** backend
 
-Adds an event through Google Calendar, for example a quiz caught by the deadline catcher. Needs confirmation. Open question: the plan drops it from Tier 0; decide with the team whether it returns after Tier 1.
+Adds an event through Google Calendar, for example a quiz caught by the deadline catcher. Needs confirmation. Open question: the plan left it off the demo; with tiers gone it is buildable now, and it is now built.
 
 ### ACT-6 Task or reminder
 
@@ -550,7 +550,7 @@ The user can say "skip" or tap dismiss on any proposal; the action becomes `dism
 
 ### ACT-12 Receipts and undo
 
-**Priority:** T0 (T0-7) · **Area:** backend, dashboard
+**Priority:** T0 (D-7) · **Area:** backend, dashboard
 
 Every completed action returns a receipt (`ActionResult` carries the action and its receipt) showing the source moments and an undo while the window is open. Undo returns 409 once the window has closed.
 
@@ -560,7 +560,7 @@ Gen 1 glasses have no display, so output is audio plus the dashboard. Voice is t
 
 ### VOI-1 Spoken questions
 
-**Priority:** T0 (T0-5) · **Area:** capture, backend
+**Priority:** T0 (D-5) · **Area:** capture, backend
 
 A voice question goes to `POST /ask` with `channel: voice`; the capture app posts one finished utterance per request. Examples: "What did Ash promise me?", "Brief me on Ash", "Where did I leave my keys?".
 
@@ -609,7 +609,7 @@ Chert bridges a FaceTime call into a LiveKit room that our own agent joins, so t
 
 ### CALL-1 Inbound call answered from memory
 
-**Priority:** T0 (T0-10) · **Area:** call (@ahnafzabir-utd)
+**Priority:** T0 (D-10) · **Area:** call (@ahnafzabir-utd)
 
 A FaceTime call from an iPhone reaches Cortex, which greets in time and answers from memory.
 
@@ -621,7 +621,7 @@ A FaceTime call from an iPhone reaches Cortex, which greets in time and answers 
 
 ### CALL-2 Caller camera into memory
 
-**Priority:** T0 (T0-10) · **Area:** call, backend
+**Priority:** T0 (D-10) · **Area:** call, backend
 
 The caller holds up one object or document (a business card or whiteboard); Cortex saves what the camera shows as a moment with source `call`.
 
@@ -630,7 +630,7 @@ The caller holds up one object or document (a business card or whiteboard); Cort
 
 ### CALL-3 Call events to the dashboard
 
-**Priority:** T0 (T0-8, T0-10) · **Area:** call, dashboard
+**Priority:** T0 (D-8, D-10) · **Area:** call, dashboard
 
 `call.started` and `call.ended` events appear on the live event stream so judges see the call on the dashboard.
 
@@ -669,11 +669,11 @@ Be rung for approvals, or call Cortex from any iPhone, using the same confirm ru
 
 ## 8. Companion app and dashboard
 
-The glasses have no screen, so the companion app is where memory becomes visible and trustworthy. It ships as a phone-first web app (iPhone Safari first) that the wearer uses and that judges see on a laptop. Stack as accepted in ADR 0005: Next.js 16 with TypeScript, Tailwind CSS 4, a same-origin `/api` proxy to the backend, and Vercel hosting (HTTPS is required for iPhone camera and mic). Tier 0 is the Live, Timeline, Ask and Receipts tabs plus privacy controls (T0-8, T0-9); updates must appear within seconds while the demo runs.
+The glasses have no screen, so the companion app is where memory becomes visible and trustworthy. It ships as a phone-first web app (iPhone Safari first) that the wearer uses and that judges see on a laptop. Stack as accepted in ADR 0005: Next.js 16 with TypeScript, Tailwind CSS 4, a same-origin `/api` proxy to the backend, and Vercel hosting (HTTPS is required for iPhone camera and mic). The demo checklist covers the Live, Timeline, Ask and Receipts tabs plus privacy controls (D-8, D-9); updates must appear within seconds while the demo runs.
 
 ### DASH-1 App shell
 
-**Priority:** T0 (T0-8) · **Area:** dashboard
+**Priority:** T0 (D-8) · **Area:** dashboard
 
 - Sticky header with the app name, the capture state dot (green capturing, amber paused, red off the record) and a live or offline connection indicator.
 - A bottom tab bar (Live, Capture, Timeline, Ask, Receipts, Privacy; Modes added later) with safe-area padding for iPhone.
@@ -681,7 +681,7 @@ The glasses have no screen, so the companion app is where memory becomes visible
 
 ### DASH-2 Live tab
 
-**Priority:** T0 (T0-3, T0-4, T0-6, T0-8) · **Area:** dashboard
+**Priority:** T0 (D-3, D-4, D-6, D-8) · **Area:** dashboard
 
 The screen judges watch during the demo.
 
@@ -694,13 +694,13 @@ The screen judges watch during the demo.
 
 ### DASH-3 Capture tab
 
-**Priority:** T0 (T0-1 fallback) · **Area:** dashboard
+**Priority:** T0 (D-1 fallback) · **Area:** dashboard
 
 Phone capture: a camera snapshot plus what was said, posted as a `phone` moment. Includes a Start button that unlocks audio and a Wake Lock to keep capture running.
 
 ### DASH-4 Timeline tab
 
-**Priority:** T0 (T0-8, T0-9) · **Area:** dashboard
+**Priority:** T0 (D-8, D-9) · **Area:** dashboard
 
 - Moments newest first with transcript, caption, snapshot, people and time.
 - Delete any moment; deleting also removes promises found in it.
@@ -708,7 +708,7 @@ Phone capture: a camera snapshot plus what was said, posted as a `phone` moment.
 
 ### DASH-5 Ask tab
 
-**Priority:** T0 (T0-5) · **Area:** dashboard
+**Priority:** T0 (D-5) · **Area:** dashboard
 
 - A text box and suggestion chips ("Where did I leave my keys?", "What is open with Ash?").
 - Shows the answer, a Speak button, the exact source moments (snapshot and transcript line) and the receipt id.
@@ -716,7 +716,7 @@ Phone capture: a camera snapshot plus what was said, posted as a `phone` moment.
 
 ### DASH-6 Proof receipts tab
 
-**Priority:** T0 (T0-7, T0-8) · **Area:** dashboard
+**Priority:** T0 (D-7, D-8) · **Area:** dashboard
 
 - Receipts newest first with kind, time, summary and the number of source moments.
 - An Undo button with a live deadline while the undo window is open.
@@ -724,7 +724,7 @@ Phone capture: a camera snapshot plus what was said, posted as a `phone` moment.
 
 ### DASH-7 Privacy tab
 
-**Priority:** T0 (T0-9) · **Area:** dashboard
+**Priority:** T0 (D-9) · **Area:** dashboard
 
 Three states: capturing, paused (nothing captured until resumed) and off the record (nothing stored, even if heard). A pointer to deleting moments from the Timeline. Later: per-mode retention defaults, forget by time range, and a caregiver sharing page.
 
@@ -736,7 +736,7 @@ Contact cards with topics, company and linked moments; Waiting on and I owe list
 
 ### DASH-9 Live event stream
 
-**Priority:** T0 (T0-8) · **Area:** dashboard, backend
+**Priority:** T0 (D-8) · **Area:** dashboard, backend
 
 The app subscribes to `GET /events` (server-sent events) and refreshes on `moment.created`, `moment.deleted`, `person.created`, `promise.proposed`, `promise.confirmed`, `action.proposed`, `action.updated`, `receipt.created`, `privacy.changed`, `call.started` and `call.ended`.
 
@@ -766,17 +766,17 @@ A stateful mock server lets the dashboard be built and rehearsed before the real
 
 ## 9. Trust, privacy and safety
 
-Always-on cameras are the first objection judges and the public raise, so privacy is a product feature, not a footnote. Tier 0 includes the minimums (T0-9), which must work on stage and be visible to judges.
+Always-on cameras are the first objection judges and the public raise, so privacy is a product feature, not a footnote. The demo checklist includes the minimums (D-9), which must work on stage and be visible to judges.
 
 ### PRIV-1 Pause and off the record
 
-**Priority:** T0 (T0-9) · **Area:** backend, dashboard, capture
+**Priority:** T0 (D-9) · **Area:** backend, dashboard, capture
 
 `GET /privacy` and `POST /privacy/pause` switch between `capturing`, `paused` and `off_record`. While paused or off the record, `POST /moments` returns 409 and nothing is stored. A `privacy.changed` event updates the dashboard immediately.
 
 ### PRIV-2 Delete a moment, with cascade
 
-**Priority:** T0 (T0-9) · **Area:** backend (`memory/delete.py`)
+**Priority:** T0 (D-9) · **Area:** backend (`memory/delete.py`)
 
 `DELETE /moments/{id}` removes the moment, its embedding, snapshot, derived promises, any people it introduced and its database rows, and returns a `deletion` receipt. A `moment.deleted` event is emitted.
 
@@ -786,17 +786,17 @@ Always-on cameras are the first objection judges and the public raise, so privac
 
 "Forget the last hour" and "forget everything about Sam" delete matching moments, embeddings and derived notes. Runs live in the PRD demo close.
 
-### PRIV-4 No face recognition
+### PRIV-4 Face recognition (no longer a rule)
 
-**Priority:** T0 (rule) · **Area:** all
+**Priority:** Cut, now buildable · **Area:** all
 
-No face or voice identification of anyone. Face recognition and contact memory are shown as roadmap only.
+The no-face-recognition rule was removed (2026-11-15). Face and voice identification are now ordinary features that can be built. Today's code does not identify anyone by face or voice.
 
-### PRIV-5 Consent for people
+### PRIV-5 How people enter memory (no longer a rule)
 
-**Priority:** T0 (rule) · **Area:** backend
+**Priority:** Should · **Area:** backend
 
-People enter memory only by introduction or their own consent. Bystanders are never enrolled. Nothing is shared with other users.
+The introduction-or-consent rule was removed (2026-11-15). Today the Network skill adds people from introductions and explicit adds; other ways in can be built. Nothing is shared with other users.
 
 ### PRIV-6 Visible capture state
 
@@ -818,7 +818,7 @@ Anything that sends, spends or shares needs a spoken or tapped yes. Every action
 
 ### PRIV-9 Grounded answers only
 
-**Priority:** T0 (T0-5) · **Area:** backend
+**Priority:** T0 (D-5) · **Area:** backend
 
 Answers come only from retrieved moments, with citations checked against the hits. If memory has nothing, Cortex says "I don't have that" instead of guessing, so errors stay visible and correctable.
 
@@ -862,16 +862,16 @@ The shared foundation every area builds on. The contract folder is the single so
 
 `contracts/openapi.yaml` plus JSON Schemas for Moment, Person, Promise, Action, Receipt and Mode. Changes need an issue labeled `contract-change` that lists affected areas; prefer additive changes; fixtures and examples are updated in the same push.
 
-| Endpoint | Purpose | Tier 0 |
+| Endpoint | Purpose | Demo checklist |
 | --- | --- | --- |
-| `POST /moments` | Ingest from glasses, phone, call or dashboard | T0-1 |
-| `GET /moments`, `GET /moments/search?q=` | Timeline and search, with source moments | T0-2, T0-8 |
-| `POST /people`, `GET /people`, `GET /people/{id}/brief` | Contact cards and the spoken brief | T0-3, T0-6 |
-| `POST /promises`, `POST /promises/{id}/confirm`, `GET /promises` | Waiting on and I owe | T0-4 |
-| `POST /ask` | Answer, sources and receipt id | T0-5, T0-10 |
-| `GET /actions`, `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | T0-7 |
-| `GET /privacy`, `POST /privacy/pause`, `DELETE /moments/{id}` | Pause, off the record, delete | T0-9 |
-| `GET /events` | Live updates for the dashboard | T0-8 |
+| `POST /moments` | Ingest from glasses, phone, call or dashboard | D-1 |
+| `GET /moments`, `GET /moments/search?q=` | Timeline and search, with source moments | D-2, D-8 |
+| `POST /people`, `GET /people`, `GET /people/{id}/brief` | Contact cards and the spoken brief | D-3, D-6 |
+| `POST /promises`, `POST /promises/{id}/confirm`, `GET /promises` | Waiting on and I owe | D-4 |
+| `POST /ask` | Answer, sources and receipt id | D-5, D-10 |
+| `GET /actions`, `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | D-7 |
+| `GET /privacy`, `POST /privacy/pause`, `DELETE /moments/{id}` | Pause, off the record, delete | D-9 |
+| `GET /events` | Live updates for the dashboard | D-8 |
 | `GET /modes`, `GET /health` | Mode presets, liveness | none |
 
 ### PLAT-2 Backend service
@@ -892,7 +892,7 @@ A model client behind one interface with a rule-based mock for offline tests; ve
 
 ### PLAT-4 Live event broker
 
-**Priority:** T0 (T0-8) · **Area:** backend
+**Priority:** T0 (D-8) · **Area:** backend
 
 A server-sent events stream at `GET /events` carrying the event types listed under DASH-9, so every area sees changes within seconds.
 
@@ -906,7 +906,7 @@ A single cloud backend, pre-warmed before demo day; the dashboard on Vercel for 
 
 **Priority:** T0 · **Area:** infra
 
-`docs/STATUS.md` tracks each Tier 0 item as not started, in progress, works or broken, with last verified `YYYY-MM-DD @handle`; `make check` rejects a `works` row with no verification. Task issues carry a Tier 0 id, a done-when test and verification steps.
+`docs/STATUS.md` tracks each demo checklist item as not started, in progress, works or broken, with last verified `YYYY-MM-DD @handle`; `make check` rejects a `works` row with no verification. Task issues carry a demo checklist id when they deliver one, a done-when test and verification steps.
 
 ### PLAT-7 Tooling and CI
 
@@ -922,28 +922,28 @@ CODEOWNERS and area labels: contracts and backend (@ClosetCoderSad), dashboard, 
 
 ## 11. Demo readiness and reliability
 
-The goal is to win the HackUTA 2026 main track and the Chert Best Use of FaceTime track with one flawless 3-minute demo. Demo reliability is itself a Tier 0 item (T0-11): the full script must run start to finish without touching code, twice in a row.
+The goal is to win the HackUTA 2026 main track and the Chert Best Use of FaceTime track with one flawless 3-minute demo. Demo reliability is itself a demo checklist item (D-11): the full script must run start to finish without touching code, twice in a row.
 
 ### DEMO-1 Hero demo script (frozen)
 
-**Priority:** T0 (T0-11) · **Area:** demo (@ashzaeen) · **Source:** `docs/DEMO_SCRIPT.md`
+**Priority:** T0 (D-11) · **Area:** demo (@ashzaeen) · **Source:** `docs/DEMO_SCRIPT.md`
 
 One continuous story where a promise made in conversation comes back later, with proof, on a video call. Changing it needs an issue labeled `area:demo` agreed by the whole team.
 
-| # | Beat | Time | What happens | Tier 0 ids |
+| # | Beat | Time | What happens | Checklist ids |
 | --- | --- | --- | --- | --- |
-| 1 | Meet | 20 s | Wearing the glasses, say "This is Ash from Acme." A contact card appears on the live dashboard with the moment attached. | T0-1, T0-3, T0-8 |
-| 2 | Promise | 20 s | Ash says "I'll send you the deck Friday." A confirm chip appears; one tap adds it to Waiting on, with the source moment. | T0-4, T0-8 |
-| 3 | Ask with proof | 30 s | Ask "What did Ash promise me?" Cortex answers by voice and opens a proof receipt with the exact moment. | T0-2, T0-5 |
-| 4 | Brief | 20 s | "Brief me on Ash." Cortex speaks a 20-second brief. | T0-6 |
-| 5 | Act | 30 s | Cortex proposes a follow-up email; approve it; it sends and a receipt with undo appears. | T0-7 |
-| 6 | Call finale | 60 s | FaceTime Cortex from an iPhone, hold up a business card or whiteboard, then ask "What is open with Ash?" Cortex answers from memory, with the proof card on video if video back works. | T0-10 |
+| 1 | Meet | 20 s | Wearing the glasses, say "This is Ash from Acme." A contact card appears on the live dashboard with the moment attached. | D-1, D-3, D-8 |
+| 2 | Promise | 20 s | Ash says "I'll send you the deck Friday." A confirm chip appears; one tap adds it to Waiting on, with the source moment. | D-4, D-8 |
+| 3 | Ask with proof | 30 s | Ask "What did Ash promise me?" Cortex answers by voice and opens a proof receipt with the exact moment. | D-2, D-5 |
+| 4 | Brief | 20 s | "Brief me on Ash." Cortex speaks a 20-second brief. | D-6 |
+| 5 | Act | 30 s | Cortex proposes a follow-up email; approve it; it sends and a receipt with undo appears. | D-7 |
+| 6 | Call finale | 60 s | FaceTime Cortex from an iPhone, hold up a business card or whiteboard, then ask "What is open with Ash?" Cortex answers from memory, with the proof card on video if video back works. | D-10 |
 
-Privacy (pause or off the record, delete a moment) is also shown on stage (T0-9).
+Privacy (pause or off the record, delete a moment) is also shown on stage (D-9).
 
 ### DEMO-2 Seeded data and fixtures
 
-**Priority:** T0 (T0-11) · **Area:** demo (`fixtures/`, `make seed`)
+**Priority:** T0 (D-11) · **Area:** demo (`fixtures/`, `make seed`)
 
 Memory is seeded with a few earlier days of data so recall across time is real. Fixtures seed earlier days with other people only; Ash is created live. The demo owner decides whether to seed earlier Ash moments. Fixtures validate against the contract schemas.
 
@@ -955,7 +955,7 @@ Before going on stage, pre-warm the brief (`warm_all()`) and pre-compute and cac
 
 ### DEMO-4 Backup video
 
-**Priority:** T0 (T0-11) · **Area:** demo
+**Priority:** T0 (D-11) · **Area:** demo
 
 A recorded backup video of the full demo, kept on the laptop, including the call.
 
@@ -996,7 +996,7 @@ Run before building anything else; switch to the fallback the same day if one fa
 
 - Feature freeze at least 6 hours before judging; after it, only bug fixes and rehearsal.
 - At least 10 full rehearsals after freeze (the PRD says 5; the plan's 10 applies).
-- Tier 1 work starts only after Tier 0 passes twice in a row and the script is rehearsed.
+- No tier gating: other work can continue alongside rehearsal, until the feature freeze.
 
 ### DEMO-8 Pitch and submission
 
@@ -1014,7 +1014,7 @@ These are not built for the hackathon. Mention them on the roadmap slide in the 
 
 | Item | Why it is cut |
 | --- | --- |
-| Face recognition and contact memory | Ethics and privacy risk; people enter memory only by introduction |
+| Face recognition and contact memory | No longer cut (2026-11-15): buildable any time |
 | Memory graph, car mode, smart tags, ambient hub | Not on the hero path |
 | Multi-user sharing and caregiver dashboards | Needs consent and account model |
 | Whisper coach | Ethics risk in interviews and negotiations |
@@ -1032,29 +1032,29 @@ These are not built for the hackathon. Mention them on the roadmap slide in the 
 4. Support for display glasses and other hardware.
 5. Open memory API so other agents can query a user's memory with permission.
 
-## Appendix: Tier 0 traceability and open questions
+## Appendix: demo checklist traceability and open questions
 
-**Where each Tier 0 item is delivered**
+**Where each demo checklist item is delivered**
 
 | Id | Must work | Delivered by | Done when |
 | --- | --- | --- | --- |
-| T0-1 | Capture to backend | CAP-1 to CAP-9, DASH-3 | A sentence plus an object produces a stored moment in seconds |
-| T0-2 | Memory search returns the source moment | MEM-1, MEM-2 | The right moment returns every time on seeded data |
-| T0-3 | Introduction creates a contact card | SKL-1, MEM-4 | "This is Ash from Acme" gives a correct card with the moment linked |
-| T0-4 | Waiting-on tracker with one-tap confirm | SKL-2, MEM-5, DASH-2 | A spoken promise becomes a tracked item with who, what, due |
-| T0-5 | Ask with a proof receipt | MEM-6, MEM-7, VOI-1, DASH-5 | A voice question gets a spoken answer and a receipt with the source moment |
-| T0-6 | Pre-meeting brief, spoken | SKL-3 | "Brief me on Ash" returns a correct 20-second brief |
-| T0-7 | Follow-up email with undo | ACT-1 to ACT-4, ACT-12, DASH-6 | Propose, confirm, send or draft, then a receipt with undo |
-| T0-8 | Live dashboard | DASH-1 to DASH-9, PLAT-4 | Updates appear within seconds during the demo |
-| T0-9 | Pause or off the record, delete a moment | PRIV-1, PRIV-2, DASH-7 | Both work on stage and are visible to judges |
-| T0-10 | Chert inbound call answered from memory, with caller camera | CALL-1 to CALL-3, CALL-8 | An iPhone FaceTime reaches Cortex, which greets in 10 s, answers and saves the camera view |
-| T0-11 | Demo reliability | DEMO-1 to DEMO-8 | The full script runs twice in a row without touching code |
+| D-1 | Capture to backend | CAP-1 to CAP-9, DASH-3 | A sentence plus an object produces a stored moment in seconds |
+| D-2 | Memory search returns the source moment | MEM-1, MEM-2 | The right moment returns every time on seeded data |
+| D-3 | Introduction creates a contact card | SKL-1, MEM-4 | "This is Ash from Acme" gives a correct card with the moment linked |
+| D-4 | Waiting-on tracker with one-tap confirm | SKL-2, MEM-5, DASH-2 | A spoken promise becomes a tracked item with who, what, due |
+| D-5 | Ask with a proof receipt | MEM-6, MEM-7, VOI-1, DASH-5 | A voice question gets a spoken answer and a receipt with the source moment |
+| D-6 | Pre-meeting brief, spoken | SKL-3 | "Brief me on Ash" returns a correct 20-second brief |
+| D-7 | Follow-up email with undo | ACT-1 to ACT-4, ACT-12, DASH-6 | Propose, confirm, send or draft, then a receipt with undo |
+| D-8 | Live dashboard | DASH-1 to DASH-9, PLAT-4 | Updates appear within seconds during the demo |
+| D-9 | Pause or off the record, delete a moment | PRIV-1, PRIV-2, DASH-7 | Both work on stage and are visible to judges |
+| D-10 | Chert inbound call answered from memory, with caller camera | CALL-1 to CALL-3, CALL-8 | An iPhone FaceTime reaches Cortex, which greets in 10 s, answers and saves the camera view |
+| D-11 | Demo reliability | DEMO-1 to DEMO-8 | The full script runs twice in a row without touching code |
 
-**Tier 1, in order:** T1-1 agent video back (CALL-4), T1-2 outbound call for a brief (CALL-5, BRF-7), T1-3 daily digest and rewind (MEM-9, MEM-10, DASH-11), T1-4 a second visible mode (MODE-1, MODE-2, MODE-4, STU-2, DASH-10), T1-5 persona on calls (CALL-6).
+**Former Tier 1 items (no longer ordered or gated):** T1-1 agent video back (CALL-4), T1-2 outbound call for a brief (CALL-5, BRF-7), T1-3 daily digest and rewind (MEM-9, MEM-10, DASH-11), T1-4 a second visible mode (MODE-1, MODE-2, MODE-4, STU-2, DASH-10), T1-5 persona on calls (CALL-6).
 
 **Open questions for the team**
 
-- [ ] Calendar and task actions (ACT-5, ACT-6) are PRD Must ship but not in any plan tier. Do they return after Tier 1, or stay out?
+- [ ] Calendar and task actions (ACT-5, ACT-6) are PRD Must ship but not in any plan tier. With tiers gone they are buildable now (ACT-5 and ACT-6 are built).
 - [ ] Chert trial: the plan says a free 48-hour line, the PRD says 50 FaceTime minutes. Which applies, and has the clock already started from the earlier onboarding?
 - [ ] Who has the Mac with Xcode 26.4+, and whose iPhone (iOS 17.2+) runs the capture app? Ashzaeen has no iPhone.
 - [ ] Which teammate's iPhone sends the Chert verification code?

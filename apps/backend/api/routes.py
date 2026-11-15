@@ -150,7 +150,7 @@ def activate_mode(id: str):  # noqa: A002
     return mode
 
 
-# ---------- calls (T0-10) ----------
+# ---------- calls (D-10) ----------
 @router.post("/calls/started", tags=["calls"])
 def call_started(body: models.CallRef):
     return calls.started(body.call_id)

@@ -60,7 +60,10 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --dock-h: 64px;
+  --driver-offset: 0px; /* set while the demo driver bar is showing, so the chip and toast sit above it */
 }
+html[data-driver="true"] { --driver-offset: 64px; }
+@media (min-width: 1024px) { html[data-driver="true"] { --driver-offset: 0px; } }
 
 /* Tailwind utilities read the tokens: bg-glass, text-brass, rounded-xl, font-voice ... */
 @theme inline {
@@ -106,31 +109,34 @@ h1, h2, h3, blockquote { text-wrap: balance; }
 p { text-wrap: pretty; }
 button, a, input, textarea, [role="radio"] { touch-action: manipulation; }
 button { cursor: pointer; font-family: inherit; }
-:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+@layer base { :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; } }
 ::selection { background: var(--brass-wash); }
 * { scrollbar-width: thin; scrollbar-color: var(--edge) transparent; }
 
 /* ---------- materials (design.md section 6) ---------- */
-.glass {
-  position: relative;
-  border-radius: var(--r-xl);
-  background: var(--glass-tint);
-  border: 1px solid var(--edge);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+/* In the components layer, so Tailwind utilities (fixed, absolute, rounded-*) override them. */
+@layer components {
+  .glass {
+    position: relative;
+    border-radius: var(--r-xl);
+    background: var(--glass-tint);
+    border: 1px solid var(--edge);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+  .glass--pill { border-radius: var(--r-pill); }
+  .glass--sheet { border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3); }
+  .glass--float { box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3); }
+  .matte { background: var(--matte); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: var(--r-xl); }
+  .nested { background: var(--fill-soft); border: 1px solid var(--edge); border-radius: var(--r-lg); }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background: var(--glass-solid); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  html[data-solid="true"] .glass { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
-.glass--pill { border-radius: var(--r-pill); }
-.glass--sheet { border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3); }
-.glass--float { box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3); }
-.matte { background: var(--matte); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: var(--r-xl); }
-.nested { background: var(--fill-soft); border: 1px solid var(--edge); border-radius: var(--r-lg); }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass { background: var(--glass-solid); }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .glass { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
-}
-html[data-solid="true"] .glass { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* ---------- type styles (design.md section 5.2, voice scales from 390 to 1280) ---------- */
 .t-display { font-family: var(--font-voice); font-style: italic; font-weight: 400; font-size: clamp(1.875rem, 1.45rem + 1.4vw, 2.5rem); line-height: 1.25; letter-spacing: -0.01em; }
@@ -158,6 +164,12 @@ html[data-solid="true"] .glass { background: var(--glass-solid); -webkit-backdro
 .tally-ring[data-state="paused"]::after { background: var(--text-3); animation: none; transform: scale(0.5); }
 .tally-ring[data-state="error"] { border-color: var(--danger); }
 .tally-ring[data-state="error"]::after { background: var(--danger); animation: none; }
+/* Off the record: a hollow danger ring, distinct from paused (CAP-6). */
+.tally-ring[data-state="off"] { border-color: var(--danger); }
+.tally-ring[data-state="off"]::after { background: transparent; animation: none; }
+/* App ignition (design.md 12.3): the ring draws in and lights, 300ms. */
+.tally-ring--ignite { animation: ring-ignite 300ms var(--ease-out) backwards; }
+@keyframes ring-ignite { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: none; } }
 @keyframes tally { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
 .vf {
@@ -225,19 +237,39 @@ html[data-solid="true"] .glass { background: var(--glass-solid); -webkit-backdro
 /* App ignition (design.md 12.3): panels rise and fade with a stagger */
 .ask-quote-area { container-type: size; container-name: askq; }
 @container askq (max-height: 26px) { .ask-quote { display: none; } } /* never show half a line */
-/* Short laptop screens: compact the suggestion so the answer keeps room (decision D21). */
+/* Short laptop screens (a 1366x768 laptop leaves about 650px): compact everything above the answer
+   so the quote keeps room (decision D21). */
 @media (min-width: 1024px) and (max-height: 780px) {
   .sug-card { height: 220px; }
   .sug-card .sug-title { -webkit-line-clamp: 1; }
   .sug-card .sug-summary { -webkit-line-clamp: 1; }
   .sug-card .sug-to { display: none; }
 }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .sug-card { height: 176px; padding: 20px 24px; }
+  .sug-card .sug-summary { display: none; }
+  .home-main { padding-bottom: calc(var(--dock-h) + max(12px, var(--safe-bottom)) + 12px) !important; }
+  .ask-card { padding: 20px 24px; gap: 8px; }
+  .ask-card .proof-row { height: 56px; }
+}
+/* Landscape phones: a slimmer dock, so it does not cover a quarter of the screen. */
+@media (max-height: 480px) and (orientation: landscape) {
+  :root { --dock-h: 48px; }
+  .dock { padding: 4px; }
+  .dock-seg { min-height: 40px; }
+}
 .rise { animation: rise var(--dur-slow) var(--ease-out) backwards; } /* backwards, never both: a lingering transform animation would trap fixed and sticky children */
 @keyframes rise { from { opacity: 0; transform: translate3d(0, 16px, 0); } to { opacity: 1; transform: none; } }
+
+/* Horizontal scrollers hint that there is more: a soft fade on the trailing edge. */
+.fade-end { mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+/* Rows that use long-press: no iOS text-selection or callout sheet. */
+.no-callout { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
 /* ---------- reduced motion (design.md 12.7) ---------- */
 @media (prefers-reduced-motion: reduce) {
   .tally-ring::after { animation: none; }
+  .tally-ring--ignite { animation: none; }
   .ambient__drift, .shimmer::after { animation: none; }
   .ambient__scene[data-pull] { animation: fade-in 200ms linear both; }
   .ambient__light { transition: opacity 200ms linear; }

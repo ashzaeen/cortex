@@ -86,14 +86,14 @@ To simulate capture by hand, open the camera button in the status pill and type 
 
 `mock/engine.mjs` fakes the skills with simple text rules ("This is X from Y", "I'll send you X Friday", keyword search). It exists so the dashboard can be built, rehearsed and demoed without a backend. It must never grow into the real backend, which is @ClosetCoderSad's call (ADR 0001). Mock-only extras that the real backend will not have: `/_demo/*`, the `demo.step` and `person.updated` events (the second is proposed in #43), and static files under `/fixtures/`.
 
-| Surface | Endpoints | Tier 0 |
+| Surface | Endpoints | Demo checklist |
 | --- | --- | --- |
-| Home: Timeline, Ask, proof | `GET /events`, `GET /moments`, `POST /ask` | T0-2, T0-5, T0-8 |
-| Suggestion card (per mode) | `GET /actions`, `POST /actions/{id}/confirm`, `POST /actions/{id}/undo`, `POST /modes/{id}/activate` | T0-7 |
-| Track It chip, Waiting On sheet | `GET /promises`, `POST /promises/{id}/confirm` | T0-4 |
-| People sheet | `GET /people`, `GET /people/{id}/brief`, `POST /actions/propose` | T0-3, T0-6 |
-| Capture sheet | `POST /moments` (source `phone`), `GET /privacy` | T0-1 (fallback) |
-| Moment sheet | `DELETE /moments/{id}` (with an undo toast) | T0-9 |
-| Settings and Privacy | `POST /privacy/pause` | T0-9 |
-| Receipts sheet | `GET /receipts`, `POST /actions/{id}/undo` | T0-7 |
-| Call sheet | `GET /calls/current` (and the `call.started` / `call.ended` events), `call` moments | T0-10 |
+| Home: Timeline, Ask, proof | `GET /events`, `GET /moments`, `POST /ask` | D-2, D-5, D-8 |
+| Suggestion card (per mode) | `GET /actions`, `POST /actions/{id}/confirm`, `POST /actions/{id}/undo`, `POST /modes/{id}/activate` | D-7 |
+| Track It chip, Waiting On sheet | `GET /promises`, `POST /promises/{id}/confirm` | D-4 |
+| People sheet | `GET /people`, `GET /people/{id}/brief`, `POST /actions/propose` | D-3, D-6 |
+| Capture sheet | `POST /moments` (source `phone`), `GET /privacy` | D-1 (fallback) |
+| Moment sheet | `DELETE /moments/{id}` (with an undo toast) | D-9 |
+| Settings and Privacy | `POST /privacy/pause` | D-9 |
+| Receipts sheet | `GET /receipts`, `POST /actions/{id}/undo` | D-7 |
+| Call sheet | `GET /calls/current` (and the `call.started` / `call.ended` events), `call` moments | D-10 |

@@ -14,9 +14,13 @@ const API = (process.env.CORTEX_API_URL ?? "http://127.0.0.1:4010").replace(/\/$
 const API_KEY = process.env.CORTEX_API_KEY ?? "";
 
 async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> }) {
+  // Each signed-in user has a private memory on the backend, seeded from the demo profile: the
+  // backend picks it from X-Cortex-User (trusted because only callers with the API key reach it).
+  let email: string | null = null;
   if (authConfigured) {
     const session = await auth();
-    if (!session || !isAllowed(session.user?.email)) {
+    email = session?.user?.email?.toLowerCase() ?? null;
+    if (!session || !isAllowed(email)) {
       return Response.json({ error: { code: "unauthorized", message: "Sign in to use Cortex." } }, { status: 401 });
     }
   }
@@ -29,6 +33,7 @@ async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> })
     accept: req.headers.get("accept") ?? "*/*",
   };
   if (API_KEY) headers["x-cortex-key"] = API_KEY;
+  if (email) headers["x-cortex-user"] = email;
   if (req.method === "POST" && GOOGLE_ACTION.test(path.join("/"))) {
     const google = await googleAccessToken(req).catch(() => null);
     if (google) headers["x-google-access-token"] = google;

@@ -1,7 +1,8 @@
 "use client";
 // Tap-to-talk for the Ask sheet, so the wearer can ask by voice through the glasses' Bluetooth mic and hear the
 // answer through their speakers: the phone is the bridge. Web Speech API (iPhone Safari 14.5+, Chrome); where it
-// is missing the Ask sheet keeps its text box (and the keyboard's own dictation).
+// is missing the Ask sheet keeps its text box (and the keyboard's own dictation). Speaking the answer back is
+// unlocked by HomeApp's first-tap primeSpeech, so nothing here needs to.
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // The DOM typings do not include the (prefixed) recognition API, so describe the little we use.
@@ -22,19 +23,6 @@ const ctor = (): RecognitionCtor | null => {
 };
 
 export const voiceSupported = () => ctor() !== null;
-
-/**
- * Safari plays speech only when it was started during a tap. The answer arrives seconds after the tap, so speak a
- * silent utterance while handling the tap: that unlocks speech for the answer. Harmless where it is not needed.
- */
-export function unlockSpeech() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  try {
-    const u = new SpeechSynthesisUtterance(" ");
-    u.volume = 0;
-    window.speechSynthesis.speak(u);
-  } catch { /* speech is a nicety: failing to unlock it must never stop listening or asking */ }
-}
 
 export type ListenState = "idle" | "listening" | "denied" | "error";
 
@@ -57,7 +45,6 @@ export function useListen({ onInterim, onFinal }: { onInterim: (text: string) =>
   const start = useCallback(() => {
     const Ctor = ctor();
     if (!Ctor) return;
-    unlockSpeech();
     cancel();
     const rec = new Ctor();
     const me = { rec, cancelled: false };

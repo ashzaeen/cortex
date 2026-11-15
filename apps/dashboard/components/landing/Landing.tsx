@@ -48,10 +48,10 @@ function TopBar({ signedIn }: { signedIn: boolean }) {
         </Link>
         <nav aria-label="Sections" className="ml-auto hidden items-center gap-1 md:flex">
           {[["How It Works", "#how"], ["Modes", "#modes"], ["Privacy", "#privacy"]].map(([l, h]) => (
-            <a key={h} href={h} className="press flex min-h-11 items-center rounded-pill px-4 text-sm text-text active:bg-fill-soft">{l}</a>
+            <a key={h} href={h} className="press flex min-h-11 items-center rounded-pill px-4 text-sm text-text hover:bg-fill-soft active:bg-fill-soft">{l}</a>
           ))}
         </nav>
-        <Link href={signedIn ? "/app" : "/demo"} className="press ml-auto inline-flex min-h-11 items-center rounded-pill border border-edge bg-fill-soft px-5 text-[0.9375rem] font-semibold md:ml-2">
+        <Link href={signedIn ? "/app" : "/demo"} className="press ml-auto inline-flex min-h-11 items-center rounded-pill border border-edge bg-fill-soft px-5 text-[0.9375rem] font-semibold hover:bg-fill-press md:ml-2">
           {signedIn ? "Open Cortex" : "Try the Demo"}
         </Link>
       </div>
@@ -136,7 +136,7 @@ function GlassesStage() {
     <div className="nested relative h-[300px] overflow-hidden sm:h-[340px]" style={{ borderRadius: "var(--r-xl)" }}>
       <span aria-hidden="true" className="vf" style={{ inset: 16, ["--l" as string]: "22px", ["--w" as string]: "2px" }} />
       <span className="t-data absolute left-6 top-5 z-[1] text-brass">REC - 14:16:04</span>
-      <span className="t-data absolute right-6 top-5 z-[1] text-text-3">DRAG TO TURN</span>
+      {threeD && <span className="t-data absolute right-6 top-5 z-[1] text-text-3">DRAG TO TURN</span>}
       {threeD === null ? null : threeD ? <Glasses3D live /> : <GlassesFlat />}
     </div>
   );

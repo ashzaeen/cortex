@@ -1,4 +1,4 @@
-"""T0-10 call lifecycle: the call agent reports a call, the dashboard reads it. Shapes checked against the contract."""
+"""D-10 call lifecycle: the call agent reports a call, the dashboard reads it. Shapes checked against the contract."""
 from datetime import timedelta
 
 from core import calls, events

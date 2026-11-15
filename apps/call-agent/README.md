@@ -2,15 +2,15 @@
 
 The FaceTime call layer. A Chert line bridges an iPhone FaceTime call into a LiveKit room on **our own** LiveKit project. This agent joins the room, talks to the caller, reads the caller's camera, and calls the Cortex API. The agent is in [agent/](agent/README.md): Node with LiveKit Agents and Gemini Live (`gemini-2.5-flash-native-audio-preview-12-2025`); [ADR 0004](../../docs/decisions/0004-sponsor-stack.md) is still Proposed. Handoff: [docs/CHERT_CALL_LAYER_HANDOFF.md](../../docs/CHERT_CALL_LAYER_HANDOFF.md).
 
-**State (T0-10):** step 1 and the caller's camera to Gemini work on real calls. Steps 2 and 3 and the call lifecycle are written and tested offline against the real backend (`agent/cortex.mjs`), but **not yet run on a real FaceTime call**. The call lifecycle endpoints are in the contract, the backend and the stateful mock, and the dashboard's "On Call" state follows them (browser test against the mock). They are live on the hosted backend (redeployed 2026-11-15). On a hosted agent, set `CORTEX_API_URL` to the hosted backend: the default points at the local mock.
+**State (D-10):** step 1 and the caller's camera to Gemini work on real calls. Steps 2 and 3 and the call lifecycle are written and tested offline against the real backend (`agent/cortex.mjs`), but **not yet run on a real FaceTime call**. The call lifecycle endpoints are in the contract, the backend and the stateful mock, and the dashboard's "On Call" state follows them (browser test against the mock). They are live on the hosted backend (redeployed 2026-11-15). On a hosted agent, set `CORTEX_API_URL` to the hosted backend: the default points at the local mock.
 
-## What it must do (T0-10)
+## What it must do (D-10)
 
 1. Greet within 10 seconds of the bridge being ready, or Chert ends the call.
 2. Answer from memory: `POST /ask` with `channel: "call"`, and `GET /people/{id}/brief`. Built as the Gemini tools `ask_memory` and `brief_person`.
 3. Save what the caller's camera shows: `POST /moments` with `source: "call"` and `call_id`. Built as the tool `save_what_you_see`, which saves the newest camera frame **only when the caller asks** (a person may be in the picture; decided on request, not automatic, by @ashzaeen on 2026-11-15). In the demo the presenter says "save this" while holding the card up. Nothing is sent while capture is paused or off the record (the backend answers 409 and the agent tells the caller).
 4. Tell the dashboard about the call: `POST /calls/started` when the caller joins and `POST /calls/ended` on shutdown, so the Live pill shows "On Call" and the Call Cortex sheet runs its 5:00 timer. Best effort: it never blocks or ends a call.
-5. Video back to the caller is **Tier 1** (fallback: an iMessage attachment).
+5. Video back to the caller (CALL-4; fallback: an iMessage attachment).
 
 ## Chert limits
 

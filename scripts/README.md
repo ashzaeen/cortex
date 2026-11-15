@@ -6,10 +6,10 @@ Repo-wide helpers, called by the root Makefile. Node 24 only (stdlib plus the pi
 | --- | --- | --- |
 | `dev.mjs` | `make dev` | Stateful mock (or Prism with `MOCK=prism`) on :4010, plus the dashboard on :3000 |
 | `check-contracts.mjs` | `make test` | Schemas compile; fixtures and openapi examples validate; ids resolve; required endpoints exist |
-| `check-status.mjs` | `make test` | docs/STATUS.md has T0-1 to T0-11 once each, valid states, and a verifier for every `works` row |
+| `check-status.mjs` | `make test` | docs/STATUS.md has D-1 to D-11 once each, valid states, and a verifier for every `works` row |
 | `check-repo.mjs` | `make lint` | No `.env` files or likely secrets tracked; relative Markdown links resolve |
 | `areas.mjs` | `setup`, `lint`, `test` | Runs the target in each `apps/<area>/Makefile`, or prints that the area is a stub |
 | `seed.mjs` | `make seed` | Validates fixtures, then runs `make -C apps/backend seed` when the backend exists |
-| `status.mjs` | `make status` | Prints the Tier 0 table and the open `tier:0` issues |
+| `status.mjs` | `make status` | Prints the demo checklist and the open `demo-checklist` issues |
 | `setup-github.mjs` | `make github-setup` | Creates or updates labels and milestones (safe to re-run) |
 | `lib.mjs` | - | Shared helpers |

@@ -70,6 +70,10 @@ x-examples:
 # Private memory: with CORTEX_API_KEY set on the backend, every operation except GET /health needs
 # the key (X-Cortex-Key, or Authorization: Bearer) and answers 401 unauthorized without it. Unset
 # (local dev, the mock) it is open. Browsers never hold the key: the dashboard proxy adds it.
+# Per-user memory: X-Cortex-User (an email) picks whose memory a request reads and writes. Each user
+# starts with their own copy of the demo profile; nothing one user adds reaches another. No header =
+# the shared default memory, which every signed-in user also sees (its test fixtures excepted). The
+# dashboard proxy sends the signed-in email; the glasses app and call agent send the wearer's.
 security:
   - {}
   - cortexKey: []
@@ -113,7 +117,7 @@ paths:
     post:
       tags: [moments]
       operationId: ingestMoment
-      summary: Ingest a moment from glasses, phone, call or dashboard (T0-1)
+      summary: Ingest a moment from glasses, phone, call or dashboard (D-1)
       description: |
         One ingest pipeline for every capture source. The backend transcribes, captions and
         stores the moment, links people by introduction, detects promises, and emits
@@ -164,7 +168,7 @@ paths:
     get:
       tags: [moments]
       operationId: searchMoments
-      summary: Search memory; always returns the source moments (T0-2)
+      summary: Search memory; always returns the source moments (D-2)
       parameters:
         - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 5 } }
@@ -196,7 +200,7 @@ paths:
     delete:
       tags: [privacy]
       operationId: deleteMoment
-      summary: Delete a moment and everything derived from it (T0-9)
+      summary: Delete a moment and everything derived from it (D-9)
       responses:
         "200":
           description: Deletion receipt
@@ -217,7 +221,7 @@ paths:
     post:
       tags: [ask]
       operationId: ask
-      summary: Answer a question from memory with proof (T0-5)
+      summary: Answer a question from memory with proof (D-5)
       description: Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so.
       requestBody:
         required: true
@@ -265,7 +269,7 @@ paths:
     post:
       tags: [people]
       operationId: createPerson
-      summary: Create a contact card from an introduction (T0-3)
+      summary: Create a contact card from an introduction (D-3)
       description: Usually created by the backend during ingest; this endpoint lets the dashboard add or correct a person by hand.
       requestBody:
         required: true
@@ -292,7 +296,7 @@ paths:
     get:
       tags: [people]
       operationId: briefPerson
-      summary: Pre-meeting brief, about 20 seconds spoken (T0-6)
+      summary: Pre-meeting brief, about 20 seconds spoken (D-6)
       responses:
         "200":
           description: Brief
@@ -317,7 +321,7 @@ paths:
     get:
       tags: [promises]
       operationId: listPromises
-      summary: Waiting on and I owe lists (T0-4)
+      summary: Waiting on and I owe lists (D-4)
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [proposed, confirmed, done, dismissed] } }
         - { name: direction, in: query, schema: { type: string, enum: [waiting_on, i_owe] } }
@@ -402,7 +406,7 @@ paths:
     post:
       tags: [actions]
       operationId: proposeAction
-      summary: Propose an action with its source moments (T0-7 for follow_up_email)
+      summary: Propose an action with its source moments (D-7 for follow_up_email)
       requestBody:
         required: true
         content:
@@ -513,7 +517,7 @@ paths:
     post:
       tags: [privacy]
       operationId: setPrivacy
-      summary: Pause, go off-the-record, or resume capture (T0-9)
+      summary: Pause, go off-the-record, or resume capture (D-9)
       requestBody:
         required: true
         content:
@@ -536,7 +540,7 @@ paths:
     post:
       tags: [calls]
       operationId: callStarted
-      summary: The call agent reports that a FaceTime call is live (T0-10); emits call.started
+      summary: The call agent reports that a FaceTime call is live (D-10); emits call.started
       description: |
         Idempotent: repeating it for the active `call_id` changes nothing and emits nothing.
         If a different call is still active (one call at a time), that call is ended first and
@@ -560,7 +564,7 @@ paths:
     post:
       tags: [calls]
       operationId: callEnded
-      summary: The call agent reports that the call is over (T0-10); emits call.ended
+      summary: The call agent reports that the call is over (D-10); emits call.ended
       description: |
         Idempotent: repeating it for a call that already ended returns it again and emits nothing.
         404 when the backend never saw `call_id` (for example after a restart); the call agent ignores that.
@@ -584,7 +588,7 @@ paths:
     get:
       tags: [calls]
       operationId: getCurrentCall
-      summary: The call in progress, if any, so a dashboard opened mid-call still shows "On Call" (T0-10)
+      summary: The call in progress, if any, so a dashboard opened mid-call still shows "On Call" (D-10)
       description: |
         Calls cap at 5 minutes on the Chert line. A call that has no `call.ended` after 6 minutes
         counts as ended, so a crashed agent cannot leave the dashboard stuck on "On Call".

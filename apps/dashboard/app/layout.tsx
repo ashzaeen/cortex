@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, JetBrains_Mono, Manrope } from "next/font/google";
+import Providers from "@/components/Providers";
 import "./globals.css";
 
 // Self-hosted at build time by next/font (design.md 5.1: no third-party font request on demo day).
@@ -25,7 +26,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${manrope.variable} ${fraunces.variable} ${jetbrains.variable}`}>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased"><Providers>{children}</Providers></body>
     </html>
   );
 }

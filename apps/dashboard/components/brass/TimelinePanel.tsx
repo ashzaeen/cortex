@@ -1,7 +1,7 @@
 "use client";
 // Timeline panel and moment rows (design.md 11.5, 11.6). Tap selects (focus pull), tap again or
 // long-press opens the moment. The footer shows what you are waiting on.
-import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { snapshotSrc, type Moment, type Person, type Promise_ } from "@/lib/api";
 import { dueChip, tagFor, timecode, titleFor } from "@/lib/format";
@@ -75,14 +75,14 @@ export function MomentRow({ m, sid, tag, selected, onSelect, onOpen, onDelete }:
         }}
         onKeyDown={(e) => { if (onDelete && (e.key === "Delete" || e.key === "Backspace")) { e.preventDefault(); onDelete(); } }}
         onContextMenu={(e) => e.preventDefault()}
-        className={`press flex h-[60px] w-full flex-none items-center gap-3.5 rounded-[18px] px-3.5 py-2 text-left ${selected ? "bg-fill-soft" : "active:bg-fill-soft"}`}
+        className={`no-callout press flex h-[60px] w-full flex-none items-center gap-3.5 rounded-[18px] px-3.5 py-2 text-left focus-visible:outline-offset-[-3px] ${selected ? "bg-fill-soft" : "hover:bg-fill-soft active:bg-fill-soft"}`}
       >
         <Frame src={snapshotSrc(m.snapshot_url)} alt="" selected={selected} className="w-14" ratio="7 / 5" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate text-[0.9375rem] font-semibold">{titleFor(m)}</span>
-          <span className="t-data text-[0.6875rem] text-text-3">{timecode(m.ts)} - {sid}</span>
+          <span className="t-data truncate whitespace-nowrap text-[0.6875rem] text-text-3">{timecode(m.ts)}<span className="hidden min-[360px]:inline"> - {sid}</span></span>
         </span>
-        <span className="text-xs text-brass">{tag}</span>
+        <span className="flex-none whitespace-nowrap text-xs text-brass">{tag}</span>
       </motion.button>
     </div>
   );
@@ -100,11 +100,12 @@ type Props = {
   onSeeAll: () => void;
   onWaitingOn: () => void;
   max?: number;
+  loading?: boolean;
 };
 
 const ROW = 60, GAP = 6;
 
-export function TimelinePanel({ moments, people, promises, ids, selected, onSelect, onOpen, onDelete, onSeeAll, onWaitingOn, max = 5 }: Props) {
+export function TimelinePanel({ moments, people, promises, ids, selected, onSelect, onOpen, onDelete, onSeeAll, onWaitingOn, max = 5, loading = false }: Props) {
   // Never scroll (decision D21): on laptops the panel has a fixed height, so show only the rows that
   // fit; See All opens the rest. On phones show up to `max` rows.
   const list = useRef<HTMLDivElement>(null);
@@ -123,28 +124,47 @@ export function TimelinePanel({ moments, people, promises, ids, selected, onSele
   const sorted = [...moments].sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
   const recent = sorted.slice(0, fit);
   const hidden = sorted.length - recent.length;
-  const waiting = promises.filter((p) => p.direction === "waiting_on" && p.status === "confirmed").sort((a, b) => (b.due.date ?? "").localeCompare(a.due.date ?? ""));
+  const waiting = promises.filter((p) => p.direction === "waiting_on" && p.status === "confirmed").sort((a, b) => (a.due.date ?? "9999").localeCompare(b.due.date ?? "9999")); // soonest first; overdue sorts earliest
   const top = waiting[0];
   const who = top && people.find((p) => p.id === top.person_id);
   const chip = top && dueChip(top);
   return (
-    <section id="timeline" aria-labelledby="tl-label" className="glass flex flex-col gap-1.5 overflow-hidden p-3 md:p-5 lg:h-full lg:min-h-0 lg:p-4">
+    <section id="timeline" aria-labelledby="tl-label" aria-busy={loading} className="glass flex flex-col gap-1.5 overflow-hidden p-3 md:p-5 lg:h-full lg:min-h-0 lg:p-4">
       <div className="flex flex-none items-center justify-between px-3.5 py-2 lg:py-1">
         <Label as="h2" id="tl-label">Timeline</Label>
         <Button variant="ghost" className="-mr-2 min-h-11 text-[0.8125rem]" onClick={onSeeAll}>{hidden > 0 ? `See All ${sorted.length}` : "See All"}</Button>
       </div>
-      {recent.length === 0 && (
+      {loading && recent.length === 0 && (
+        <div className="flex flex-col gap-1.5" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex h-[60px] items-center gap-3.5 px-3.5">
+              <div className="skeleton shimmer h-10 w-14 flex-none" />
+              <div className="flex min-w-0 flex-1 flex-col gap-2"><div className="skeleton shimmer h-3.5 w-3/4" /><div className="skeleton shimmer h-3 w-1/3" /></div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!loading && recent.length === 0 && (
         <div className="px-3.5 pb-3">
           <p className="t-headline">Nothing Captured Yet</p>
           <span className="t-label">Wear your glasses and say hi.</span>
         </div>
       )}
       <div ref={list} className="flex flex-col gap-1.5 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-        {recent.map((m, i) => (
-          <div key={m.id} className="rise" style={{ animationDelay: `${Math.min(i, 5) * 30}ms` }}>
-            <MomentRow m={m} sid={ids.get(m.id) ?? "m?"} tag={tagFor(m, people, promises)} selected={selected === m.id} onSelect={() => onSelect(m.id)} onOpen={() => onOpen(m.id)} onDelete={onDelete && (() => onDelete(m))} />
-          </div>
-        ))}
+        {/* Delete collapses the row over 240ms and the rows below glide up (design.md 12.3). */}
+        <AnimatePresence initial={false}>
+          {recent.map((m, i) => (
+            <motion.div
+              key={m.id}
+              layout="position"
+              exit={{ height: 0, opacity: 0, overflow: "hidden", transition: { duration: 0.24, ease: [0.65, 0, 0.35, 1] } }}
+            >
+              <div className="rise" style={{ animationDelay: `${Math.min(i, 5) * 30}ms` }}>
+                <MomentRow m={m} sid={ids.get(m.id) ?? "m?"} tag={tagFor(m, people, promises)} selected={selected === m.id} onSelect={() => onSelect(m.id)} onOpen={() => onOpen(m.id)} onDelete={onDelete && (() => onDelete(m))} />
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
       {top && (
         <button type="button" onClick={onWaitingOn} className="press mt-1.5 flex min-h-11 flex-none flex-wrap items-center justify-between gap-2 border-t border-edge px-3.5 pb-2 pt-3.5 text-left">

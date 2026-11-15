@@ -32,7 +32,7 @@ export interface paths {
         get: operations["listMoments"];
         put?: never;
         /**
-         * Ingest a moment from glasses, phone, call or dashboard (T0-1)
+         * Ingest a moment from glasses, phone, call or dashboard (D-1)
          * @description One ingest pipeline for every capture source. The backend transcribes, captions and
          *     stores the moment, links people by introduction, detects promises, and emits
          *     moment.created (plus person.created / promise.proposed) on /events.
@@ -52,7 +52,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search memory; always returns the source moments (T0-2) */
+        /** Search memory; always returns the source moments (D-2) */
         get: operations["searchMoments"];
         put?: never;
         post?: never;
@@ -74,7 +74,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete a moment and everything derived from it (T0-9) */
+        /** Delete a moment and everything derived from it (D-9) */
         delete: operations["deleteMoment"];
         options?: never;
         head?: never;
@@ -91,7 +91,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Answer a question from memory with proof (T0-5)
+         * Answer a question from memory with proof (D-5)
          * @description Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so.
          */
         post: operations["ask"];
@@ -112,7 +112,7 @@ export interface paths {
         get: operations["listPeople"];
         put?: never;
         /**
-         * Create a contact card from an introduction (T0-3)
+         * Create a contact card from an introduction (D-3)
          * @description Usually created by the backend during ingest; this endpoint lets the dashboard add or correct a person by hand.
          */
         post: operations["createPerson"];
@@ -131,7 +131,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Pre-meeting brief, about 20 seconds spoken (T0-6) */
+        /** Pre-meeting brief, about 20 seconds spoken (D-6) */
         get: operations["briefPerson"];
         put?: never;
         post?: never;
@@ -148,7 +148,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Waiting on and I owe lists (T0-4) */
+        /** Waiting on and I owe lists (D-4) */
         get: operations["listPromises"];
         put?: never;
         /** Propose a promise (shows a confirm chip) */
@@ -204,7 +204,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Propose an action with its source moments (T0-7 for follow_up_email) */
+        /** Propose an action with its source moments (D-7 for follow_up_email) */
         post: operations["proposeAction"];
         delete?: never;
         options?: never;
@@ -293,7 +293,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pause, go off-the-record, or resume capture (T0-9) */
+        /** Pause, go off-the-record, or resume capture (D-9) */
         post: operations["setPrivacy"];
         delete?: never;
         options?: never;
@@ -311,7 +311,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * The call agent reports that a FaceTime call is live (T0-10); emits call.started
+         * The call agent reports that a FaceTime call is live (D-10); emits call.started
          * @description Idempotent: repeating it for the active `call_id` changes nothing and emits nothing.
          *     If a different call is still active (one call at a time), that call is ended first and
          *     `call.ended` is emitted for it, then `call.started` for the new one.
@@ -333,7 +333,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * The call agent reports that the call is over (T0-10); emits call.ended
+         * The call agent reports that the call is over (D-10); emits call.ended
          * @description Idempotent: repeating it for a call that already ended returns it again and emits nothing.
          *     404 when the backend never saw `call_id` (for example after a restart); the call agent ignores that.
          */
@@ -352,7 +352,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * The call in progress, if any, so a dashboard opened mid-call still shows "On Call" (T0-10)
+         * The call in progress, if any, so a dashboard opened mid-call still shows "On Call" (D-10)
          * @description Calls cap at 5 minutes on the Chert line. A call that has no `call.ended` after 6 minutes
          *     counts as ended, so a crashed agent cannot leave the dashboard stuck on "On Call".
          */
@@ -533,7 +533,7 @@ export interface components {
             /** @description URL of a stored video clip, capped at 10 seconds. */
             video_url?: string | null;
             place?: string | null;
-            /** @description People linked by introduction or consent. Never by face recognition. */
+            /** @description People linked to this moment. */
             person_ids: string[];
             /** @description True if captured while off-the-record; such moments are not stored, so stored moments are always false unless kept by explicit user choice. */
             off_record: boolean;
@@ -559,7 +559,7 @@ export interface components {
         };
         /**
          * Person
-         * @description A contact card. People enter memory only by introduction or explicit consent; no face recognition.
+         * @description A contact card. Today people are added by introduction or an explicit add.
          */
         "person.schema": {
             id: string;

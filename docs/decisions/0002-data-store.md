@@ -6,7 +6,7 @@
 - **Date:** 2026-11-14
 
 ## Context
-Each moment stores a timestamp, transcript, caption, snapshot reference and an embedding. Search must return the right source moment every time on the seeded data (T0-2), and delete must remove a moment plus its derived data (T0-9). People, promises, actions and receipts are small relational records. Snapshots need object storage or a local folder.
+Each moment stores a timestamp, transcript, caption, snapshot reference and an embedding. Search must return the right source moment every time on the seeded data (D-2), and delete must remove a moment plus its derived data (D-9). People, promises, actions and receipts are small relational records. Snapshots need object storage or a local folder.
 
 ## Options
 ### A. MongoDB Atlas with Atlas Vector Search

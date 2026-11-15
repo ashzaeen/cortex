@@ -8,5 +8,5 @@ Short pointer. The full PRD is the source of truth: [Project Cortex - Product Co
 - **Action loop:** notice, propose, confirm, do, prove (receipt with source moment and undo).
 - **Call layer:** Chert bridges FaceTime into a LiveKit room our own agent joins, so the same backend answers calls, sees the caller's camera and can show video back.
 - **Output:** Gen 1 glasses have no display, so output is audio plus the dashboard.
-- **Trust:** no face recognition; people enter memory only by introduction or consent; pause, off-the-record and delete everywhere.
+- **Trust:** pause, off-the-record and delete everywhere.
 - **Goal:** win the HackUTA 2026 main track and the Chert Best Use of FaceTime track with one flawless 3-minute demo ([DEMO_SCRIPT.md](DEMO_SCRIPT.md)).

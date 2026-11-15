@@ -53,7 +53,7 @@ Run `make mock` on the laptop and point the app at it while the backend doesn't 
 ## Done when
 
 - **#36:** the app builds and runs on an iPhone, registers in developer mode, shows connection and capture state with pause, and posts a test moment that returns 201.
-- **#39:** a cue captures a glasses photo or a recording capped at 10 seconds and posts it as a moment. Note the latency and frame rate on the issue and in docs/STATUS.md (T0-1).
+- **#39:** a cue captures a glasses photo or a recording capped at 10 seconds and posts it as a moment. Note the latency and frame rate on the issue and in docs/STATUS.md (D-1).
 
 ## Open questions (answer on #36)
 

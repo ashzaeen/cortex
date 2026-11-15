@@ -1,8 +1,8 @@
-"""POST /moments (T0-1): one ingest pipeline for glasses, phone, call and dashboard.
+"""POST /moments (D-1): one ingest pipeline for glasses, phone, call and dashboard.
 
 ts/source/transcript/audio/snapshot in -> transcribe if needed -> Gemini perception (caption, intros,
-promises) -> embedding -> MongoDB (+ Tiger Data timeline) -> link people by introduction (T0-3) ->
-proposed promises (T0-4) -> events: moment.created, person.created, promise.proposed."""
+promises) -> embedding -> MongoDB (+ Tiger Data timeline) -> link people by introduction (D-3) ->
+proposed promises (D-4) -> events: moment.created, person.created, promise.proposed."""
 import base64
 import binascii
 import logging
@@ -121,7 +121,7 @@ def ingest(body: dict) -> dict:
         receipts.create("capture", f"Saved from the call: {what[:120]}", [moment_id])
 
     latency = int((time.perf_counter() - t0) * 1000)
-    tiger.log_metric(tiger.USER, now(), "moment", latency, len(image or b"") + len(video or b""))
+    tiger.log_metric(tiger.user(), now(), "moment", latency, len(image or b"") + len(video or b""))
     log.info("moment %s stored in %d ms (%d people, %d promises)", moment_id, latency, len(person_ids),
              len(new_promises))
     return contract.moment(store.get_moment(moment_id))

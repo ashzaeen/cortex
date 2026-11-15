@@ -1,4 +1,4 @@
-"""Tier 0 done-when tests (docs/PLAN.md) for the backend: T0-1 to T0-7 and T0-9, following the hero demo.
+"""Demo checklist done-when tests (docs/PLAN.md) for the backend: D-1 to D-7 and D-9, following the hero demo.
 Offline: mongomock + mock LLM. Every response is validated against the contract."""
 import base64
 import struct

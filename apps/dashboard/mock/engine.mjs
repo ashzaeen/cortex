@@ -86,7 +86,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     if (suggestions) seedModeSuggestions();
   }
 
-  // ------------------------------------------------------------ calls (T0-10, mirrors apps/backend/core/calls.py)
+  // ------------------------------------------------------------ calls (D-10, mirrors apps/backend/core/calls.py)
   const MAX_CALL_MS = 6 * 60 * 1000; // Chert caps calls at 5 minutes; no end after 6 counts as ended
   function callEnd(callId, at = now()) {
     const c = db.calls[callId];

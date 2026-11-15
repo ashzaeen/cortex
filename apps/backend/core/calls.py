@@ -1,4 +1,4 @@
-"""Call lifecycle (T0-10): the call agent reports a FaceTime call; the dashboard shows "On Call".
+"""Call lifecycle (D-10): the call agent reports a FaceTime call; the dashboard shows "On Call".
 
 POST /calls/started and /calls/ended publish call.started and call.ended; GET /calls/current says which call
 is live. One call at a time. The state is in memory (like the SSE clients and undo timers), which is fine for

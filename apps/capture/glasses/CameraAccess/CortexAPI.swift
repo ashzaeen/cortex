@@ -4,15 +4,17 @@ private struct PrivacyResponse: Decodable {
     let state: String
 }
 
-private struct MomentIngest: Encodable {
+private struct MomentIngest: Encodable, Sendable {
     let ts: String
     let source: String
-    let snapshotBase64: String
+    let snapshotBase64: String?
+    let videoBase64: String?
 
     enum CodingKeys: String, CodingKey {
         case ts
         case source
         case snapshotBase64 = "snapshot_base64"
+        case videoBase64 = "video_base64"
     }
 }
 
@@ -20,11 +22,13 @@ struct CortexMoment: Decodable {
     let id: String
     let caption: String?
     let snapshotURL: String?
+    let videoURL: String?
 
     enum CodingKeys: String, CodingKey {
         case id
         case caption
         case snapshotURL = "snapshot_url"
+        case videoURL = "video_url"
     }
 }
 
@@ -38,14 +42,18 @@ private struct CortexServerError: Decodable {
 }
 
 enum CortexAPI {
-    private static let requestTimeout: TimeInterval = 60
+    private static let requestTimeout: TimeInterval = 120
+    private static let hostedAPIBaseURL = URL(string: "https://api-production-47227cba.up.railway.app")
 
     private static var apiBaseURL: URL? {
         guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIBaseURL") as? String else {
-            return nil
+            return hostedAPIBaseURL
         }
 
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedValue.isEmpty {
+            return hostedAPIBaseURL
+        }
         guard !trimmedValue.isEmpty,
               let url = URL(string: trimmedValue),
               url.scheme != nil,
@@ -56,7 +64,15 @@ enum CortexAPI {
         return url
     }
 
-    static func captureMoment(imageData: Data) async throws -> CortexMoment {
+    static func capturePhoto(imageData: Data) async throws -> CortexMoment {
+        try await captureMoment(snapshotData: imageData, videoData: nil)
+    }
+
+    static func captureVideo(videoData: Data) async throws -> CortexMoment {
+        try await captureMoment(snapshotData: nil, videoData: videoData)
+    }
+
+    private static func captureMoment(snapshotData: Data?, videoData: Data?) async throws -> CortexMoment {
         guard let apiBaseURL else {
             throw CortexError.invalidURL
         }
@@ -66,17 +82,22 @@ enum CortexAPI {
             throw CortexError.captureDisabled(privacy)
         }
 
-        let body = MomentIngest(
-            ts: Date.ISO8601FormatStyle().format(Date()),
-            source: "glasses",
-            snapshotBase64: imageData.base64EncodedString()
-        )
+        let timestamp = Date.ISO8601FormatStyle().format(Date())
+        let encodedBody = try await Task.detached(priority: .userInitiated) {
+            let body = MomentIngest(
+                ts: timestamp,
+                source: "glasses",
+                snapshotBase64: snapshotData?.base64EncodedString(),
+                videoBase64: videoData?.base64EncodedString()
+            )
+            return try JSONEncoder().encode(body)
+        }.value
 
         var request = URLRequest(url: apiBaseURL.appending(path: "moments"))
         request.httpMethod = "POST"
         request.timeoutInterval = requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(body)
+        request.httpBody = encodedBody
 
         let data = try await perform(request)
         return try JSONDecoder().decode(CortexMoment.self, from: data)
@@ -135,7 +156,7 @@ enum CortexError: LocalizedError {
             return "Capture is \(state.replacingOccurrences(of: "_", with: "-")); nothing was stored."
 
         case .requestTimedOut:
-            return "Cortex did not finish processing the image in time."
+            return "Cortex did not finish processing the captured media in time."
 
         case .network(let error):
             return "Could not reach the Cortex API: \(error.localizedDescription)"

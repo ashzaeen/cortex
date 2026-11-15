@@ -107,16 +107,23 @@ class GeminiLLM:
         data = self._json(prompts.TRANSCRIBE, [types.Part.from_bytes(data=audio, mime_type=audio_mime(audio))])
         return (data.get("transcript") or "").strip()
 
-    def perceive(self, *, transcript: str, image: bytes | None, mode: str, now_local: str, context: str,
-                 speaker_rule: str) -> dict:
+    def perceive(self, *, transcript: str, image: bytes | None, video: bytes | None, mode: str,
+                 now_local: str, context: str, speaker_rule: str) -> dict:
         from google.genai import types
 
         parts = [types.Part.from_bytes(data=image, mime_type="image/jpeg")] if image else []
+        if video:
+            parts.append(types.Part.from_bytes(data=video, mime_type="video/mov"))
+        media_note = "No image or video."
+        if image:
+            media_note = "One image from the wearer's point of view is attached."
+        elif video:
+            media_note = "One short video from the wearer's point of view is attached; describe its key event."
         prompt = prompts.PERCEIVE.format(
             now_local=now_local, mode=mode, context=context, transcript=transcript or "",
-            image_note="One image from the wearer's point of view is attached." if image else "No image.",
+            image_note=media_note,
             speaker_rule=speaker_rule)
-        return self._json(prompt, parts, model=self.vision_model if image else self.model)
+        return self._json(prompt, parts, model=self.vision_model if parts else self.model)
 
     def answer(self, **kw) -> dict:
         return self._json(prompts.ANSWER.format(**kw), temperature=0.1)

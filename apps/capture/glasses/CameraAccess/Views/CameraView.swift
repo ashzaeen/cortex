@@ -27,10 +27,6 @@ struct CameraView: View {
   @State private var showSettingsMenu: Bool = false
   @State private var isLaunchingUpdate: Bool = false
 
-  @State private var cortexMessage: String = ""
-  @State private var isSavingMoment: Bool = false
-
-
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
     self._viewModel = State(wrappedValue: CameraViewModel(wearables: wearables))
     self._wearablesVM = Bindable(wearablesVM)
@@ -284,70 +280,6 @@ struct CameraView: View {
     // MARK: - Cortex AI
 
 
-    private var cortexAnalyzeButton: some View {
-      VStack(spacing: 8) {
-        Button {
-          guard !isSavingMoment else { return }
-
-          guard let imageData = viewModel.getImageForAI() else {
-            cortexMessage = "No camera frame available."
-            return
-          }
-
-          isSavingMoment = true
-          cortexMessage = "Creating and saving your insight..."
-
-          Task {
-            defer { isSavingMoment = false }
-
-            do {
-              let moment = try await CortexAPI.captureMoment(
-                imageData: imageData
-              )
-              cortexMessage = moment.caption ?? "Insight saved to Cortex."
-            } catch {
-              cortexMessage = "Error: \(error.localizedDescription)"
-              print("Cortex error:", error)
-            }
-          }
-        } label: {
-          HStack(spacing: 10) {
-            if isSavingMoment {
-              ProgressView()
-                .tint(.white)
-            } else {
-              Image(systemName: "brain.head.profile")
-            }
-
-            Text(isSavingMoment ? "Saving Insight..." : "Save Insight")
-          }
-          .font(.system(size: 16, weight: .semibold))
-          .foregroundStyle(.white)
-          .frame(maxWidth: .infinity)
-          .frame(height: 50)
-          .background(Color.blue)
-          .clipShape(Capsule())
-        }
-        .disabled(!viewModel.isStreaming || isSavingMoment)
-        .opacity(viewModel.isStreaming && !isSavingMoment ? 1 : 0.4)
-
-        if !cortexMessage.isEmpty {
-          ScrollView {
-            Text(cortexMessage)
-              .font(.system(size: 14))
-              .foregroundStyle(.white)
-              .multilineTextAlignment(.center)
-              .padding(12)
-              .frame(maxWidth: .infinity)
-          }
-          .frame(maxHeight: 150)
-          .background(Color.black.opacity(0.75))
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-      }
-    }
-
-
   // MARK: - Bottom bar
 
   private var bottomBar: some View {
@@ -359,7 +291,10 @@ struct CameraView: View {
           captureRow
 
           if viewModel.hasSession {
-              cortexAnalyzeButton
+            CortexUploadStatusView(
+              message: viewModel.cortexMessage,
+              isUploading: viewModel.isSavingMoment
+            )
           }
 
           anchoredPrimaryButton
@@ -391,10 +326,12 @@ struct CameraView: View {
   }
 
   /// Photo and Record need a live stream.
-  private var captureControlsEnabled: Bool { viewModel.isStreaming }
+  private var captureControlsEnabled: Bool { viewModel.isStreaming && !viewModel.isSavingMoment }
   /// Record/Stop stays available while recording even if the stream is paused, so a
   /// pause can't trap an in-progress recording; starting still needs a live stream.
-  private var recordControlEnabled: Bool { viewModel.isStreaming || viewModel.isRecording }
+  private var recordControlEnabled: Bool {
+    viewModel.isRecording || (viewModel.isStreaming && !viewModel.isSavingMoment)
+  }
   /// Mic additionally locks once recording starts — the audio setting can't change
   /// mid-take.
   private var micEnabled: Bool { viewModel.isStreaming && !viewModel.isRecording }
@@ -576,6 +513,32 @@ struct CameraView: View {
         isLaunchingUpdate = false
       }
     }
+  }
+}
+
+private struct CortexUploadStatusView: View {
+  let message: String
+  let isUploading: Bool
+
+  var body: some View {
+    HStack(spacing: 10) {
+      if isUploading {
+        ProgressView()
+          .tint(.white)
+      } else {
+        Image(systemName: "checkmark.icloud.fill")
+          .foregroundStyle(.green)
+      }
+      Text(message)
+        .font(.footnote)
+        .foregroundStyle(.white)
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .padding(12)
+    .background(Color.black.opacity(0.75))
+    .clipShape(RoundedRectangle(cornerRadius: 12))
+    .accessibilityElement(children: .combine)
   }
 }
 

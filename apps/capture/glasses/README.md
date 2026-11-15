@@ -35,24 +35,24 @@ Toolkit versions and requirements come from Meta's [version dependencies](https:
 1. Open `CameraAccess.xcodeproj` in Xcode 26.4 or newer. Xcode resolves Meta Wearables DAT 1.0.1 from its public Swift package automatically.
 2. Select the `CameraAccess` target, choose your Apple development team under Signing & Capabilities, and use a unique bundle identifier if Xcode requests one.
 3. Add `CLIENT_TOKEN` and `META_APP_ID` as user-defined build settings for the Meta developer app used by the team.
-4. Set the user-defined `CORTEX_API_URL` build setting to the Cortex API base URL reachable from the iPhone, for example `http://<laptop-ip>:8000`. Do not commit a personal IP address or API key.
+4. The app defaults to the hosted Cortex API at `https://api-production-47227cba.up.railway.app`. Set the user-defined `CORTEX_API_URL` build setting only when overriding it with another API base URL, for example `http://<laptop-ip>:8000` during local development. Do not commit a personal IP address or API key.
 5. Run on an iPhone for real glasses, or open the debug menu to exercise camera streaming with Mock Device Kit and the included test media.
 
-The app connects, streams, captures frames, records media, checks `GET /privacy`, and submits a sampled JPEG to `POST /moments` as `source: "glasses"`. The backend sends the frame to Gemini, stores the resulting caption and moment in MongoDB, indexes its timeline and metrics in Tiger Data, and publishes `moment.created`; the dashboard consumes that event and refreshes automatically. The app never sends while privacy is paused or off the record. A dedicated pause/off-the-record control and real-glasses latency/frame-rate verification remain work for #36 and #39.
+When an eligible device is available, the app automatically starts its session and stream after camera permission has been granted. A captured photo uploads immediately. A recording automatically stops at 10 seconds (or uploads sooner when stopped manually) and then uploads. Before either upload, the app checks `GET /privacy`; `POST /moments` receives a JPEG in `snapshot_base64` or a QuickTime clip in `video_base64`, always with `source: "glasses"`. The backend sends the media to Gemini, stores the resulting caption and moment in MongoDB, stores the media behind its public URL, indexes timeline and metrics in Tiger Data, and publishes `moment.created`; the dashboard consumes that event and refreshes automatically. The app never sends while privacy is paused or off the record. A dedicated pause/off-the-record control and real-glasses latency/frame-rate verification remain work for #36 and #39.
 
 ## Contract
 
 Talk to Cortex only through [contracts/openapi.yaml](../../../contracts/openapi.yaml):
 
 - `GET /privacy`: never post while the state is `paused` or `off_record`.
-- `POST /moments` with a `MomentIngest` body: `ts` (device time), `source: "glasses"`, `snapshot_base64` (JPEG), and `transcript` or `audio_base64` if you have it.
+- `POST /moments` with a `MomentIngest` body: `ts` (device time), `source: "glasses"`, `snapshot_base64` (JPEG) or `video_base64` (MOV, 10 seconds maximum), and `transcript` or `audio_base64` if you have it.
 
 Run `make mock` on the laptop and point the app at it while the backend doesn't exist. The mock rejects a wrong payload with a 422. Keep the API base URL in a setting, never hard-coded, and never put keys in the app or the repo.
 
 ## Done when
 
 - **#36:** the app builds and runs on an iPhone, registers in developer mode, shows connection and capture state with pause, and posts a test moment that returns 201.
-- **#39:** a cue captures a glasses frame and posts it as a moment. Only sampled snapshots are sent, never raw video. Note the latency and frame rate on the issue and in docs/STATUS.md (T0-1).
+- **#39:** a cue captures a glasses photo or a recording capped at 10 seconds and posts it as a moment. Note the latency and frame rate on the issue and in docs/STATUS.md (T0-1).
 
 ## Open questions (answer on #36)
 

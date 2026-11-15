@@ -73,6 +73,8 @@ final class CameraViewModel {
   /// The capture currently shown in the preview/share sheet (photo or video).
   var activePreview: CapturePreview?
   var isCapturingPhoto: Bool = false
+  private(set) var isSavingMoment: Bool = false
+  private(set) var cortexMessage: String = "Captured photos and videos upload automatically."
 
   // MARK: - Video recording
 
@@ -161,6 +163,7 @@ final class CameraViewModel {
   @ObservationIgnored private var camera: MWDATCamera.Camera?
   @ObservationIgnored private var isStoppingForBackground: Bool = false
   @ObservationIgnored private var backgroundStopSuppressionTask: Task<Void, Never>?
+  @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
 
   @ObservationIgnored private let videoRecorder = VideoRecorder()
   // Decodes compressed hvc1 frames for on-screen preview. Not required for
@@ -169,6 +172,7 @@ final class CameraViewModel {
 
   @ObservationIgnored private var deviceMonitorTask: Task<Void, Never>?
   @ObservationIgnored private var appLifecycleTask: Task<Void, Never>?
+  @ObservationIgnored private var foregroundResumeTask: Task<Void, Never>?
   @ObservationIgnored private let sessionTokenBag = ListenerTokenBag()
   @ObservationIgnored private let streamTokenBag = ListenerTokenBag()
 
@@ -187,12 +191,15 @@ final class CameraViewModel {
     self.backgroundStopErrorSuppressionTimeout = backgroundStopErrorSuppressionTimeout
     startDeviceMonitoring()
     startAppLifecycleMonitoring()
+    startForegroundMonitoring()
   }
 
   isolated deinit {
     deviceMonitorTask?.cancel()
     appLifecycleTask?.cancel()
+    foregroundResumeTask?.cancel()
     backgroundStopSuppressionTask?.cancel()
+    recordingLimitTask?.cancel()
     deviceSession?.stop()
   }
 
@@ -316,23 +323,10 @@ final class CameraViewModel {
     // session, so streaming can be started again with a fresh `addCamera()`.
     activeCamera.stop()
   }
-
-
-    /// Converts the latest glasses camera frame into JPEG data
-    /// for Cortex moment ingestion and Gemini processing.
-    func getImageForAI() -> Data? {
-        guard isStreaming,
-              let image = currentVideoFrame else {
-            return nil
-        }
-
-        return image.jpegData(compressionQuality: 0.7)
-    }
-
   // MARK: - Capture
 
   func capturePhoto() {
-    guard !isCapturingPhoto, isStreaming else {
+    guard !isCapturingPhoto, !isSavingMoment, isStreaming else {
       showError(photoCaptureFailureMessage)
       return
     }
@@ -353,7 +347,7 @@ final class CameraViewModel {
   }
 
   func startVideoRecording() {
-    guard isStreaming, !isRecording else { return }
+    guard isStreaming, !isRecording, !isSavingMoment else { return }
     // Flip the intent flag synchronously so the toggle and UI don't lag the
     // frame-driven recorder; the file starts on the next frame.
     isRecording = true
@@ -363,10 +357,19 @@ final class CameraViewModel {
     videoRecorder.prepareToStart(includeAudio: includeAudioInStream) { [weak self] in
       Task { @MainActor in self?.includeAudioInStream = false }
     }
+    cortexMessage = "Recording automatically stops and uploads at 10 seconds."
+    recordingLimitTask?.cancel()
+    recordingLimitTask = Task { @MainActor [weak self] in
+      try? await Task.sleep(for: .seconds(10))
+      guard let self, !Task.isCancelled, self.isRecording else { return }
+      await self.stopVideoRecording()
+    }
   }
 
   func stopVideoRecording() async {
     guard isRecording else { return }
+    recordingLimitTask?.cancel()
+    recordingLimitTask = nil
     isRecording = false
     recordingStartDate = nil
     // The writer starts on the first frame after the shutter opens. If stop lands
@@ -381,6 +384,7 @@ final class CameraViewModel {
     switch await videoRecorder.stopRecording() {
     case .completed(let url):
       activePreview = .video(url)
+      await uploadVideo(at: url)
     case .noRecording:
       // Reached only after the intent guard + start wait, so while streaming this
       // means the recording never started (e.g. the writer failed to start).
@@ -399,6 +403,9 @@ final class CameraViewModel {
   func dismissCapturePreview() {
     guard let preview = activePreview else { return }
     activePreview = nil
+    if isSavingMoment, case .video = preview {
+      return
+    }
     discardPreview(preview)
   }
 
@@ -419,6 +426,9 @@ final class CameraViewModel {
       guard let self else { return }
       for await deviceId in deviceSelector.activeDeviceStream() {
         hasActiveDevice = deviceId != nil
+        if deviceId != nil, !hasSession {
+          startSession()
+        }
       }
     }
   }
@@ -428,6 +438,17 @@ final class CameraViewModel {
       guard let self else { return }
       for await _ in NotificationCenter.default.notifications(named: UIApplication.didEnterBackgroundNotification) {
         self.handleDidEnterBackground()
+      }
+    }
+  }
+
+  private func startForegroundMonitoring() {
+    foregroundResumeTask = Task { [weak self] in
+      guard let self else { return }
+      for await _ in NotificationCenter.default.notifications(named: UIApplication.didBecomeActiveNotification) {
+        if self.hasActiveDevice, !self.hasSession {
+          self.startSession()
+        }
       }
     }
   }
@@ -472,6 +493,9 @@ final class CameraViewModel {
 
   private func handleSessionStateChange(_ state: DeviceSessionState) {
     sessionState = state
+    if state == .started, camera == nil {
+      Task { await startStreaming() }
+    }
     if state == .stopped {
       endBackgroundStopErrorSuppression()
       cleanupSession()
@@ -583,6 +607,49 @@ final class CameraViewModel {
     isCapturingPhoto = false
     if let image = UIImage(data: data.data) {
       activePreview = .photo(image)
+      Task { await uploadPhoto(data.data) }
+    }
+  }
+
+  private func uploadPhoto(_ data: Data) async {
+    guard !isSavingMoment else { return }
+    isSavingMoment = true
+    cortexMessage = "Uploading photo and creating insight..."
+    defer { isSavingMoment = false }
+
+    do {
+      let moment = try await CortexAPI.capturePhoto(imageData: data)
+      cortexMessage = moment.caption ?? "Photo insight saved to Cortex."
+    } catch {
+      cortexMessage = "Upload failed: \(error.localizedDescription)"
+    }
+  }
+
+  private func uploadVideo(at url: URL) async {
+    guard !isSavingMoment else { return }
+    isSavingMoment = true
+    cortexMessage = "Uploading video and creating insight..."
+    defer {
+      isSavingMoment = false
+      let previewKeepsFile: Bool
+      if case .video(let previewURL) = activePreview {
+        previewKeepsFile = previewURL == url
+      } else {
+        previewKeepsFile = false
+      }
+      if !previewKeepsFile {
+        try? FileManager.default.removeItem(at: url)
+      }
+    }
+
+    do {
+      let data = try await Task.detached(priority: .userInitiated) {
+        try Data(contentsOf: url, options: .mappedIfSafe)
+      }.value
+      let moment = try await CortexAPI.captureVideo(videoData: data)
+      cortexMessage = moment.caption ?? "Video insight saved to Cortex."
+    } catch {
+      cortexMessage = "Upload failed: \(error.localizedDescription)"
     }
   }
 

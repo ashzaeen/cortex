@@ -39,6 +39,7 @@ class Settings:
     use_mongomock: bool = field(default_factory=lambda: _bool("USE_MONGOMOCK", False))
     tiger_url: str = field(default_factory=lambda: os.getenv("TIGER_DATABASE_URL", ""))
     snapshot_store: Path = field(default_factory=lambda: _path(os.getenv("SNAPSHOT_STORE", "./data/snapshots")))
+    video_store: Path = field(default_factory=lambda: _path(os.getenv("VIDEO_STORE", "./data/videos")))
 
     # Models
     llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", "gemini"))

@@ -12,6 +12,7 @@ def moment(doc: dict) -> dict:
         "transcript": doc.get("transcript"),
         "caption": doc.get("caption"),
         "snapshot_url": doc.get("snapshot_url"),
+        "video_url": doc.get("video_url"),
         "place": doc.get("place"),
         "person_ids": list(doc.get("person_ids", [])),
         "off_record": bool(doc.get("off_record", False)),

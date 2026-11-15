@@ -38,7 +38,9 @@ Both refuse to start and say which variables are missing, and print an image che
 
 **First sign-in:** with the variables set, the connector logs a Chert link and code (`chert login --device`). The project owner or admin opens it and approves; the sign-in lasts 30 days and is kept on the volume. It then runs `chert doctor` once (ignore its OpenAI "model" failure) and `chert dev`, and restarts `chert dev` 20 s after it exits. A redeploy sends SIGTERM and waits for the line to be released (`RAILWAY_DEPLOYMENT_DRAINING_SECONDS=60`).
 
-**Deploy** from inside each folder (Railway's CLI rejects a path argument here) after `railway login`:
+**Deploy the agent from GitHub** (no Railway login needed): Actions, `deploy-call-agent`, Run workflow, with the commit to ship (default `main`; give an older commit to roll back). It tests the agent first and uses the same `RAILWAY_TOKEN` as the backend deploy. It never runs on a push, because a redeploy ends any call in progress.
+
+**Or deploy** from inside each folder (Railway's CLI rejects a path argument here) after `railway login`:
 
 ```bash
 cd apps/call-agent/agent && railway up --service call-agent --project 0442773d-27f9-461e-9270-67bebc60177b --environment production --ci

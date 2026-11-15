@@ -4,8 +4,15 @@ import Security
 enum CortexAPIKeyStore {
     private static let service = Bundle.main.bundleIdentifier ?? "com.cortex.cornea"
     private static let account = "cortex-api-key"
+    private static let defaultsKey = "cornea.cortex-api-key"
 
     static var key: String? {
+        if let savedValue = UserDefaults.standard.string(forKey: defaultsKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !savedValue.isEmpty {
+            return savedValue
+        }
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -31,6 +38,10 @@ enum CortexAPIKeyStore {
             return
         }
 
+        // UserDefaults is the compatibility path for devices whose signing profile does not
+        // permit Keychain access. It also makes the configured value survive view recreation.
+        UserDefaults.standard.set(trimmedValue, forKey: defaultsKey)
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -47,12 +58,13 @@ enum CortexAPIKeyStore {
         } else {
             status = SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil)
         }
-        guard status == errSecSuccess else {
-            throw CortexCredentialError.keychain(status)
-        }
+        // Keychain is best effort because free-development signing profiles can reject it.
+        // The UserDefaults value above remains the reliable per-install persistence path.
+        _ = status
     }
 
     static func delete() {
+        UserDefaults.standard.removeObject(forKey: defaultsKey)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -158,6 +170,13 @@ enum CortexAPI {
 
     static func captureVideo(videoData: Data) async throws -> CortexMoment {
         try await captureMoment(snapshotData: nil, videoData: videoData)
+    }
+
+    static func verifyConnection() async throws {
+        guard let apiBaseURL else {
+            throw CortexError.invalidURL
+        }
+        _ = try await privacyState(baseURL: apiBaseURL)
     }
 
     private static func captureMoment(snapshotData: Data?, videoData: Data?) async throws -> CortexMoment {

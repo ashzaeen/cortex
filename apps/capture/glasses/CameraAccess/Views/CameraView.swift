@@ -540,13 +540,18 @@ private struct CorneaSettingsView: View {
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
 
-          Button("Save API key") {
-            do {
-              try CortexAPIKeyStore.save(apiKey)
-              statusMessage = "API key saved securely on this iPhone."
-              saveError = nil
-            } catch {
-              saveError = error.localizedDescription
+          Button("Save and verify API key") {
+            Task {
+              do {
+                try CortexAPIKeyStore.save(apiKey)
+                statusMessage = "Checking connection..."
+                try await CortexAPI.verifyConnection()
+                statusMessage = "Connection verified. Cornea is ready to upload."
+                saveError = nil
+              } catch {
+                statusMessage = ""
+                saveError = error.localizedDescription
+              }
             }
           }
           .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -559,7 +564,7 @@ private struct CorneaSettingsView: View {
         } header: {
           Text("API Connection")
         } footer: {
-          Text("The key is stored in this iPhone's Keychain and is never committed to GitHub.")
+          Text("The key is saved on this iPhone and reused automatically. It is never committed to GitHub.")
         }
 
         Section("Glasses") {
@@ -570,6 +575,9 @@ private struct CorneaSettingsView: View {
         }
       }
       .navigationTitle("Settings")
+      .onAppear {
+        apiKey = CortexAPIKeyStore.key ?? ""
+      }
       .toolbar {
         ToolbarItem(placement: .confirmationAction) {
           Button("Done") { dismiss() }

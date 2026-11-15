@@ -1,118 +1,116 @@
-
 import Foundation
 
-private struct CortexErrorResponse: Decodable {
-    let detail: String
+private struct PrivacyResponse: Decodable {
+    let state: String
 }
 
-struct CortexResponse: Decodable {
-    let success: Bool
-    let description: String
-    let imageBytes: Int
+private struct MomentIngest: Encodable {
+    let ts: String
+    let source: String
+    let snapshotBase64: String
 
     enum CodingKeys: String, CodingKey {
-        case success
-        case description
-        case imageBytes = "image_bytes"
+        case ts
+        case source
+        case snapshotBase64 = "snapshot_base64"
     }
 }
 
-enum CortexAPI {
-    private static let requestTimeout: TimeInterval = 45
+struct CortexMoment: Decodable {
+    let id: String
+    let caption: String?
+    let snapshotURL: String?
 
-    private static var serverURL: String? {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexServerURL") as? String else {
+    enum CodingKeys: String, CodingKey {
+        case id
+        case caption
+        case snapshotURL = "snapshot_url"
+    }
+}
+
+private struct CortexErrorEnvelope: Decodable {
+    let error: CortexServerError
+}
+
+private struct CortexServerError: Decodable {
+    let code: String
+    let message: String
+}
+
+enum CortexAPI {
+    private static let requestTimeout: TimeInterval = 60
+
+    private static var apiBaseURL: URL? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIBaseURL") as? String else {
             return nil
         }
 
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmedValue.isEmpty ? nil : trimmedValue
+        guard !trimmedValue.isEmpty,
+              let url = URL(string: trimmedValue),
+              url.scheme != nil,
+              url.host != nil else {
+            return nil
+        }
+
+        return url
     }
 
-    static func analyze(imageData: Data) async throws -> String {
-
-        guard let serverURL, let url = URL(string: serverURL) else {
+    static func captureMoment(imageData: Data) async throws -> CortexMoment {
+        guard let apiBaseURL else {
             throw CortexError.invalidURL
         }
 
-        let boundary = UUID().uuidString
+        let privacy = try await privacyState(baseURL: apiBaseURL)
+        guard privacy == "capturing" else {
+            throw CortexError.captureDisabled(privacy)
+        }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        // On-device image analysis can legitimately take longer than URLSession's default timeout.
-        request.timeoutInterval = requestTimeout
-
-        request.setValue(
-            "multipart/form-data; boundary=\(boundary)",
-            forHTTPHeaderField: "Content-Type"
+        let body = MomentIngest(
+            ts: Date.ISO8601FormatStyle().format(Date()),
+            source: "glasses",
+            snapshotBase64: imageData.base64EncodedString()
         )
 
-        var body = Data()
+        var request = URLRequest(url: apiBaseURL.appending(path: "moments"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = requestTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
 
-        body.append(Data("--\(boundary)\r\n".utf8))
+        let data = try await perform(request)
+        return try JSONDecoder().decode(CortexMoment.self, from: data)
+    }
 
-        body.append(Data(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"frame.jpg\"\r\n".utf8
-        ))
+    private static func privacyState(baseURL: URL) async throws -> String {
+        var request = URLRequest(url: baseURL.appending(path: "privacy"))
+        request.timeoutInterval = 10
 
-        body.append(Data(
-            "Content-Type: image/jpeg\r\n\r\n".utf8
-        ))
+        let data = try await perform(request)
+        return try JSONDecoder().decode(PrivacyResponse.self, from: data).state
+    }
 
-        body.append(imageData)
-
-        body.append(Data(
-            "\r\n--\(boundary)--\r\n".utf8
-        ))
-
-        request.httpBody = body
-
-        print("CORTEX: Sending image to \(serverURL)")
-        print("CORTEX: JPEG size = \(imageData.count) bytes")
-
+    private static func perform(_ request: URLRequest) async throws -> Data {
         do {
-            let (data, response) = try await URLSession.shared.data(
-                for: request
-            )
-
-            print("CORTEX: Received server response")
+            let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw CortexError.invalidResponse
             }
 
-            print("CORTEX: HTTP status = \(httpResponse.statusCode)")
-
             guard (200...299).contains(httpResponse.statusCode) else {
-                let details = (try? JSONDecoder().decode(CortexErrorResponse.self, from: data).detail)
+                let serverError = try? JSONDecoder().decode(CortexErrorEnvelope.self, from: data).error
+                let message = serverError?.message
                     ?? String(data: data, encoding: .utf8)
                     ?? "Unknown server error"
-
-                if httpResponse.statusCode == 502 {
-                    throw CortexError.analysisFailed(details)
-                }
-
-                throw CortexError.serverError(httpResponse.statusCode, details)
+                throw CortexError.serverError(httpResponse.statusCode, message)
             }
 
-            let result = try JSONDecoder().decode(
-                CortexResponse.self,
-                from: data
-            )
-
-            print("CORTEX: AI description received")
-
-            return result.description
-
+            return data
         } catch let urlError as URLError where urlError.code == .timedOut {
-            print("CORTEX: Request timed out after \(Int(requestTimeout)) seconds")
-            throw CortexError.requestTimedOut(requestTimeout)
+            throw CortexError.requestTimedOut
         } catch let urlError as URLError {
-            print("CORTEX: Request failed: \(urlError)")
             throw CortexError.network(urlError)
-        } catch {
-            print("CORTEX: Request failed: \(error)")
-            throw error
         }
     }
 }
@@ -120,30 +118,30 @@ enum CortexAPI {
 enum CortexError: LocalizedError {
     case invalidURL
     case invalidResponse
-    case requestTimedOut(TimeInterval)
+    case captureDisabled(String)
+    case requestTimedOut
     case network(URLError)
-    case analysisFailed(String)
     case serverError(Int, String)
 
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Set CORTEX_SERVER_URL in the CameraAccess target's build settings."
+            return "Set CORTEX_API_URL in the CameraAccess target's build settings."
 
         case .invalidResponse:
-            return "Invalid Cortex server response"
+            return "The Cortex API returned an invalid response."
 
-        case .requestTimedOut(let timeout):
-            return "Cortex did not respond within \(Int(timeout)) seconds. Verify the server is running and reachable."
+        case .captureDisabled(let state):
+            return "Capture is \(state.replacingOccurrences(of: "_", with: "-")); nothing was stored."
+
+        case .requestTimedOut:
+            return "Cortex did not finish processing the image in time."
 
         case .network(let error):
-            return "Could not reach the Cortex server: \(error.localizedDescription)"
+            return "Could not reach the Cortex API: \(error.localizedDescription)"
 
-        case .analysisFailed(let details):
-            return "The Cortex backend could not analyze the image: \(details)"
-
-        case .serverError(let code, let details):
-            return "Server error \(code): \(details)"
+        case .serverError(let code, let message):
+            return "Cortex API error \(code): \(message)"
         }
     }
 }

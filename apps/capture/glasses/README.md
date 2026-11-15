@@ -35,10 +35,10 @@ Toolkit versions and requirements come from Meta's [version dependencies](https:
 1. Open `CameraAccess.xcodeproj` in Xcode 26.4 or newer. Xcode resolves Meta Wearables DAT 1.0.1 from its public Swift package automatically.
 2. Select the `CameraAccess` target, choose your Apple development team under Signing & Capabilities, and use a unique bundle identifier if Xcode requests one.
 3. Add `CLIENT_TOKEN` and `META_APP_ID` as user-defined build settings for the Meta developer app used by the team.
-4. Set the user-defined `CORTEX_SERVER_URL` build setting to the complete scene-analysis endpoint reachable from the iPhone, for example `http://<laptop-ip>:8000/analyze`. Do not commit a personal IP address or API key.
+4. Set the user-defined `CORTEX_API_URL` build setting to the Cortex API base URL reachable from the iPhone, for example `http://<laptop-ip>:8000`. Do not commit a personal IP address or API key.
 5. Run on an iPhone for real glasses, or open the debug menu to exercise camera streaming with Mock Device Kit and the included test media.
 
-The checked-in foundation currently connects, streams, captures frames, records media, and can submit a sampled JPEG to the separately configured scene-analysis endpoint. Posting the repository's `MomentIngest` contract, checking `GET /privacy`, and adding the pause/off-the-record control remain work for #36 and #39; this import does not mark either issue complete.
+The app connects, streams, captures frames, records media, checks `GET /privacy`, and submits a sampled JPEG to `POST /moments` as `source: "glasses"`. The backend sends the frame to Gemini, stores the resulting caption and moment in MongoDB, indexes its timeline and metrics in Tiger Data, and publishes `moment.created`; the dashboard consumes that event and refreshes automatically. The app never sends while privacy is paused or off the record. A dedicated pause/off-the-record control and real-glasses latency/frame-rate verification remain work for #36 and #39.
 
 ## Contract
 

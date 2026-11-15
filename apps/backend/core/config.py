@@ -42,7 +42,7 @@ class Settings:
 
     # Models
     llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", "gemini"))
-    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL") or "gemini-2.5-flash")
+    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL") or "gemini-3.5-flash-lite")
     llm_api_key: str = field(default_factory=lambda: os.getenv("LLM_API_KEY", ""))
     vision_model: str = field(default_factory=lambda: os.getenv("VISION_MODEL", ""))
     embed_model: str = field(default_factory=lambda: os.getenv("EMBED_MODEL", "gemini-embedding-001"))

@@ -28,7 +28,7 @@ struct CameraView: View {
   @State private var isLaunchingUpdate: Bool = false
 
   @State private var cortexMessage: String = ""
-  @State private var isAnalyzing: Bool = false
+  @State private var isSavingMoment: Bool = false
 
 
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
@@ -287,24 +287,24 @@ struct CameraView: View {
     private var cortexAnalyzeButton: some View {
       VStack(spacing: 8) {
         Button {
-          guard !isAnalyzing else { return }
+          guard !isSavingMoment else { return }
 
           guard let imageData = viewModel.getImageForAI() else {
             cortexMessage = "No camera frame available."
             return
           }
 
-          isAnalyzing = true
-          cortexMessage = "Analyzing your scene..."
+          isSavingMoment = true
+          cortexMessage = "Creating and saving your insight..."
 
           Task {
-            defer { isAnalyzing = false }
+            defer { isSavingMoment = false }
 
             do {
-              let description = try await CortexAPI.analyze(
+              let moment = try await CortexAPI.captureMoment(
                 imageData: imageData
               )
-              cortexMessage = description
+              cortexMessage = moment.caption ?? "Insight saved to Cortex."
             } catch {
               cortexMessage = "Error: \(error.localizedDescription)"
               print("Cortex error:", error)
@@ -312,14 +312,14 @@ struct CameraView: View {
           }
         } label: {
           HStack(spacing: 10) {
-            if isAnalyzing {
+            if isSavingMoment {
               ProgressView()
                 .tint(.white)
             } else {
               Image(systemName: "brain.head.profile")
             }
 
-            Text(isAnalyzing ? "Analyzing..." : "Analyze Scene")
+            Text(isSavingMoment ? "Saving Insight..." : "Save Insight")
           }
           .font(.system(size: 16, weight: .semibold))
           .foregroundStyle(.white)
@@ -328,8 +328,8 @@ struct CameraView: View {
           .background(Color.blue)
           .clipShape(Capsule())
         }
-        .disabled(!viewModel.isStreaming || isAnalyzing)
-        .opacity(viewModel.isStreaming && !isAnalyzing ? 1 : 0.4)
+        .disabled(!viewModel.isStreaming || isSavingMoment)
+        .opacity(viewModel.isStreaming && !isSavingMoment ? 1 : 0.4)
 
         if !cortexMessage.isEmpty {
           ScrollView {

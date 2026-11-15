@@ -319,7 +319,7 @@ final class CameraViewModel {
 
 
     /// Converts the latest glasses camera frame into JPEG data
-    /// for Cortex AI processing.
+    /// for Cortex moment ingestion and Gemini processing.
     func getImageForAI() -> Data? {
         guard isStreaming,
               let image = currentVideoFrame else {

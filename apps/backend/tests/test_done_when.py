@@ -38,6 +38,16 @@ def test_t0_1_capture_stores_moment_quickly(client):
     assert validate(client.get("/moments"), "/moments", "get", 200)["items"][0]["id"] == m["id"]
 
 
+def test_t0_1_image_only_capture_creates_gemini_insight_and_event(client):
+    moment = post_moment(client, snapshot=JPEG)
+
+    assert moment["source"] == "glasses"
+    assert moment["caption"] == "A scene from the wearer's point of view."
+    assert moment["snapshot_url"].startswith("http://testserver/snapshots/")
+    assert events.history[-1]["type"] == "moment.created"
+    assert events.history[-1]["data"]["id"] == moment["id"]
+
+
 @pytest.mark.parametrize("question,expected", [
     ("Where did I leave my keys?", "mom_seed_003"),
     ("What did Sam promise me?", "mom_seed_002"),

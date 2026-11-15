@@ -33,11 +33,11 @@ final class VoiceAssistant {
     state = .requestingPermission
     transcript = ""
 
-    guard await requestSpeechPermission() else {
+    guard await Self.requestSpeechPermission() else {
       state = .unavailable("Allow Speech Recognition in Settings to use voice commands.")
       return
     }
-    guard await requestMicrophonePermission() else {
+    guard await Self.requestMicrophonePermission() else {
       state = .unavailable("Allow Microphone access in Settings to use voice commands.")
       return
     }
@@ -197,7 +197,7 @@ final class VoiceAssistant {
     isTapInstalled = false
   }
 
-  private func requestSpeechPermission() async -> Bool {
+  private nonisolated static func requestSpeechPermission() async -> Bool {
     await withCheckedContinuation { continuation in
       SFSpeechRecognizer.requestAuthorization { status in
         continuation.resume(returning: status == .authorized)
@@ -205,7 +205,7 @@ final class VoiceAssistant {
     }
   }
 
-  private func requestMicrophonePermission() async -> Bool {
+  private nonisolated static func requestMicrophonePermission() async -> Bool {
     if AVAudioApplication.shared.recordPermission == .granted { return true }
     return await withCheckedContinuation { continuation in
       AVAudioApplication.requestRecordPermission { granted in

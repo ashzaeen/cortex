@@ -34,7 +34,7 @@ This closes the plan's open question *"how the caller's camera frames reach our 
 ## 3. How a call flows
 
 ```
-iPhone FaceTime  ->  Chert line (number in team chat)  ->  LiveKit room  <-  our agent (Node)
+iPhone FaceTime  ->  Chert line (+1 628-278-7200)  ->  LiveKit room  <-  our agent (Node)
                                                          |  caller camera track, ~1 image/s -> Gemini Live
                                                          |  agent voice + animated-face video -> caller
                                                          v

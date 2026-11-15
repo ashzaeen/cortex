@@ -19,7 +19,7 @@ Live risk list. The demo fallbacks table lives in the [priority plan](../Cortex%
 | Scope creep | Demo | Tier rule in AGENTS.md; feature freeze 6 h before judging | - |
 | Hosted backend is one in-memory process: a Railway restart drops SSE clients and any pending undo timer, and pushing to `main` does not redeploy it | Demo | Reconnect SSE in the dashboard; redeploy by hand (`railway up --ci --service api`) after backend changes and re-check `/health` before going on stage | #42 |
 | The hosted database is the demo data: tests or experiments that write (intros, promises, deletes) pollute the stage run | Demo | Run write tests on a separate Atlas database; reseed with `make seed` before rehearsal | #23, #29 |
-| The Chert line's number was in a public doc and stays in git history, so strangers can use up trial minutes | T0-10 | Removed from `docs/CHERT_CALL_LAYER_HANDOFF.md` (2026-11-14); share it in team chat only; ask Chert for a new line if minutes drop | #6, #22 |
+| The Chert line's number is in a public doc (`docs/CHERT_CALL_LAYER_HANDOFF.md`), so strangers can use up trial minutes | T0-10 | Kept for now (@ashzaeen, 2026-11-14); watch the minutes in the Chert console, and remove it or ask Chert for a new line if they drop | #6, #22 |
 
 **Chert trial note (2026-11-14):** a Chert onboarding (`onboard --plan trial --stack demo`) was started from @ashzaeen's machine before this repo existed. Browser sign-in completed and a Chert project was created, but phone verification was not finished and the process was stopped. Check with `chert onboard --status` and in the Chert console whether the trial clock has started, before relying on the 48-hour window.
 

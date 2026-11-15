@@ -17,6 +17,11 @@ from core.timeutil import iso, now
 from skills import kit
 
 TAG = "skill:coach"
+NEXT = re.compile(r"\b(next|done|finished|got it|ready|ok(?:ay)?)\b", re.I)
+URGENT = re.compile(
+    r"\b(burn(?:t|ed)?|hurt|bleed\w*|cut myself|on fire|fire|smoke|gas leak|shock(?:ed)?|electrocut\w*|ow)\b", re.I
+)
+SAFETY = "Stop. If anyone is hurt or in danger, call emergency services now. Say next when it is safe to continue."
 
 
 def out(d: dict) -> dict:
@@ -66,6 +71,14 @@ def _finish(d: dict, status: str) -> dict:
     return _get(d["_id"])
 
 
+def _advance(d: dict, i: int, steps: list[str], session_id: str) -> dict:
+    if i + 1 >= len(steps):
+        d = _finish(d, "done")
+        return _publish(d, "That was the last step. You're done.")
+    db.col("coach_sessions").update_one({"_id": session_id}, {"$set": {"index": i + 1, "updated_at": now()}})
+    return _publish(_get(session_id), f"Step {i + 2} of {len(steps)}. {steps[i + 1]}")
+
+
 def step(session_id: str, snapshot_base64: str | None = None, said: str | None = None, source: str | None = None) -> dict:
     d = _get(session_id)
     if d["status"] != "active":
@@ -79,7 +92,12 @@ def step(session_id: str, snapshot_base64: str | None = None, said: str | None =
         db.col("coach_sessions").update_one({"_id": session_id}, {"$set": {"index": i - 1, "updated_at": now()}})
         d = _get(session_id)
         return _publish(d, f"Back to step {i} of {len(steps)}. {steps[i - 1]}")
+    if URGENT.search(said):  # never leave this to the model: stop first
+        db.col("coach_sessions").update_one({"_id": session_id}, {"$inc": {"mistakes": 1}, "$set": {"updated_at": now()}})
+        return _publish(_get(session_id), SAFETY, SAFETY)
     image, _ = kit.view(snapshot_base64, None, source, required=False)
+    if NEXT.search(said) and not image:  # no frame to contradict them: the wearer says they are done, so believe them
+        return _advance(d, i, steps, session_id)
     verdict = get_llm().skill("coach_step", image, goal=d["goal"], steps="; ".join(steps), number=i + 1, current=steps[i],
                               said=said or "(nothing said)") or {}
     mistake = (verdict.get("mistake") or None)
@@ -87,12 +105,7 @@ def step(session_id: str, snapshot_base64: str | None = None, said: str | None =
         db.col("coach_sessions").update_one({"_id": session_id}, {"$inc": {"mistakes": 1}, "$set": {"updated_at": now()}})
         return _publish(_get(session_id), (verdict.get("spoken") or mistake).strip(), mistake)
     if verdict.get("advance"):
-        if i + 1 >= len(steps):
-            d = _finish(d, "done")
-            return _publish(d, "That was the last step. You're done.")
-        db.col("coach_sessions").update_one({"_id": session_id}, {"$set": {"index": i + 1, "updated_at": now()}})
-        d = _get(session_id)
-        return _publish(d, f"Step {i + 2} of {len(steps)}. {steps[i + 1]}")
+        return _advance(d, i, steps, session_id)
     return _publish(d, (verdict.get("spoken") or "Take your time. Say next when you're done.").strip())
 
 

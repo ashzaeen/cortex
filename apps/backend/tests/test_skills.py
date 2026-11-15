@@ -351,3 +351,11 @@ def test_ask_what_is_this_uses_the_glasses_frame(client):
     post(client, "looking", snapshot_base64=b64(b"\xff\xd8\xff plant"))
     r = ask(client, "What plant is this?")
     assert "houseplant" in r["spoken"] and r["sources"]
+
+
+def test_coach_stops_for_injury_words_and_believes_a_plain_next(client):
+    sid = call(client, "post", "/skills/coach", status=201, json={"goal": "make a cup of tea"})["session"]["id"]
+    step = lambda **b: call(client, "post", f"/skills/coach/{sid}/step", "/skills/coach/{id}/step", json=b)  # noqa: E731
+    hurt = step(said="ow I burnt my hand")
+    assert hurt["mistake"].startswith("Stop. If anyone is hurt") and hurt["session"]["step_index"] == 0
+    assert step(said="ok the kettle is filled, next")["session"]["step_index"] == 1  # no frame: believe the wearer

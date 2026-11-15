@@ -152,3 +152,14 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   return <label className="flex flex-col gap-2"><Label>{label}</Label>{children}</label>;
 }
 export const inputCls = "min-h-12 w-full rounded-lg border border-edge bg-fill-soft px-4 text-[1rem] text-text placeholder:text-text-3";
+
+const BCP47: Record<string, string> = { spanish: "es-ES", french: "fr-FR", german: "de-DE", english: "en-US", japanese: "ja-JP", italian: "it-IT", portuguese: "pt-PT" };
+/** Speak text in a language, so a translation is not read with an English voice. Falls back to the default voice. */
+export function speakIn(text: string, language: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const u = new SpeechSynthesisUtterance(text);
+  const lang = BCP47[language.toLowerCase()];
+  if (lang) u.lang = lang;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}

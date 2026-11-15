@@ -8,7 +8,7 @@ import { useListen, voiceSupported } from "@/lib/voice";
 import { Button, Chip, Label, Tag } from "../primitives";
 import { speak } from "../sheets";
 import { useToast } from "../Toast";
-import { Field, inputCls, Said, SkillHeader, useViewSource } from "./common";
+import { Field, inputCls, Said, SkillHeader, speakIn, useViewSource } from "./common";
 
 type P = { skill: SkillInfo | undefined; onOpenMoment?: (id: string) => void };
 const NEED_VIEW = "Point the camera or put your glasses on first.";
@@ -73,7 +73,7 @@ export function TranslatePanel({ skill }: P) {
   async function go(t = text) {
     if (!t.trim()) return;
     setBusy(true);
-    try { const out = await skillsApi.translate({ text: t, target_language: lang }); setR(out); speak(out.spoken); }
+    try { const out = await skillsApi.translate({ text: t, target_language: lang }); setR(out); if (out.unsure) speak(out.spoken); else speakIn(out.spoken, lang); }
     catch (e) { toast({ text: friendly(e, "Couldn't translate right now."), tone: "danger" }); }
     finally { setBusy(false); }
   }

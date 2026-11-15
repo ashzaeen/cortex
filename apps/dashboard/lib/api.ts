@@ -47,6 +47,9 @@ export const api = {
   brief: (personId: string) => call<Brief>("GET", `/people/${encodeURIComponent(personId)}/brief`),
   ingest: (transcript: string, source: "phone" | "dashboard" = "dashboard") =>
     call<Moment>("POST", "/moments", { ts: new Date().toISOString(), source, transcript }),
+  // Phone capture (#4): a snapshot (base64 JPEG, no data: prefix) plus what was said.
+  capture: (body: { transcript: string | null; snapshot_base64: string | null }) =>
+    call<Moment>("POST", "/moments", { ts: new Date().toISOString(), source: "phone", ...body }),
   confirmPromise: (id: string) => call<Promise_>("POST", `/promises/${encodeURIComponent(id)}/confirm`),
   proposeEmail: (personId: string) =>
     call<Action>("POST", "/actions/propose", { type: "follow_up_email", person_id: personId }),

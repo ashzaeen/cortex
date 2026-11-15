@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { useCortex } from "@/lib/useCortex";
 import { AskTab, LiveTab, PrivacyTab, ReceiptsTab, TimelineTab } from "@/components/tabs";
+import { CaptureTab } from "@/components/CaptureTab";
 
-const TABS = ["Live", "Timeline", "Ask", "Receipts", "Privacy"] as const;
+const TABS = ["Live", "Capture", "Timeline", "Ask", "Receipts", "Privacy"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Home() {
@@ -45,6 +46,7 @@ export default function Home() {
           <p className="mb-4 rounded-lg border border-red-500/40 p-3 text-sm text-red-600 dark:text-red-400">{actionError ?? error}</p>
         )}
         {tab === "Live" && <LiveTab data={data} feed={feed} run={run} />}
+        {tab === "Capture" && <CaptureTab data={data} />}
         {tab === "Timeline" && <TimelineTab data={data} run={run} />}
         {tab === "Ask" && <AskTab data={data} run={run} />}
         {tab === "Receipts" && <ReceiptsTab data={data} run={run} />}
@@ -55,7 +57,7 @@ export default function Home() {
         className="fixed inset-x-0 bottom-0 border-t border-line bg-card"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="mx-auto grid max-w-xl grid-cols-5">
+        <div className="mx-auto grid max-w-xl grid-cols-6">
           {TABS.map((t) => (
             <button
               key={t}

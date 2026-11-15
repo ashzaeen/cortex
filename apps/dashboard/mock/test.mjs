@@ -87,6 +87,12 @@ valid("Action", r.body.action, "sent action"); valid("Receipt", r.body.receipt, 
 r = await call("POST", `/actions/${act.id}/undo`);
 ok(r.body.action.status === "undone", "undo works");
 
+// Phone capture (#4): snapshot plus transcript, same payload the glasses app sends.
+const tinyJpeg = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
+r = await call("POST", "/moments", { ts: new Date().toISOString(), source: "phone", transcript: "Remember this whiteboard.", snapshot_base64: tinyJpeg });
+ok(r.status === 201 && r.body.source === "phone" && r.body.snapshot_url?.startsWith("data:image/jpeg;base64,"), "phone capture stores snapshot and transcript (T0-1 fallback)");
+valid("Moment", r.body, "phone capture moment");
+
 // Privacy
 r = await call("POST", "/privacy/pause", { state: "off_record" });
 ok(r.body.state === "off_record", "off the record");

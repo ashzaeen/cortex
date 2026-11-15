@@ -1,6 +1,6 @@
 # apps/dashboard
 
-Companion web app: **Live, Timeline, Ask, Receipts, Privacy**. The glasses have no display, so this is where the wearer and the judges see memory working. Designed for iPhone Safari first; the same app on the laptop is the judges' view.
+Companion web app: **Live, Capture, Timeline, Ask, Receipts, Privacy**. The glasses have no display, so this is where the wearer and the judges see memory working. Designed for iPhone Safari first; the same app on the laptop is the judges' view.
 
 **Stack ([ADR 0005](../../docs/decisions/0005-dashboard-stack.md), Accepted):** Next.js 16 with TypeScript, Tailwind CSS 4, a same-origin `/api` proxy to `CORTEX_API_URL`, a stateful mock in `mock/`, Vercel hosting (#38). The UI is a working placeholder: plain Tailwind for now, with shadcn/ui and a design pass to come.
 
@@ -40,7 +40,8 @@ You can also type into **Say something** to simulate capture: "This is Ash from 
 | Path | What |
 | --- | --- |
 | `app/page.tsx` | App shell, header with capture state, bottom tab bar |
-| `components/tabs.tsx` | The five tabs |
+| `components/tabs.tsx` | Live, Timeline, Ask, Receipts and Privacy tabs |
+| `components/CaptureTab.tsx` | Phone capture (#4): camera snapshot plus what was said, posted as a `phone` moment |
 | `components/ui.tsx` | Placeholder primitives (Card, Button, Section) plus `speak()` |
 | `app/api/[...path]/route.ts` | Proxy to `CORTEX_API_URL`; streams, so `/api/events` (SSE) works |
 | `lib/api.ts` | Typed API client |
@@ -56,6 +57,7 @@ You can also type into **Say something** to simulate capture: "This is Ash from 
 | Screen | Endpoints | Tier 0 |
 | --- | --- | --- |
 | Live | `GET /events`, `GET /privacy`, `GET /promises`, `GET /actions`, `GET /people`, `GET /people/{id}/brief` | T0-3, T0-4, T0-6, T0-8 |
+| Capture | `POST /moments` (source `phone`), `GET /privacy` | T0-1 (fallback) |
 | Timeline | `GET /moments`, `DELETE /moments/{id}` | T0-8, T0-9 |
 | Ask | `POST /ask` (shows sources) | T0-5 |
 | Receipts | `GET /receipts`, `POST /actions/{id}/undo` | T0-7 |

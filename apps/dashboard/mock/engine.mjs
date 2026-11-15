@@ -41,7 +41,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
   function fresh() {
     const d = JSON.parse(JSON.stringify(load()));
     if (anchor) rebase(d, anchor);
-    return { ...d, privacy: { state: "capturing", since: now() }, demoIndex: 0 };
+    return { ...d, privacy: { state: "capturing", since: now() }, demoIndex: 0, calls: {}, activeCall: null };
   }
 
   // Shift every timestamp by whole days so the profile's anchor day becomes today (local time).
@@ -84,6 +84,31 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     if (playing) { clearInterval(playing); playing = null; }
     db = fresh();
     if (suggestions) seedModeSuggestions();
+  }
+
+  // ------------------------------------------------------------ calls (D-10, mirrors apps/backend/core/calls.py)
+  const MAX_CALL_MS = 6 * 60 * 1000; // Chert caps calls at 5 minutes; no end after 6 counts as ended
+  function callEnd(callId, at = now()) {
+    const c = db.calls[callId];
+    if (!c) return null;
+    if (!c.ended_at) { c.ended_at = at; emit("call.ended", { ...c }); }
+    if (db.activeCall === callId) db.activeCall = null;
+    return c;
+  }
+  function callStart(callId) {
+    const cur = db.activeCall && db.calls[db.activeCall];
+    if (cur && Date.now() - Date.parse(cur.started_at) > MAX_CALL_MS) callEnd(cur.call_id, new Date(Date.parse(cur.started_at) + MAX_CALL_MS).toISOString());
+    if (db.activeCall === callId) return db.calls[callId]; // idempotent
+    if (db.activeCall) callEnd(db.activeCall); // one call at a time
+    const c = { call_id: callId, started_at: now(), ended_at: null };
+    db.calls[callId] = c; db.activeCall = callId;
+    emit("call.started", { ...c });
+    return c;
+  }
+  function callCurrent() {
+    const cur = db.activeCall && db.calls[db.activeCall];
+    if (cur && Date.now() - Date.parse(cur.started_at) > MAX_CALL_MS) { callEnd(cur.call_id, new Date(Date.parse(cur.started_at) + MAX_CALL_MS).toISOString()); return null; }
+    return cur || null;
   }
 
   // ------------------------------------------------------------ skills (fake rules)
@@ -327,9 +352,9 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     { beat: "Act", label: "Approve and send the email", you: "(The driver approves it if you have not.)",
       run: () => { const a = db.actions.find((x) => x.type === "follow_up_email" && x.status === "proposed" && x.person_id === ashPerson()?.id); if (a) confirmAction(a, "send"); } },
     { beat: "Call", label: "FaceTime caller shows a business card", you: "Watch the call moment arrive.",
-      run: () => { emit("call.started", { call_id: "call_demo" }); ingest({ ts: now(), source: "call", call_id: "call_demo", transcript: "Here's Ash's business card.", caption: "Business card: Ash, Product Lead, Acme, ash@acme.example", snapshot_url: card }); } },
+      run: () => { callStart("call_demo"); ingest({ ts: now(), source: "call", call_id: "call_demo", transcript: "Here's Ash's business card.", caption: "Business card: Ash, Product Lead, Acme, ash@acme.example", snapshot_url: card }); } },
     { beat: "Call", label: 'Caller asks "What is open with Ash?"', you: "Hear the answer from memory.",
-      run: () => { ask("What is open with Ash?"); emit("call.ended", { call_id: "call_demo" }); } },
+      run: () => { ask("What is open with Ash?"); callEnd("call_demo"); } },
   ];
   const demoState = () => ({ index: db.demoIndex, total: DEMO.length, owner: owner?.name ?? null,
     steps: DEMO.map(({ beat, label, you }, i) => ({ i, beat, label, you, done: i < db.demoIndex })) });
@@ -451,6 +476,17 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
       emit("mode.changed", mode);
       return ok(200, mode);
     }
+
+    if (p === "/calls/started" && m === "POST") {
+      if (typeof body?.call_id !== "string" || !body.call_id) return err(400, "bad_request", "call_id: required.");
+      return ok(200, { ...callStart(body.call_id) });
+    }
+    if (p === "/calls/ended" && m === "POST") {
+      if (typeof body?.call_id !== "string" || !body.call_id) return err(400, "bad_request", "call_id: required.");
+      const c = callEnd(body.call_id);
+      return c ? ok(200, { ...c }) : err(404, "not_found", "No such call.");
+    }
+    if (p === "/calls/current" && m === "GET") { const c = callCurrent(); return ok(200, { call: c ? { ...c } : null }); }
 
     if (p === "/_demo" && m === "GET") return ok(200, demoState());
     if (p === "/_demo/next" && m === "POST") { demoNext(); return ok(200, demoState()); }

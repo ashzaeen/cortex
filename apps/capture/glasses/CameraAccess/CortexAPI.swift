@@ -64,6 +64,20 @@ enum CortexAPI {
         return url
     }
 
+    /// The shared key the backend requires on every route but /health (CORTEX_API_KEY build setting).
+    /// Nil when it is empty or still the unexpanded "$(CORTEX_API_KEY)" placeholder, so a local build
+    /// against an open backend sends no header.
+    private static var apiKey: String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIKey") as? String else {
+            return nil
+        }
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedValue.isEmpty || trimmedValue.hasPrefix("$(") {
+            return nil
+        }
+        return trimmedValue
+    }
+
     static func capturePhoto(imageData: Data) async throws -> CortexMoment {
         try await captureMoment(snapshotData: imageData, videoData: nil)
     }
@@ -112,6 +126,11 @@ enum CortexAPI {
     }
 
     private static func perform(_ request: URLRequest) async throws -> Data {
+        var request = request
+        if let apiKey {
+            request.setValue(apiKey, forHTTPHeaderField: "X-Cortex-Key")
+        }
+
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -160,6 +179,9 @@ enum CortexError: LocalizedError {
 
         case .network(let error):
             return "Could not reach the Cortex API: \(error.localizedDescription)"
+
+        case .serverError(401, _):
+            return "Cortex rejected the app's key. Set CORTEX_API_KEY in the CameraAccess target's build settings."
 
         case .serverError(let code, let message):
             return "Cortex API error \(code): \(message)"

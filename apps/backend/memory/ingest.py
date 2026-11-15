@@ -31,6 +31,17 @@ def _b64(value: str | None, field: str) -> bytes | None:
         raise ApiError(400, "bad_request", f"{field} is not valid base64.") from exc
 
 
+_NO_SPEECH = {"", "null", "none", "n/a", "no speech", "silence", "(silence)", "[silence]", "nothing"}
+
+
+def _heard(value) -> str | None:
+    """The words the model heard in a video, or None when it reported no speech."""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text[:2000] if text.lower().strip(".") not in _NO_SPEECH else None
+
+
 def ingest(body: dict) -> dict:
     t0 = time.perf_counter()
     state = store.privacy()["state"]
@@ -77,6 +88,9 @@ def ingest(body: dict) -> dict:
 
     p = llm.perceive(transcript=transcript or "", image=image, video=video, mode=mode, now_local=human(now()),
                      context=context, speaker_rule=rule) or {}
+    if video and not transcript:
+        # Gemini hears a video's audio. Keep what was said, or search, proof and drafts never see it.
+        transcript = _heard(p.get("transcript"))
 
     linked, created = network.from_introductions(p.get("people_introduced"), moment_id)
     if not linked and partner:

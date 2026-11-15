@@ -59,6 +59,8 @@ The call agent will use the same backend as the glasses and the app. By tab:
 
 ## 5. Proposed backend contract (a draft for the team to agree, not decided)
 
+> **Update, 2026-11-15:** the real contract is [contracts/openapi.yaml](../contracts/openapi.yaml), and the table below was only a first sketch. The differences: the source is `call` (not `facetime`), `POST /ask` takes `{question, channel: "call"}` and returns `{answer, spoken, grounded, sources, receipt_id}`, and a brief is `GET /people/{id}/brief`. The call agent now uses these (`apps/call-agent/agent/cortex.mjs`). `call_started` and `call_ended` became `POST /calls/started` and `POST /calls/ended`, plus `GET /calls/current`; those three are the contract change in #48, implemented in the backend and the stateful mock (PR #49). There is no `GET /mode` for the agent to read; it is not wired.
+
 The plan names four functions the call agent will use. Suggested shapes:
 
 | Function | Suggested call | Returns |
@@ -95,7 +97,7 @@ Also useful: `GET /mode` (current mode), and a way for the call agent to report 
 1. Who owns wiring the call agent to the backend, and when does the backend expose the functions above?
 2. What does the agent show on video for a proof receipt (a card image, or the live dashboard)?
 3. Can glasses footage feed a call, or is the call camera always the phone's?
-4. Do we want the agent to save a snapshot automatically when a caller shows something, or only when they say so?
+4. ~~Do we want the agent to save a snapshot automatically when a caller shows something, or only when they say so?~~ **Decided 2026-11-15 (@ashzaeen): only when the caller asks.** The demo script's "Cortex saves it" needs the presenter to say "save this".
 5. Which phones must be verified or joined before the demo (judge phones, teammate phones)?
 
 ## 9. References

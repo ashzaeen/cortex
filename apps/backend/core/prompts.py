@@ -10,6 +10,7 @@ TRANSCRIPT of this moment (no speaker labels; may be empty):
 Return ONLY JSON with exactly these keys:
 {{
   "caption": "one short sentence describing what is seen (null if there is no image)",
+  "transcript": "video only: the words HEARD in the attached video, verbatim, or null",
   "topics": ["0-4 short topic tags from the conversation"],
   "people_introduced": [{{"name": "...", "company": "... or null", "role": "... or null", "confidence": 0.0-1.0}}],
   "promises": [{{"direction": "waiting_on" | "i_owe", "person_name": "... or null",
@@ -24,6 +25,8 @@ Return ONLY JSON with exactly these keys:
                     "body": "notes only: the key points to save, else null", "confidence": 0.0-1.0}}]
 }}
 Rules:
+- transcript: only speech you actually hear in an attached video, verbatim and in order (e.g. This is Ash from Acme).
+  null for a still image, silence, or no video. Never copy text that is merely visible; never guess.
 - people_introduced ONLY when someone is explicitly introduced by name ("This is Ash from Acme", "I'm Ash").
   Never identify anyone from their face. confidence reflects how sure you are of the spelling.
 - waiting_on = someone else promised the wearer something. i_owe = the wearer promised someone.
@@ -34,7 +37,7 @@ Rules:
   reminder for something the wearer must do themselves that is not already a promise above.
   notes ONLY when a lecture, slide or whiteboard has content worth keeping (key points in body).
   Use [] when nothing qualifies. Never suggest sending messages.
-- Do not invent names, dates or promises that are not in the transcript."""
+- Do not invent names, dates or promises that are not in the transcript, or in the speech you heard in an attached video."""
 
 SPEAKER_RULE_WITH_PARTNER = (
     "The wearer is talking with {name}{company}. A first-person promise such as \"I'll send you the deck\" "

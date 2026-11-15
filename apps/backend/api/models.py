@@ -22,6 +22,10 @@ class AskBody(BaseModel):
     channel: Literal["voice", "dashboard", "call"]
 
 
+class CallRef(BaseModel):
+    call_id: str = Field(min_length=1)
+
+
 class PersonCreate(BaseModel):
     name: str = Field(min_length=1)
     company: str | None = None

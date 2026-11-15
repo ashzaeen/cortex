@@ -56,6 +56,7 @@ Other commands, from this folder:
 
 The **Demo driver** is hidden so judges never see it. Open http://localhost:3000/?demo=1, or turn it on in Settings and Privacy (tap the status pill). It works only with the mock:
 
+- **Ask by voice:** in the Ask sheet, *Tap to Talk* listens (Web Speech API, `lib/voice.ts`), fills the box as words are heard, asks when you stop, and the answer is read aloud with the proof moment opened. Where the browser has no speech recognition the sheet keeps its text box. Needs a tap first on iPhone Safari (the tap also unlocks speech); the glasses' mic and speakers work when they are the phone's Bluetooth audio device.
 - **Next step** runs one beat: Meet, Promise, confirm, Ask, Brief, Act (propose and send the email), then the FaceTime call. Each step says what *you* would do, and you can do it yourself in the UI instead of pressing Next.
 - **Play all** runs the rest on a timer (2.5 s per step).
 - **Reset** reloads the fixtures and clears everything.
@@ -95,4 +96,4 @@ To simulate capture by hand, open the camera button in the status pill and type 
 | Moment sheet | `DELETE /moments/{id}` (with an undo toast) | D-9 |
 | Settings and Privacy | `POST /privacy/pause` | D-9 |
 | Receipts sheet | `GET /receipts`, `POST /actions/{id}/undo` | D-7 |
-| Call sheet | `call.started` and `call.ended` events, `call` moments | D-10 |
+| Call sheet | `GET /calls/current` (and the `call.started` / `call.ended` events), `call` moments | D-10 |

@@ -8,7 +8,7 @@ os.environ["SEED_ON_START"] = "false"
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from core import db, events, llm, tiger  # noqa: E402
+from core import calls, db, events, llm, tiger  # noqa: E402
 from core.config import reload_settings  # noqa: E402
 
 
@@ -23,6 +23,7 @@ def client(tmp_path):
     db.init()
     db.reset()
     events.history.clear()
+    calls.reset()
     from skills import brief
 
     brief.clear_cache()

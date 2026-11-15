@@ -14,6 +14,7 @@
 | `POST /ask` | Answer plus sources plus receipt id | D-5, D-10 |
 | `GET /actions`, `POST /actions/propose`, `/actions/{id}/confirm`, `/actions/{id}/undo`, `GET /receipts` | Follow-up email loop | D-7 |
 | `GET /privacy`, `POST /privacy/pause`, `DELETE /moments/{id}` | Pause, off-the-record, delete | D-9 |
+| `POST /calls/started`, `POST /calls/ended`, `GET /calls/current` | The call agent reports a live FaceTime call (emits `call.started` and `call.ended`); the dashboard reads the call in progress | D-10, D-8 |
 | `GET /events` | Live updates for the dashboard | D-8 |
 | `GET /modes`, `GET /health` | Mode presets, liveness | - |
 

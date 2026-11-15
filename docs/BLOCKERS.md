@@ -47,7 +47,10 @@ The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spe
 
 | Gap | Blocks | Area |
 | --- | --- | --- |
-| Call agent answers from its own prompt: no `POST /ask` (channel `call`), no `GET /people/{id}/brief`, no `POST /moments` (source `call`) for the caller's camera | D-10 | call (#22) |
+| Call agent: `ask_memory`, `brief_person` and `save_what_you_see` (on request) are in (PR #49, contract change #48). Two real calls on 2026-11-15 on the hosted setup (Railway `call-agent` + `chert-connector`, no laptop): answered, greeted in time, answered from memory, saved a card on request; checked from logs and data, not yet repeated by the owner. Lookups retry a restarting backend, but a push to `main` redeploys the backend and can still drop a call: freeze pushes while rehearsing ([ADR 0006](decisions/0006-call-agent-hosting.md), Proposed; the laptop stays the fallback) | D-10 | call (#22) |
+| The hosted backend answers 401 without `X-Cortex-Key` (#47): the call agent (`CORTEX_API_KEY`) and the iOS app (`CORTEX_API_KEY` build setting) now send it on this branch; the key itself must be given to each, privately | D-1, D-10 | call, capture |
+| Voice on the glasses: the iOS app only posts photos and videos and plays nothing back. The phone's Safari dashboard now has tap-to-talk and reads answers aloud (Web Speech, glasses audio over Bluetooth); a native voice loop in the app is not built | D-5, D-6 | dashboard (done, untested on a phone), capture |
+| Spoken words in videos were dropped (`transcript: null`); the perception prompt now returns them and ingest stores them. Offline tests only: not yet seen with real Gemini | D-1 | backend (#13) |
 | Re-meeting seeded Ash: the backend must link the moment to the existing card and emit `person.updated` (the mock already does) | D-3, D-11 (#29) | backend, contracts (#43) |
 | Ash's earlier career-fair meeting is not seeded, because it waits on #43 | D-6 brief, D-11 | demo (#29) |
 | The iOS app has no pause or off-the-record controls of its own; it only checks `GET /privacy` before posting | D-9 on the glasses | capture (#36) |

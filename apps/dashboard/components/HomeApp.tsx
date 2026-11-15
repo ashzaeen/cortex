@@ -70,10 +70,13 @@ function Home({ user }: { user: AppUser | null }) {
   const autoFollow = useRef(true);
   useEffect(() => { if (autoFollow.current && newest) setSelected(newest.id); }, [newest?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The backend says which call is live (so a page opened mid-call still shows it). Without that
+  // endpoint (data.call undefined) fall back to the call events seen since this page loaded.
   const call = useMemo(() => {
+    if (data.call !== undefined) return data.call ? { startedAt: Date.parse(data.call.started_at) } : null;
     const last = feed.find((f) => f.type === "call.started" || f.type === "call.ended");
     return last?.type === "call.started" ? { startedAt: Date.parse(last.at) } : null;
-  }, [feed]);
+  }, [data.call, feed]);
 
   const run = useCallback(async (fn: () => Promise<unknown>) => {
     try { await fn(); await refresh(); } catch (e) { toast({ text: friendly(e), tone: "danger" }); }

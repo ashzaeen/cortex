@@ -1,7 +1,7 @@
 "use client";
 // Loads everything the dashboard shows, and refreshes it whenever /api/events reports a change.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type Action, type DemoState, type Mode, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
+import { api, type Action, type Call, type DemoState, type Mode, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
 import { demoEngine } from "./demo";
 
 export type FeedItem = { id: string; at: string; type: string; text: string };
@@ -15,9 +15,11 @@ export type CortexData = {
   privacy: PrivacyState | null;
   modes: Mode[];
   demo: DemoState | null;
+  /** The call in progress. null = none; undefined = this backend has no GET /calls/current (use the event feed). */
+  call: Call | null | undefined;
 };
 
-const empty: CortexData = { moments: [], people: [], promises: [], actions: [], receipts: [], privacy: null, modes: [], demo: null };
+const empty: CortexData = { moments: [], people: [], promises: [], actions: [], receipts: [], privacy: null, modes: [], demo: null, call: undefined };
 
 const EVENT_TYPES = [
   "moment.created", "moment.deleted", "person.created", "promise.proposed", "promise.confirmed",
@@ -59,7 +61,9 @@ export function useCortex() {
         api.moments(), api.people(), api.promises(), api.actions(), api.receipts(), api.privacy(), api.modes(),
       ]);
       const demo = await api.demo.state().catch(() => null); // only the mock has a demo driver
-      setData({ moments: moments.items, people: people.items, promises: promises.items, actions: actions.items, receipts: receipts.items, privacy, modes: modes.items, demo });
+      // A page opened mid-call still shows "On Call". A backend without the endpoint leaves it undefined.
+      const call = await api.currentCall().then((r) => r.call).catch(() => undefined);
+      setData({ moments: moments.items, people: people.items, promises: promises.items, actions: actions.items, receipts: receipts.items, privacy, modes: modes.items, demo, call });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cannot load data.");

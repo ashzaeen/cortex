@@ -1,13 +1,14 @@
 "use client";
 // Sheets (design.md 10.1): Ask, Moment detail, People and brief, Waiting on, Settings and privacy,
 // Receipts history, Call Cortex. Reading surfaces are matte; floating ones are glass.
-import { ChevronRight, Glasses, Send } from "lucide-react";
+import { ChevronRight, Glasses, Mic, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, snapshotSrc, videoSrc, type Brief, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "@/lib/api";
 import { isDemo } from "@/lib/demo";
 import { friendly } from "@/lib/errors";
 import { clock, curly, dayLabel, dueChip, receiptId, timecode } from "@/lib/format";
 import type { CortexData } from "@/lib/useCortex";
+import { useListen, voiceSupported } from "@/lib/voice";
 import { sourceLabel } from "./AskPanel";
 import { Button, Chip, Frame, Label, Tag } from "./primitives";
 import { Sheet } from "./Sheet";
@@ -39,14 +40,30 @@ const SUGGESTED_DEMO = ["What did Ash promise me?", "Where did I park?", "What d
 
 export function AskSheet({ open, onClose, onAsk, recent }: { open: boolean; onClose: () => void; onAsk: (q: string) => void; recent: string[] }) {
   const [q, setQ] = useState("");
-  useEffect(() => { if (open) setQ(""); }, [open]);
+  const [canTalk, setCanTalk] = useState(false); // known only in the browser, so set after mount
+  // Tap to talk: the words fill the box as they are heard, then the question is asked and the answer spoken back.
+  const voice = useListen({ onInterim: setQ, onFinal: (text) => { onAsk(text); onClose(); } });
+  useEffect(() => { setCanTalk(voiceSupported()); }, []);
+  useEffect(() => { if (open) setQ(""); else voice.cancel(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const listening = voice.state === "listening";
+  const voiceNote = voice.state === "denied" ? "Microphone access is blocked. Allow it in Settings, or type your question."
+    : voice.state === "error" ? "Voice didn't work this time. Try again, or type your question."
+    : canTalk ? "Say your question. It is asked when you stop talking, and the answer is read aloud."
+    : null;
   const chips = [...new Set([...recent, ...(isDemo() ? SUGGESTED_DEMO : SUGGESTED)])].slice(0, 6);
   return (
     <Sheet open={open} onClose={onClose} label="Ask Your Memory" title="Ask Your Memory" detent="half">
       <form
         className="flex flex-col gap-4"
-        onSubmit={(e) => { e.preventDefault(); if (q.trim()) { onAsk(q.trim()); onClose(); } }}
+        onSubmit={(e) => { e.preventDefault(); if (q.trim()) { voice.cancel(); onAsk(q.trim()); onClose(); } }}
       >
+        {canTalk && (
+          <div>
+            <Button variant="primary" onClick={listening ? voice.stop : voice.start} aria-pressed={listening}>
+              <Mic size={18} strokeWidth={1.5} /> {listening ? "Listening. Tap to Send" : "Tap to Talk"}
+            </Button>
+          </div>
+        )}
         <label htmlFor="ask-input" className="sr-only">Your question</label>
         <textarea
           id="ask-input"
@@ -62,10 +79,12 @@ export function AskSheet({ open, onClose, onAsk, recent }: { open: boolean; onCl
         />
         <div className="flex items-center gap-4">
           <Button variant="primary" type="submit"><Send size={18} strokeWidth={1.5} /> Ask</Button>
-          <p className="t-footnote hidden pointer-coarse:block">Tap the microphone on the keyboard to ask by voice.</p>
+          <p className={`t-footnote ${voiceNote ? "" : "hidden pointer-coarse:block"}`} role="status">
+            {voiceNote ?? "Tap the microphone on the keyboard to ask by voice."}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {chips.map((c) => <Chip key={c} onClick={() => { onAsk(c); onClose(); }}>{c}</Chip>)}
+          {chips.map((c) => <Chip key={c} onClick={() => { voice.cancel(); onAsk(c); onClose(); }}>{c}</Chip>)}
         </div>
       </form>
     </Sheet>
@@ -338,7 +357,8 @@ const CALL_STEPS = ["Open FaceTime on your iPhone.", "Call the Cortex line.", "H
 export function CallSheet({ open, onClose, call, moments }: { open: boolean; onClose: () => void; call: { startedAt: number } | null; moments: Moment[] }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { if (!call) return; const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t); }, [call]);
-  const left = call ? Math.max(0, CALL_MS - (now - call.startedAt)) : CALL_MS;
+  // Clamp both ways: `now` is stale until the first tick, and the phone's clock can differ from the server's.
+  const left = call ? Math.min(CALL_MS, Math.max(0, CALL_MS - (now - call.startedAt))) : CALL_MS;
   const clockText = mmss(left);
   const r = 34, c = 2 * Math.PI * r;
   const captions = moments.filter((m) => m.source === "call").sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts)).slice(0, 6);

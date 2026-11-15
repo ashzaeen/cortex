@@ -35,4 +35,4 @@ A Chert line bridges an iPhone FaceTime call into our own LiveKit room. `apps/ca
 The dashboard is one responsive, iPhone-first Next.js web app on Vercel (the same app on the laptop is the judges' view). It calls the API through its own same-origin `/api` proxy, reads REST endpoints and subscribes to `GET /events` (Server-Sent Events: `moment.created`, `person.created`, `promise.proposed`, `receipt.created` and others) so updates appear within seconds.
 
 ## Privacy
-`POST /privacy/pause` stops capture (or marks off-the-record); `DELETE /moments/{id}` removes a moment and everything derived from it. No face recognition anywhere in the pipeline.
+`POST /privacy/pause` stops capture (or marks off-the-record); `DELETE /moments/{id}` removes a moment and everything derived from it.

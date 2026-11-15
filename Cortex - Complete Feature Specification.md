@@ -6,7 +6,7 @@ Nov 14, 2026 · @Ashzaeen
 
 This is the full list of what Cortex must support, grouped from capture to demo readiness, with a priority tag on every feature so the team builds in the right order. It is built from the PRD, the Core Priority Plan, the `contracts/` folder and the repo docs as of Nov 14, 2026. Where the PRD and the priority plan disagree, the plan wins (AGENTS.md rule), and examples use **Ash** in place of the PRD's "Priya".
 
-**Tags (no gating).** The tier system was scrapped on 2026-11-15: nothing is gated, and any feature can be built at any time. The tags below are kept only to show where a feature came from; they are not build rules. Two safety rules always apply: no face recognition, and people enter memory only by introduction or consent.
+**Tags (no gating).** The tier system was scrapped on 2026-11-15: nothing is gated, and any feature can be built at any time. The tags below are kept only to show where a feature came from; they are not build rules.
 
 | Tag | Meaning now |
 | --- | --- |
@@ -14,7 +14,7 @@ This is the full list of what Cortex must support, grouped from capture to demo 
 | T1 | Former stretch item (old ids T1-1 to T1-5). Buildable any time. |
 | Should | From the PRD's Must or Should ship list. Buildable any time. |
 | Roadmap | Was planned for after the hackathon. Buildable any time. |
-| Cut | Was cut for the hackathon. Buildable any time, except face recognition (a safety rule). |
+| Cut | Was cut for the hackathon. Buildable any time, face recognition included. |
 
 **Feature format.** Each feature has an id, a priority tag, the repo area that owns it (`area:*` label), a description of what it is, the requirements that must be built, and a done-when test where one exists.
 
@@ -162,7 +162,7 @@ A moment is the atomic unit of memory: one captured utterance or snapshot.
 
 **Priority:** T0 (D-3) · **Area:** backend (`skills/network.py`)
 
-A person is a contact card created only by introduction or consent.
+A person is a contact card, today created by introduction or consent.
 
 - Fields: id (`per_*`), name, company, role, topics, last seen, introduced-moment id.
 - Later moments within 5 minutes of an introduction link to that person.
@@ -350,7 +350,7 @@ Every skill is written to the same contract so skills stay easy to add and easy 
 
 **Priority:** T0 (D-3) · **Area:** backend (`skills/network.py`) · **Best mode:** any
 
-Logs a person by introduction and the promises made, then drafts the follow-up. No face recognition: people enter memory only by introduction or consent.
+Logs a person by introduction and the promises made, then drafts the follow-up. Today people enter memory by introduction or consent.
 
 - **Trigger:** "This is Ash from Acme", "remember this person", or an Add person tap in the app.
 - **Inputs:** the name and company stated, the conversation that follows, time and place. A photo is saved only if the user takes one.
@@ -786,17 +786,17 @@ Always-on cameras are the first objection judges and the public raise, so privac
 
 "Forget the last hour" and "forget everything about Sam" delete matching moments, embeddings and derived notes. Runs live in the PRD demo close.
 
-### PRIV-4 No face recognition
+### PRIV-4 Face recognition (no longer a rule)
 
-**Priority:** T0 (rule) · **Area:** all
+**Priority:** Cut, now buildable · **Area:** all
 
-No face or voice identification of anyone. Face recognition and contact memory are shown as roadmap only.
+The no-face-recognition rule was removed (2026-11-15). Face and voice identification are now ordinary features that can be built. Today's code does not identify anyone by face or voice.
 
-### PRIV-5 Consent for people
+### PRIV-5 How people enter memory (no longer a rule)
 
-**Priority:** T0 (rule) · **Area:** backend
+**Priority:** Should · **Area:** backend
 
-People enter memory only by introduction or their own consent. Bystanders are never enrolled. Nothing is shared with other users.
+The introduction-or-consent rule was removed (2026-11-15). Today the Network skill adds people from introductions and explicit adds; other ways in can be built. Nothing is shared with other users.
 
 ### PRIV-6 Visible capture state
 
@@ -1014,7 +1014,7 @@ These are not built for the hackathon. Mention them on the roadmap slide in the 
 
 | Item | Why it is cut |
 | --- | --- |
-| Face recognition and contact memory | Ethics and privacy risk; people enter memory only by introduction |
+| Face recognition and contact memory | No longer cut (2026-11-15): buildable any time |
 | Memory graph, car mode, smart tags, ambient hub | Not on the hero path |
 | Multi-user sharing and caregiver dashboards | Needs consent and account model |
 | Whisper coach | Ethics risk in interviews and negotiations |

@@ -13,4 +13,4 @@
   - D-6: "Brief me on Ash" returns a correct 20-second brief.
   - D-7: propose, confirm, send or save a draft, then a receipt with undo.
   - D-9: pause or off-the-record, and delete a moment, including derived data.
-- **Rules:** no face recognition; people enter only by introduction or consent; deletion removes embeddings and derived notes; `EMAIL_DRY_RUN=true` by default. Keep handlers sync (FastAPI threads them); never call blocking SDKs inside `async def` routes.
+- **Rules:** deletion removes embeddings and derived notes; `EMAIL_DRY_RUN=true` by default. Keep handlers sync (FastAPI threads them); never call blocking SDKs inside `async def` routes.

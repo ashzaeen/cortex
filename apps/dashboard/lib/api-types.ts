@@ -450,7 +450,7 @@ export interface components {
             /** @description URL of a stored video clip, capped at 10 seconds. */
             video_url?: string | null;
             place?: string | null;
-            /** @description People linked by introduction or consent. Never by face recognition. */
+            /** @description People linked to this moment. */
             person_ids: string[];
             /** @description True if captured while off-the-record; such moments are not stored, so stored moments are always false unless kept by explicit user choice. */
             off_record: boolean;
@@ -476,7 +476,7 @@ export interface components {
         };
         /**
          * Person
-         * @description A contact card. People enter memory only by introduction or explicit consent; no face recognition.
+         * @description A contact card. Today people are added by introduction or an explicit add.
          */
         "person.schema": {
             id: string;

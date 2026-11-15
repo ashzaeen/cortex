@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "person.schema.json",
   "title": "Person",
-  "description": "A contact card. People enter memory only by introduction or explicit consent; no face recognition.",
+  "description": "A contact card. Today people are added by introduction or an explicit add.",
   "type": "object",
   "required": ["id", "name", "company", "consent", "introduced_moment_id", "topics", "name_confidence"],
   "additionalProperties": false,

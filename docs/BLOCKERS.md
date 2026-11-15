@@ -12,7 +12,7 @@ Snapshot, 2026-11-14 late evening · @ashzaeen. Replaces the 7:20 meeting snapsh
 
 ## 1. No more gating
 
-The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spec is blocked by priority any more: digest, rewind, modes, video back, outbound calls, the integrations and the old cut list (except the safety rules: no face recognition, people by introduction or consent) can all be built now. What remains is the demo checklist (D-1 to D-11, [PLAN.md](PLAN.md)): 1 of 11 `works`, 10 `in progress`. The blockers below are real ones: hardware, people and integration gaps.
+The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spec is blocked by priority any more: digest, rewind, modes, video back, outbound calls, the integrations and the whole old cut list, face recognition included, can all be built now. What remains is the demo checklist (D-1 to D-11, [PLAN.md](PLAN.md)): 1 of 11 `works`, 10 `in progress`. The blockers below are real ones: hardware, people and integration gaps.
 
 ## 2. Verification gap: works offline, not yet proven live
 

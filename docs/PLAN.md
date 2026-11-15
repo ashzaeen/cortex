@@ -1,6 +1,6 @@
 # Plan: the demo checklist
 
-**The tier system is gone (decided by @ashzaeen, 2026-11-15).** Nothing is gated: any feature in the [feature spec](../Cortex%20-%20Complete%20Feature%20Specification.md) can be built at any time. The old Tier 1 and Cut items are ordinary features now. Two rules stay, because they are safety rules, not priorities: **no face recognition**, and **people enter memory only by introduction or consent** (AGENTS.md).
+**The tier system is gone (decided by @ashzaeen, 2026-11-15).** Nothing is gated: any feature in the [feature spec](../Cortex%20-%20Complete%20Feature%20Specification.md) can be built at any time. The old Tier 1 and Cut items are ordinary features now. That includes the former face recognition and contact-memory items (decided 2026-11-15).
 
 What stays is the list below: the eleven things the 3-minute demo ([DEMO_SCRIPT.md](DEMO_SCRIPT.md)) needs on stage. It doesn't block other work; it shows what the demo needs. Their state lives in [STATUS.md](STATUS.md). The ids `D-1` to `D-11` replace the old `T0-1` to `T0-11`.
 

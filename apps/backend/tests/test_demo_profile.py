@@ -35,4 +35,4 @@ def test_decisions_recap_nudges_and_auto_brief_have_material(client):
     assert any(a["type"] == "calendar_event" and a["status"] == "done" for a in actions)
     assert any(a["type"] == "notes" and a["status"] == "proposed" for a in actions)
     theo = get(client, "/people/per_theo/brief", "/people/{id}/brief")
-    assert any("backup video" in i["text"] for i in theo["open"])
+    assert any("backup video" in x["what"].lower() for x in theo["open_promises"])

@@ -374,7 +374,8 @@ paths:
       operationId: listActions
       summary: Actions, for example proposed emails waiting for approval
       parameters:
-        - { name: status, in: query, schema: { type: string, enum: [proposed, sent, draft_saved, undone, dismissed, failed] } }
+        - { name: status, in: query, schema: { type: string, enum: [proposed, sent, draft_saved, done, undone, dismissed, failed] } }
+        - { name: mode, in: query, schema: { type: string, enum: [focus, student, life, assist] } }
       responses:
         "200":
           description: Actions
@@ -393,17 +394,17 @@ paths:
     post:
       tags: [actions]
       operationId: proposeAction
-      summary: Propose a follow-up email with its source moments (T0-7)
+      summary: Propose an action with its source moments (T0-7 for follow_up_email)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [type, person_id]
+              required: [type]
               properties:
-                type: { type: string, enum: [follow_up_email] }
-                person_id: { type: string }
+                type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud] }
+                person_id: { type: [string, "null"], description: "Required for follow_up_email." }
                 source_moment_ids: { type: array, items: { type: string } }
       responses:
         "201":
@@ -419,7 +420,7 @@ paths:
     post:
       tags: [actions]
       operationId: confirmAction
-      summary: Approve; send or save as draft, and write a receipt
+      summary: Approve and do it (email - send or save as draft), and write a receipt
       requestBody:
         required: true
         content:
@@ -428,7 +429,7 @@ paths:
               type: object
               required: [deliver]
               properties:
-                deliver: { type: string, enum: [send, draft] }
+                deliver: { type: string, enum: [send, draft, do], description: "send or draft for email; do for the other types" }
                 draft:
                   type: object
                   description: Optional user edits to the draft
@@ -516,6 +517,21 @@ paths:
               schema: { $ref: "#/components/schemas/PrivacyState" }
               example: { state: off_record, since: "2026-11-15T14:08:00-06:00" }
 
+  /modes/{id}/activate:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [modes]
+      operationId: activateMode
+      summary: Make this mode the active one (the mode dock); emits mode.changed
+      responses:
+        "200":
+          description: The now-active mode
+          content:
+            application/json:
+              schema: { $ref: "./schemas/mode.schema.json" }
+        "404": { $ref: "#/components/responses/Error" }
+
   /modes:
     get:
       tags: [modes]
@@ -549,7 +565,7 @@ paths:
       description: |
         Each SSE message has `event: <type>` and `data: <JSON>`. Types:
         moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
-        action.proposed, action.updated, receipt.created, privacy.changed, call.started, call.ended.
+        action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended.
         The data payload is the affected entity (see components.schemas.Event).
         Prism returns the example once; real streaming comes from the backend.
       responses:
@@ -636,6 +652,6 @@ components:
       properties:
         type:
           type: string
-          enum: [moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, call.started, call.ended]
+          enum: [moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended]
         at: { type: string, format: date-time }
         data: { type: object }

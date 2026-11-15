@@ -93,6 +93,22 @@ r = await call("POST", "/moments", { ts: new Date().toISOString(), source: "phon
 ok(r.status === 201 && r.body.source === "phone" && r.body.snapshot_url?.startsWith("data:image/jpeg;base64,"), "phone capture stores snapshot and transcript (T0-1 fallback)");
 valid("Moment", r.body, "phone capture moment");
 
+// Modes (D18): the dock activates a mode; each mode has a working suggestion.
+r = await call("POST", "/modes/student/activate");
+ok(r.status === 200 && r.body.id === "student" && r.body.active, "activate a mode"); valid("Mode", r.body, "activated mode");
+ok((await call("GET", "/modes")).body.items.filter((x) => x.active).map((x) => x.id).join() === "student", "exactly one mode active");
+for (const [mode, type] of [["student", "flashcards"], ["life", "reminder"], ["assist", "read_aloud"]]) {
+  const items = (await call("GET", `/actions?status=proposed&mode=${mode}`)).body.items;
+  ok(items.some((x) => x.type === type && x.title && x.summary), `${mode} has a ${type} suggestion`);
+  items.forEach((x) => valid("Action", x, `${mode} suggestion`));
+}
+const cards = (await call("GET", "/actions?status=proposed&mode=student")).body.items[0];
+r = await call("POST", `/actions/${cards.id}/confirm`, { deliver: "do" });
+ok(r.body.action.status === "done" && /deck/.test(r.body.receipt.summary) && r.body.receipt.undo.available, "non-email action is done with an undo receipt");
+const allActions = (await call("GET", "/actions")).body.items;
+ok(allActions.filter((x) => x.type === "follow_up_email").every((x) => x.draft), "every follow_up_email carries a draft");
+await call("POST", "/modes/focus/activate");
+
 // Privacy
 r = await call("POST", "/privacy/pause", { state: "off_record" });
 ok(r.body.state === "off_record", "off the record");
@@ -109,11 +125,11 @@ await call("POST", "/_demo/reset");
 let d; do { d = (await call("POST", "/_demo/next")).body; } while (d.index < d.total);
 const after = await call("GET", "/receipts");
 after.body.items.forEach((x, i) => valid("Receipt", x, `receipt after demo ${i}`));
-ok(after.body.items.some((x) => /Sent follow-up email to Ash/.test(x.summary)), "demo driver completes the Ash script");
+ok(after.body.items.some((x) => /Sent to Ash at Acme/.test(x.summary)), "demo driver completes the Ash script");
 (await call("GET", "/moments")).body.items.forEach((x, i) => valid("Moment", x, `moment after demo ${i}`));
 
 await new Promise((r) => setTimeout(r, 100));
-for (const t of ["moment.created", "person.created", "promise.proposed", "promise.confirmed", "action.proposed", "action.updated", "receipt.created", "privacy.changed", "moment.deleted"])
+for (const t of ["moment.created", "person.created", "promise.proposed", "promise.confirmed", "action.proposed", "action.updated", "receipt.created", "privacy.changed", "moment.deleted", "mode.changed"])
   ok(events.includes(t), `event ${t} streamed on /events`);
 
 ctrl.abort();

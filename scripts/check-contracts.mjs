@@ -87,7 +87,7 @@ const endpoints = [
   ["post", "/moments"], ["get", "/moments/search"], ["delete", "/moments/{id}"], ["post", "/ask"],
   ["get", "/people"], ["get", "/people/{id}/brief"], ["post", "/promises"], ["post", "/promises/{id}/confirm"],
   ["get", "/promises"], ["post", "/actions/propose"], ["post", "/actions/{id}/confirm"], ["post", "/actions/{id}/undo"],
-  ["get", "/receipts"], ["post", "/privacy/pause"], ["get", "/events"], ["get", "/actions"],
+  ["get", "/receipts"], ["post", "/privacy/pause"], ["get", "/events"], ["get", "/actions"], ["post", "/modes/{id}/activate"],
 ];
 for (const [method, path] of endpoints) if (!spec.paths?.[path]?.[method]) fail(`openapi.yaml: missing ${method.toUpperCase()} ${path}`);
 

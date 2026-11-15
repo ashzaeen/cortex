@@ -31,6 +31,20 @@ function freshState() {
     demoIndex: 0,
   };
 }
+// Mode suggestions (design decision D18): each mode suggests its own action. Mock-only rules for now;
+// the real backend replaces them. Seeded at start so every mode has something to approve.
+function seedModeSuggestions() {
+  const slide = db.moments.find((m) => m.id === "mom_seed_006");
+  const board = db.moments.find((m) => m.id === "mom_seed_005");
+  const sam = db.promises.find((p) => p.id === "prm_seed_001");
+  const add = (a) => db.actions.push({ id: id("act"), status: "proposed", ...a });
+  if (slide) add({ type: "flashcards", mode: "student", person_id: null, title: "Turn the lecture slide into flashcards",
+    summary: "Cards from the CSE 3310 project schedule you captured, ready to review tonight.", source_moment_ids: [slide.id] });
+  if (sam) add({ type: "reminder", mode: "life", person_id: sam.person_id, title: "Remind me about Sam's application link",
+    summary: "Sam promised the internship application link by Wednesday. A reminder tomorrow morning, with a nudge if nothing has arrived.", source_moment_ids: [sam.source_moment_id] });
+  if (board) add({ type: "read_aloud", mode: "assist", person_id: null, title: "Read the whiteboard aloud",
+    summary: "Reads the text on the Initech whiteboard snapshot in order, then offers to describe the diagram.", source_moment_ids: [board.id] });
+}
 const now = () => new Date().toISOString();
 const id = (prefix) => `${prefix}_${randomUUID().slice(0, 8)}`;
 const activeMode = () => db.modes.find((m) => m.active)?.id ?? "focus";
@@ -187,7 +201,9 @@ function proposeEmail(personId, sourceIds) {
   const srcs = sourceIds?.length ? sourceIds : db.moments.filter((m) => m.person_ids.includes(personId)).map((m) => m.id);
   const first = person.name.split(" ")[0];
   const a = {
-    id: id("act"), type: "follow_up_email", status: "proposed", person_id: personId,
+    id: id("act"), type: "follow_up_email", status: "proposed", mode: "focus", person_id: personId,
+    title: `Draft a follow-up to ${first}`,
+    summary: `Thanks for the intro today.${open.length ? ` You mentioned ${open[0].what.toLowerCase()} by ${open[0].due.text ?? "soon"}, and Cortex will watch for it.` : ""} Could we find 20 minutes next week?`,
     draft: {
       to: `${first.toLowerCase()}@${(person.company ?? "example").toLowerCase().replace(/[^a-z0-9]+/g, "")}.example`,
       subject: `Great meeting you${person.company ? `, from ${person.company}` : ""}`,
@@ -214,9 +230,9 @@ const DEMO = [
   { beat: "Brief", label: 'Ask "Brief me on Ash."', you: "Tap Brief on Ash's card.",
     run: () => { const p = ashPerson(); if (p) brief(p); } },
   { beat: "Act", label: "Cortex proposes a follow-up email", you: "Approve it on the Live tab, then try Undo.",
-    run: () => { const p = ashPerson(); if (p && !db.actions.some((a) => a.person_id === p.id && a.status === "proposed")) proposeEmail(p.id); } },
+    run: () => { const p = ashPerson(); if (p && !db.actions.some((a) => a.type === "follow_up_email" && a.person_id === p.id && a.status === "proposed")) proposeEmail(p.id); } },
   { beat: "Act", label: "Approve and send the email", you: "(The driver approves it if you have not.)",
-    run: () => { const a = db.actions.find((x) => x.status === "proposed" && x.person_id === ashPerson()?.id); if (a) confirmAction(a, "send"); } },
+    run: () => { const a = db.actions.find((x) => x.type === "follow_up_email" && x.status === "proposed" && x.person_id === ashPerson()?.id); if (a) confirmAction(a, "send"); } },
   { beat: "Call", label: "FaceTime caller shows a business card", you: "Watch the call moment arrive.",
     run: () => { emit("call.started", { call_id: "call_demo" }); ingest({ ts: now(), source: "call", call_id: "call_demo", transcript: "Here's Ash's business card.", caption: "Business card: Ash, Acme, ash@acme.example", snapshot_url: "fixtures/snapshots/placeholder-booth.svg" }); } },
   { beat: "Call", label: 'Caller asks "What is open with Ash?"', you: "Hear the answer from memory.",
@@ -241,13 +257,29 @@ function demoPlay(ms = 2500) {
 function confirmPromise(p) {
   p.status = "confirmed";
   emit("promise.confirmed", p);
+  const who = db.people.find((x) => x.id === p.person_id);
+  if (p.direction === "waiting_on" && who && !db.actions.some((a) => a.type === "reminder" && a.source_moment_ids.includes(p.source_moment_id))) {
+    const a = { id: id("act"), type: "reminder", status: "proposed", mode: "life", person_id: who.id,
+      title: `Remind me when ${p.what.replace(/^Send /i, "").toLowerCase()} is due`,
+      summary: `A reminder ${p.due.text ? `on ${p.due.text}` : "soon"} about ${p.what.toLowerCase()} from ${who.name}, with a nudge if nothing has arrived.`,
+      source_moment_ids: [p.source_moment_id] };
+    db.actions.push(a);
+    emit("action.proposed", a);
+  }
   return p;
 }
 function confirmAction(a, deliver) {
-  a.status = deliver === "draft" ? "draft_saved" : "sent";
-  emit("action.updated", a);
   const person = db.people.find((p) => p.id === a.person_id);
-  const r = receipt("action", `${deliver === "draft" ? "Saved draft of" : "Sent"} follow-up email to ${person?.name ?? "contact"}${person?.company ? ` (${person.company})` : ""}.`, a.source_moment_ids, a.id, true);
+  let summary;
+  if (a.type === "follow_up_email") {
+    a.status = deliver === "draft" ? "draft_saved" : "sent";
+    summary = `${deliver === "draft" ? "Saved a draft to" : "Sent to"} ${person?.name ?? "contact"}${person?.company ? ` at ${person.company}` : ""}`;
+  } else {
+    a.status = "done";
+    summary = { flashcards: "Cards added to your deck", reminder: "Reminder set", read_aloud: "Reading aloud now" }[a.type];
+  }
+  emit("action.updated", a);
+  const r = receipt("action", summary, a.source_moment_ids, a.id, true);
   return { action: a, receipt: r };
 }
 
@@ -341,8 +373,8 @@ async function route(req, res) {
     return pr ? send(res, 200, confirmPromise(pr)) : err(res, 404, "not_found", "No such promise.");
   }
   if (p === "/actions" && m === "GET") {
-    const status = url.searchParams.get("status");
-    return send(res, 200, { items: db.actions.filter((a) => !status || a.status === status) });
+    const status = url.searchParams.get("status"); const mode = url.searchParams.get("mode");
+    return send(res, 200, { items: db.actions.filter((a) => (!status || a.status === status) && (!mode || a.mode === mode)) });
   }
   if (p === "/actions/propose" && m === "POST") {
     const b = await readBody(req);
@@ -374,13 +406,20 @@ async function route(req, res) {
     return send(res, 200, db.privacy);
   }
   if (p === "/modes" && m === "GET") return send(res, 200, { items: db.modes });
+  if ((mm = p.match(/^\/modes\/([^/]+)\/activate$/)) && m === "POST") {
+    const mode = db.modes.find((x) => x.id === mm[1]);
+    if (!mode) return err(res, 404, "not_found", "No such mode.");
+    for (const x of db.modes) x.active = x === mode;
+    emit("mode.changed", mode);
+    return send(res, 200, mode);
+  }
 
   if (p === "/_demo" && m === "GET") return send(res, 200, demoState());
   if (p === "/_demo/next" && m === "POST") { demoNext(); return send(res, 200, demoState()); }
   if (p === "/_demo/play" && m === "POST") { demoPlay(); return send(res, 200, demoState()); }
   if (p === "/_demo/reset" && m === "POST") {
     if (playing) { clearInterval(playing); playing = null; }
-    db = freshState(); emit("demo.step", demoState());
+    db = freshState(); seedModeSuggestions(); emit("demo.step", demoState());
     return send(res, 200, demoState());
   }
   return err(res, 404, "not_found", `No route for ${m} ${p}.`);
@@ -388,6 +427,7 @@ async function route(req, res) {
 
 export function startMock(port = 4010, host = "127.0.0.1") {
   db = freshState();
+  seedModeSuggestions();
   const server = createServer((req, res) => route(req, res).catch((e) => { console.error(e); err(res, 500, "mock_error", String(e?.message ?? e)); }));
   return new Promise((ok) => server.listen(port, host, () => ok(server)));
 }

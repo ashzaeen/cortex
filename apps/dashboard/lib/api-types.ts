@@ -204,7 +204,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Propose a follow-up email with its source moments (T0-7) */
+        /** Propose an action with its source moments (T0-7 for follow_up_email) */
         post: operations["proposeAction"];
         delete?: never;
         options?: never;
@@ -223,7 +223,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve; send or save as draft, and write a receipt */
+        /** Approve and do it (email - send or save as draft), and write a receipt */
         post: operations["confirmAction"];
         delete?: never;
         options?: never;
@@ -301,6 +301,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/modes/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make this mode the active one (the mode dock); emits mode.changed */
+        post: operations["activateMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/modes": {
         parameters: {
             query?: never;
@@ -329,7 +348,7 @@ export interface paths {
          * Live event stream for the dashboard (Server-Sent Events)
          * @description Each SSE message has `event: <type>` and `data: <JSON>`. Types:
          *     moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
-         *     action.proposed, action.updated, receipt.created, privacy.changed, call.started, call.ended.
+         *     action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended.
          *     The data payload is the affected entity (see components.schemas.Event).
          *     Prism returns the example once; real streaming comes from the backend.
          */
@@ -400,7 +419,7 @@ export interface components {
         };
         Event: {
             /** @enum {string} */
-            type: "moment.created" | "moment.deleted" | "person.created" | "promise.proposed" | "promise.confirmed" | "action.proposed" | "action.updated" | "receipt.created" | "privacy.changed" | "call.started" | "call.ended";
+            type: "moment.created" | "moment.deleted" | "person.created" | "promise.proposed" | "promise.confirmed" | "action.proposed" | "action.updated" | "receipt.created" | "privacy.changed" | "mode.changed" | "call.started" | "call.ended";
             /** Format: date-time */
             at: string;
             data: Record<string, never>;
@@ -496,16 +515,30 @@ export interface components {
         };
         /**
          * Action
-         * @description A follow-up action Cortex proposes and the user approves. Tier 0 has one type: follow_up_email.
+         * @description An action Cortex suggests and the user approves. Each mode suggests its own type: follow_up_email (Focus), flashcards (Student), reminder (Life), read_aloud (Assist). Only follow_up_email carries an email draft.
          */
         "action.schema": {
             id: string;
             /** @enum {string} */
-            type: "follow_up_email";
-            /** @enum {string} */
-            status: "proposed" | "sent" | "draft_saved" | "undone" | "dismissed" | "failed";
-            person_id: string;
-            draft: {
+            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud";
+            /**
+             * @description sent and draft_saved apply to email; done to the other types.
+             * @enum {string}
+             */
+            status: "proposed" | "sent" | "draft_saved" | "done" | "undone" | "dismissed" | "failed";
+            /**
+             * @description The mode that suggested it.
+             * @enum {string}
+             */
+            mode?: "focus" | "student" | "life" | "assist";
+            /** @description Short verb-first title for the suggestion card, e.g. "Draft a follow-up to Ash". */
+            title?: string;
+            /** @description One-paragraph description for the suggestion card. */
+            summary?: string;
+            /** @description The person it concerns, or null (flashcards, read aloud). */
+            person_id: string | null;
+            /** @description The email draft. Always present when type is follow_up_email; absent for the other types. */
+            draft?: {
                 to: string;
                 subject: string;
                 body: string;
@@ -524,7 +557,7 @@ export interface components {
             /** @description When Cortex speaks up unprompted. */
             speaks: string;
             proposes: string[];
-            allowed_actions: "follow_up_email"[];
+            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud")[];
             active: boolean;
         };
     };
@@ -1145,7 +1178,8 @@ export interface operations {
     listActions: {
         parameters: {
             query?: {
-                status?: "proposed" | "sent" | "draft_saved" | "undone" | "dismissed" | "failed";
+                status?: "proposed" | "sent" | "draft_saved" | "done" | "undone" | "dismissed" | "failed";
+                mode?: "focus" | "student" | "life" | "assist";
             };
             header?: never;
             path?: never;
@@ -1198,8 +1232,9 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    type: "follow_up_email";
-                    person_id: string;
+                    type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud";
+                    /** @description Required for follow_up_email. */
+                    person_id?: string | null;
                     source_moment_ids?: string[];
                 };
             };
@@ -1245,8 +1280,11 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    deliver: "send" | "draft";
+                    /**
+                     * @description send or draft for email; do for the other types
+                     * @enum {string}
+                     */
+                    deliver: "send" | "draft" | "do";
                     /** @description Optional user edits to the draft */
                     draft?: {
                         to?: string;
@@ -1430,6 +1468,29 @@ export interface operations {
                     "application/json": components["schemas"]["PrivacyState"];
                 };
             };
+        };
+    };
+    activateMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The now-active mode */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mode.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
     listModes: {

@@ -8,7 +8,7 @@ Snapshot for the 7:20 team meeting, 2026-11-14 · @ashzaeen. Every agent: read t
 2. The backend is further along than STATUS.md says. 19 tests pass, including done-when tests for T0-1 to T0-7 and T0-9, but only on mongomock and the mock LLM. Nobody has verified it on the real stack yet.
 3. The real blockers are human and hardware tasks: glasses, a Mac and an iPhone, the Chert line, LiveKit, and the Vercel deploy.
 4. The parts aren't joined yet: the dashboard runs on the mock, the call agent doesn't read memory, and the capture app doesn't post moments.
-5. Unpushed Tier 1 contract work (#41) on one machine fails `make check`. Hold it until the owner decides.
+5. The Tier 1 contract work (#41) and the Brass redesign are on `main` (decided by @ashzaeen, 2026-11-14). @ClosetCoderSad still needs to review #41.
 
 ## 1. Tier rule: the spec is mostly gated
 
@@ -51,26 +51,14 @@ Per AGENTS.md, no Tier 1, Should or Cut work starts while any Tier 0 item is not
 | iOS capture app doesn't post moments yet | T0-1 | capture |
 | No seeded demo data or frozen script, so the full run-through can't be rehearsed | T0-11 | demo (#23, #29, #30) |
 
-## 5. Unpushed Tier 1 work on @ashzaeen's machine: hold
+## 5. Tier 1 contract work and the Brass redesign: landed
 
-Two pieces of work sit on @ashzaeen's local `main` and are **not** in this push.
+**Decision (@ashzaeen, 2026-11-14):** override the hold and land both on `main`. The tier rule is waived for these two pieces only; everything else in section 1 stays gated.
 
-**Local commit `2b0b9cc`, for #41 (`contract-change`):**
-- `POST /modes/{id}/activate` and a `mode.changed` event
-- action types `flashcards`, `reminder` and `read_aloud`
-- `deliver: do` and a `done` status
-- `person_id` no longer required on propose
-- edits to the backend (`api/routes.py`, `core/events.py`, `memory/store.py`), the mock and the generated `api-types.ts`
+- **#41, contract change** (`2b0b9cc`): `POST /modes/{id}/activate` and `mode.changed`; action types `flashcards`, `reminder` and `read_aloud`; `deliver: do` and a `done` status; `person_id` nullable on actions. The backend implements only the activate endpoint; the mock implements all of it. `make check` is green with it in place.
+- **Brass redesign** (`bdeac37`): `apps/dashboard` rebuilt per [design.md](../design.md) (decisions D17 to D21).
 
-**Uncommitted Brass dashboard UI:** `components/brass/` plus the `three`, `motion` and `lucide-react` dependencies.
-
-**Why hold:**
-- `make check` fails with `2b0b9cc` in place. `apps/dashboard/components/tabs.tsx:62` reports `'a.draft' is possibly 'undefined'` because the contract made `draft` optional, so pushing it would turn `main` red.
-- It's Tier 1 work (modes and flashcards) while Tier 0 isn't done.
-- `contracts/` and `apps/backend/` belong to @ClosetCoderSad, who hasn't signed off on #41.
-- Making `person_id` optional loosens the T0-7 contract.
-
-**Decide at the meeting:** park #41 until Tier 0 passes, or fix `tabs.tsx`, get @ClosetCoderSad's OK on #41, and land it then.
+**Still open:** @ClosetCoderSad reviews #41, including the looser `person_id` on the T0-7 contract, and decides when the backend generates the three new action types.
 
 ## 6. Open decisions for the meeting
 

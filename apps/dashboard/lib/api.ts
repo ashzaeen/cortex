@@ -1,6 +1,7 @@
 // Typed client for the Cortex API, through the same-origin /api proxy.
 // Types are generated from contracts/openapi.yaml: run `npm run types` after a contract change.
 import type { components } from "./api-types";
+import { demoEngine } from "./demo";
 
 type S = components["schemas"];
 export type Moment = S["moment.schema"];
@@ -16,7 +17,7 @@ export type PrivacyState = S["PrivacyState"];
 
 // Mock-only demo driver (apps/dashboard/mock); absent on the real backend.
 export type DemoStep = { i: number; beat: string; label: string; you: string; done: boolean };
-export type DemoState = { index: number; total: number; steps: DemoStep[] };
+export type DemoState = { index: number; total: number; owner?: string | null; steps: DemoStep[] };
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -25,6 +26,14 @@ export class ApiError extends Error {
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const engine = demoEngine();
+  if (engine) {
+    // /demo: answer from the in-tab engine. Copy, so the UI never holds the engine's live objects.
+    const out = engine.handle(method, path, body ?? null);
+    const data = JSON.parse(JSON.stringify(out.body));
+    if (out.status >= 400) throw new ApiError(out.status, data?.error?.code ?? "error", data?.error?.message ?? `Request failed (${out.status})`);
+    return data as T;
+  }
   const res = await fetch(`/api${path}`, {
     method,
     headers: body === undefined ? undefined : { "content-type": "application/json" },
@@ -68,6 +77,7 @@ export const api = {
   },
 };
 
-// Snapshot URLs may be repo-relative (fixtures/...), served by the API.
+// Snapshot URLs may be absolute, site-relative (/demo-snaps/..., served from public/) or
+// repo-relative (fixtures/...), served by the API.
 export const snapshotSrc = (url: string | null | undefined) =>
-  !url ? null : /^(https?:|data:)/.test(url) ? url : `/api/${url.replace(/^\//, "")}`;
+  !url ? null : /^(https?:|data:|\/)/.test(url) ? url : `/api/${url}`;

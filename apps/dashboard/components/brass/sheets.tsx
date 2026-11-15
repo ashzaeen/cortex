@@ -4,6 +4,7 @@
 import { ChevronRight, Glasses, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, snapshotSrc, type Brief, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "@/lib/api";
+import { isDemo } from "@/lib/demo";
 import { clock, curly, dayLabel, dueChip, receiptId, timecode } from "@/lib/format";
 import type { CortexData } from "@/lib/useCortex";
 import { sourceLabel } from "./AskPanel";
@@ -19,11 +20,13 @@ export { speak };
 
 // ------------------------------------------------------------------ Ask
 const SUGGESTED = ["What did Ash promise me?", "What is open with Ash?", "Where did I leave my keys?", "What do I owe Dana?"];
+// The demo profile has a full week to ask about.
+const SUGGESTED_DEMO = ["What did Ash promise me?", "Where did I park?", "What did Sam promise me?", "When is judging?", "What does Exam 2 cover?", "Where is my charger?"];
 
 export function AskSheet({ open, onClose, onAsk, recent }: { open: boolean; onClose: () => void; onAsk: (q: string) => void; recent: string[] }) {
   const [q, setQ] = useState("");
   useEffect(() => { if (open) setQ(""); }, [open]);
-  const chips = [...new Set([...recent, ...SUGGESTED])].slice(0, 6);
+  const chips = [...new Set([...recent, ...(isDemo() ? SUGGESTED_DEMO : SUGGESTED)])].slice(0, 6);
   return (
     <Sheet open={open} onClose={onClose} label="Ask Your Memory" title="Ask Your Memory" detent="half">
       <form

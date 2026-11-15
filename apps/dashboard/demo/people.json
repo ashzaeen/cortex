@@ -1,0 +1,10 @@
+[
+  { "id": "per_lee", "name": "Prof. Morgan Lee", "company": "Example University", "role": "Professor, CSE 3310", "consent": "explicit", "introduced_moment_id": "mom_demo_01", "topics": ["CSE 3310", "requirements engineering", "project demo"], "notes": "Okayed recording lectures for notes.", "name_confidence": 0.9 },
+  { "id": "per_jamie", "name": "Jamie Ortiz", "company": null, "role": "Roommate", "consent": "introduction", "introduced_moment_id": "mom_demo_04", "topics": ["groceries", "apartment"], "notes": null, "name_confidence": 0.96 },
+  { "id": "per_maya", "name": "Maya Patel", "company": "Example University", "role": "TA, CSE 3310", "consent": "introduction", "introduced_moment_id": "mom_demo_07", "topics": ["milestone rubric", "office hours"], "notes": null, "name_confidence": 0.95 },
+  { "id": "per_sam", "name": "Sam Rivera", "company": "Globex", "role": "Internship recruiter", "consent": "introduction", "introduced_moment_id": "mom_demo_10", "topics": ["internships", "ML infra"], "notes": null, "name_confidence": 0.97 },
+  { "id": "per_ash", "name": "Ash", "company": "Acme", "role": "Product lead, Q4 launch", "consent": "introduction", "introduced_moment_id": "mom_demo_12", "topics": ["Q4 launch", "design internship"], "notes": null, "name_confidence": 0.95 },
+  { "id": "per_dana", "name": "Dana Kim", "company": "Initech", "role": "Engineering manager", "consent": "introduction", "introduced_moment_id": "mom_demo_15", "topics": ["edge devices", "battery life", "hiring"], "notes": null, "name_confidence": 0.93 },
+  { "id": "per_theo", "name": "Theo Nguyen", "company": null, "role": "Hackathon teammate, backend", "consent": "introduction", "introduced_moment_id": "mom_demo_24", "topics": ["hackathon", "API"], "notes": null, "name_confidence": 0.94 },
+  { "id": "per_chris", "name": "Chris Tan", "company": "Hooli", "role": "Hackathon mentor, hardware track", "consent": "introduction", "introduced_moment_id": "mom_demo_26", "topics": ["hardware track", "hiring"], "notes": null, "name_confidence": 0.92 }
+]

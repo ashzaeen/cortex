@@ -3,6 +3,7 @@
 // timeline - with the mode dock and everything else as sheets.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type AskAnswer, type Mode, type Moment, type Person, type Promise_, type Receipt } from "@/lib/api";
+import { isDemo } from "@/lib/demo";
 import { lightSeed, shortIds } from "@/lib/format";
 import { useCortex } from "@/lib/useCortex";
 import { Ambient } from "@/components/brass/Ambient";
@@ -45,7 +46,7 @@ function Home() {
 
   useEffect(() => {
     setSolid(read("cortex.solid"));
-    setDemoOn(read("cortex.demo") || new URLSearchParams(location.search).get("demo") === "1");
+    setDemoOn(isDemo() || read("cortex.demo") || new URLSearchParams(location.search).get("demo") === "1");
   }, []);
   useEffect(() => { document.documentElement.dataset.solid = String(solid); }, [solid]);
 

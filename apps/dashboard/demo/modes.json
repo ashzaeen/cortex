@@ -1,0 +1,6 @@
+[
+  {"id": "focus", "name": "Focus", "captures": ["meeting audio", "whiteboard and slide snapshots"], "speaks": "on request or at meeting end", "proposes": ["follow-up email", "tasks"], "allowed_actions": ["follow_up_email"], "active": true},
+  {"id": "student", "name": "Student", "captures": ["lecture audio", "slide and board snapshots"], "speaks": "on request; flags deadlines", "proposes": ["flashcards", "study blocks"], "allowed_actions": ["flashcards"], "active": false},
+  {"id": "life", "name": "Life", "captures": ["snapshots on cue", "conversations you log"], "speaks": "rarely; reminders and answers", "proposes": ["reminders", "shopping list"], "allowed_actions": ["reminder"], "active": false},
+  {"id": "assist", "name": "Assist", "captures": ["scene and text when asked"], "speaks": "reads aloud on request", "proposes": [], "allowed_actions": ["read_aloud"], "active": false}
+]

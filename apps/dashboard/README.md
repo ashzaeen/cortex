@@ -12,6 +12,23 @@ make dev          # from the repo root: stateful mock on :4010 + dashboard on :3
 
 Open http://localhost:3000. On a phone on the same wifi, open `http://<laptop IP>:3000`. The camera and mic need HTTPS on iPhone, so use the Vercel URL for those.
 
+## Deployed
+
+**https://cortex-dashboard-seven.vercel.app** (Vercel project `cortex-dashboard`, root `apps/dashboard`). Every push to `main` deploys to production. `CORTEX_API_URL` is set in the Vercel project env, never in the repo; until a hosted API exists (#42) it is unset and `/api/*` returns 502 `api_unreachable`.
+
+## Public demo (`/demo`)
+
+**https://cortex-dashboard-seven.vercel.app/demo** opens the full app on a demo profile with no backend and no sign-in (#44). It's the target for the landing page's future **Demo** button.
+
+- **Runs in the visitor's tab.** `lib/demo.ts` starts the mock engine (`mock/engine.mjs`) in the browser; `lib/api.ts` and `lib/useCortex.ts` use it instead of `/api` whenever the path starts with `/demo`. Each visitor gets a private copy. Reload or **Reset** restores it.
+- **The profile** is in `demo/`: Jordan Reyes, a fake CS junior. It covers one week (31 moments across Focus, Student, Life and Assist), 8 people, promises in every state, sent and pending actions with receipts, and one suggestion per mode. Ash was met at the career fair earlier in the week, so the Ash script plays as a re-meeting (`person.updated`, proposed in #43).
+- **Dates follow the visitor.** The week is written ending on `2026-11-15` (`ANCHOR` in `mock/profile.mjs`), and the engine shifts it so that day is always today.
+- **Pictures** are in `public/demo-snaps/`. Photos are Wikimedia Commons images under free licenses, credited in `CREDITS.md`; everyone in them appears under a fake name. Slides, whiteboards, signs, the receipt and the business card are drawn SVGs, so they show exactly what the moments quote.
+- **Tested:** `mock/profile-test.mjs` checks schemas, ids, snapshot files and credits, the date shift, recall for 10 questions, and the Ash re-meeting (in `make check`).
+- `npm run mock:demo` serves the same profile over HTTP at :4010 for `npm run dev`.
+
+When you edit the profile, keep every recall question in `profile-test.mjs` passing, and credit any new photo.
+
 Other commands, from this folder:
 
 | Command | What it does |
@@ -48,12 +65,15 @@ To simulate capture by hand, open the camera button in the status pill and type 
 | `lib/api.ts` | Typed API client |
 | `lib/useCortex.ts` | Loads data, listens to `/api/events`, refreshes on change, builds the Activity feed |
 | `lib/api-types.ts` | Generated from the contract; do not edit by hand |
-| `mock/server.mjs` | Stateful mock (#37): fixtures, fake skills, SSE, demo driver |
-| `mock/test.mjs` | Contract test for the mock |
+| `mock/engine.mjs` | Stateful mock logic (#37, #44): fake skills, demo driver, date shift; runs in Node and the browser |
+| `mock/server.mjs` | HTTP and SSE around the engine; `--profile demo` serves the demo profile |
+| `mock/profile.mjs` | Engine options for the demo profile (anchor day, script snapshots) |
+| `mock/test.mjs`, `mock/profile-test.mjs` | Contract test for the mock on fixtures; profile test for the demo |
+| `app/demo/page.tsx`, `lib/demo.ts`, `demo/`, `public/demo-snaps/` | Public demo: route, in-browser engine, profile data, pictures |
 
 ## The mock is not the backend
 
-`mock/server.mjs` fakes the skills with simple text rules ("This is X from Y", "I'll send you X Friday", keyword search). It exists so the dashboard can be built and rehearsed now. It must never grow into the real backend, which is @ClosetCoderSad's call (ADR 0001). Mock-only extras that the real backend will not have: `/_demo/*`, the `demo.step` event, and static files under `/fixtures/`.
+`mock/engine.mjs` fakes the skills with simple text rules ("This is X from Y", "I'll send you X Friday", keyword search). It exists so the dashboard can be built, rehearsed and demoed without a backend. It must never grow into the real backend, which is @ClosetCoderSad's call (ADR 0001). Mock-only extras that the real backend will not have: `/_demo/*`, the `demo.step` and `person.updated` events (the second is proposed in #43), and static files under `/fixtures/`.
 
 | Surface | Endpoints | Tier 0 |
 | --- | --- | --- |

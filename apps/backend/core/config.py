@@ -64,6 +64,20 @@ class Settings:
     smtp_port: int = field(default_factory=lambda: _int("SMTP_PORT", 587))
     undo_seconds: int = field(default_factory=lambda: _int("ACTION_UNDO_SECONDS", 30))
 
+    # Google actions (calendar_event, reminder, flashcards, notes). The dashboard forwards the signed-in
+    # user's access token per request; GOOGLE_REFRESH_TOKEN (with the same OAuth client as the
+    # dashboard's sign-in) lets voice and call confirmations reach Google without the dashboard.
+    google_client_id: str = field(default_factory=lambda: os.getenv("AUTH_GOOGLE_ID", ""))
+    google_client_secret: str = field(default_factory=lambda: os.getenv("AUTH_GOOGLE_SECRET", ""))
+    google_refresh_token: str = field(default_factory=lambda: os.getenv("GOOGLE_REFRESH_TOKEN", ""))
+
+    # Text messages through the Chert line (message). MESSAGE_DRY_RUN=true (default) never sends.
+    message_dry_run: bool = field(default_factory=lambda: _bool("MESSAGE_DRY_RUN", True))
+    chert_api_url: str = field(default_factory=lambda: os.getenv("CHERT_API_URL", "https://app.trychert.com/api/v1").rstrip("/"))
+    chert_api_key: str = field(default_factory=lambda: os.getenv("CHERT_API_KEY", ""))
+    chert_project_id: str = field(default_factory=lambda: os.getenv("CHERT_PROJECT_ID", ""))
+    chert_line_id: str = field(default_factory=lambda: os.getenv("CHERT_LINE_ID", ""))
+
     # Memory behaviour
     person_window_minutes: int = field(default_factory=lambda: _int("PERSON_WINDOW_MINUTES", 5))
     recent_merge_minutes: int = field(default_factory=lambda: _int("RECENT_MERGE_MINUTES", 15))

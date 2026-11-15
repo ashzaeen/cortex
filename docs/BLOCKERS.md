@@ -16,7 +16,7 @@ Per AGENTS.md, no Tier 1, Should or Cut work starts while any Tier 0 item is not
 
 **Blocked until Tier 0 passes twice:** MEM-9 digest, MEM-10 rewind, MODE-2 to MODE-6, DASH-10 Modes tab, DASH-11, CALL-4 video back, CALL-5 outbound call, ACT-5 to ACT-10, the backend half of #41 (#45), and every Should item.
 
-**Waived on purpose (@ashzaeen, 2026-11-14):** the #41 contract change, the Brass redesign and the browser-only `/demo` profile (#44) are on `main`. Nothing else in this list is waived.
+**Waived on purpose (@ashzaeen, 2026-11-14):** the #41 contract change, the Brass redesign and the browser-only `/demo` profile (#44) are on `main`. Also waived (@ashzaeen, 2026-11-15): ACT-5 calendar, ACT-6 tasks, ACT-7 notes and flashcards to Drive, ACT-9 texts through Chert, and the backend half of #41 (#45). They are built and tested offline; live Google writes and Chert sends are not yet verified. Nothing else in this list is waived.
 
 ## 2. Verification gap: works offline, not yet proven live
 

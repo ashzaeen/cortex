@@ -105,6 +105,20 @@ for (const [mode, type] of [["student", "flashcards"], ["life", "reminder"], ["a
 const cards = (await call("GET", "/actions?status=proposed&mode=student")).body.items[0];
 r = await call("POST", `/actions/${cards.id}/confirm`, { deliver: "do" });
 ok(r.body.action.status === "done" && /deck/.test(r.body.receipt.summary) && r.body.receipt.undo.available, "non-email action is done with an undo receipt");
+// ACT-5 to ACT-9 in the mock: proposed with their payload, confirmed as a dry run (external: null).
+const src = (await call("GET", "/moments?limit=1")).body.items[0].id;
+for (const [type, extra, deliver, status] of [
+  ["calendar_event", { event: { title: "CSE 3310 demo", start: "2026-11-19T10:00:00-06:00", end: "2026-11-19T11:00:00-06:00", location: null } }, "do", "done"],
+  ["notes", { title: "Lecture notes", summary: "Demos moved to Nov 19." }, "do", "done"],
+  ["message", { message: { to: "+15555550123", text: "Running 5 minutes late" } }, "send", "draft_saved"],
+]) {
+  r = await call("POST", "/actions/propose", { type, source_moment_ids: [src], ...extra });
+  ok(r.status === 201 && r.body.type === type && r.body.title, `${type} proposed`); valid("Action", r.body, `proposed ${type}`);
+  r = await call("POST", `/actions/${r.body.id}/confirm`, { deliver });
+  ok(r.body.action.status === status && r.body.action.external === null, `${type} confirmed as a dry run`);
+  valid("Action", r.body.action, `confirmed ${type}`); valid("Receipt", r.body.receipt, `${type} receipt`);
+}
+ok((await call("POST", "/actions/propose", { type: "calendar_event", title: "x", source_moment_ids: [src] })).status === 400, "calendar_event needs an event");
 const allActions = (await call("GET", "/actions")).body.items;
 ok(allActions.filter((x) => x.type === "follow_up_email").every((x) => x.draft), "every follow_up_email carries a draft");
 await call("POST", "/modes/focus/activate");

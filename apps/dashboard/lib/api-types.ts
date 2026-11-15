@@ -223,7 +223,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve and do it (email - send or save as draft), and write a receipt */
+        /** Approve and do it (email - send or save as draft; Google Calendar, Tasks or Drive; a Chert text), and write a receipt */
         post: operations["confirmAction"];
         delete?: never;
         options?: never;
@@ -242,7 +242,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Undo while the undo window is open */
+        /** Undo while the undo window is open (deletes the calendar event or task, trashes the Drive doc, or cancels the held email or text) */
         post: operations["undoAction"];
         delete?: never;
         options?: never;
@@ -602,14 +602,14 @@ export interface components {
         };
         /**
          * Action
-         * @description An action Cortex suggests and the user approves. Each mode suggests its own type: follow_up_email (Focus), flashcards (Student), reminder (Life), read_aloud (Assist). Only follow_up_email carries an email draft.
+         * @description An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist). Only follow_up_email carries an email draft; the other types carry their own optional payload (event, task, doc, message).
          */
         "action.schema": {
             id: string;
             /** @enum {string} */
-            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud";
+            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message";
             /**
-             * @description sent and draft_saved apply to email; done to the other types.
+             * @description sent and draft_saved apply to email and message; done to the other types.
              * @enum {string}
              */
             status: "proposed" | "sent" | "draft_saved" | "done" | "undone" | "dismissed" | "failed";
@@ -622,7 +622,7 @@ export interface components {
             title?: string;
             /** @description One-paragraph description for the suggestion card. */
             summary?: string;
-            /** @description The person it concerns, or null (flashcards, read aloud). */
+            /** @description The person it concerns, or null (flashcards, notes, read aloud). */
             person_id: string | null;
             /** @description The email draft. Always present when type is follow_up_email; absent for the other types. */
             draft?: {
@@ -630,7 +630,76 @@ export interface components {
                 subject: string;
                 body: string;
             };
+            /** @description calendar_event (ACT-5): the event to add to the user's primary Google Calendar. */
+            event?: {
+                title: string;
+                /** Format: date-time */
+                start: string;
+                /** Format: date-time */
+                end: string;
+                location?: string | null;
+                description?: string | null;
+            };
+            /** @description reminder (ACT-6): the task to add to the user's default Google Tasks list. */
+            task?: {
+                title: string;
+                notes?: string | null;
+                /**
+                 * Format: date
+                 * @description Due date (Google Tasks keeps the date only).
+                 */
+                due?: string | null;
+            };
+            /** @description flashcards and notes (ACT-7): a Google Doc saved to the user's Drive. For flashcards, body holds one 'Q: ... / A: ...' pair per card. */
+            doc?: {
+                title: string;
+                body: string;
+            };
+            /** @description message (ACT-9): a text sent from the Chert line. Only phones verified for the Chert project can receive it. */
+            message?: {
+                /** @description E.164 phone number. */
+                to: string;
+                text: string;
+            };
+            /** @description Where a done or sent action landed, so undo can remove it. Absent until then; null on a dry run. */
+            external?: {
+                /** @enum {string} */
+                provider: "google_calendar" | "google_tasks" | "google_drive" | "chert";
+                id: string;
+                url?: string | null;
+            } | null;
             source_moment_ids: string[];
+        };
+        /** @description calendar_event (ACT-5): the event to add to the user's primary Google Calendar. */
+        event: {
+            title: string;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            location?: string | null;
+            description?: string | null;
+        };
+        /** @description reminder (ACT-6): the task to add to the user's default Google Tasks list. */
+        task: {
+            title: string;
+            notes?: string | null;
+            /**
+             * Format: date
+             * @description Due date (Google Tasks keeps the date only).
+             */
+            due?: string | null;
+        };
+        /** @description flashcards and notes (ACT-7): a Google Doc saved to the user's Drive. For flashcards, body holds one 'Q: ... / A: ...' pair per card. */
+        doc: {
+            title: string;
+            body: string;
+        };
+        /** @description message (ACT-9): a text sent from the Chert line. Only phones verified for the Chert project can receive it. */
+        message: {
+            /** @description E.164 phone number. */
+            to: string;
+            text: string;
         };
         /**
          * Mode
@@ -644,7 +713,7 @@ export interface components {
             /** @description When Cortex speaks up unprompted. */
             speaks: string;
             proposes: string[];
-            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud")[];
+            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message")[];
             active: boolean;
         };
     };
@@ -1319,10 +1388,20 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud";
+                    type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message";
                     /** @description Required for follow_up_email. */
                     person_id?: string | null;
+                    /** @description Required for every type except follow_up_email, which can find its own. */
                     source_moment_ids?: string[];
+                    /** @enum {string} */
+                    mode?: "focus" | "student" | "life" | "assist";
+                    /** @description Required for every type except follow_up_email. */
+                    title?: string;
+                    summary?: string;
+                    event?: components["schemas"]["event"];
+                    task?: components["schemas"]["task"];
+                    doc?: components["schemas"]["doc"];
+                    message?: components["schemas"]["message"];
                 };
             };
         };
@@ -1368,7 +1447,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /**
-                     * @description send or draft for email; do for the other types
+                     * @description send or draft for email; send for message; do for the other types. calendar_event, reminder, flashcards and notes are written to the Google account the dashboard signed in with (forwarded by the dashboard proxy as X-Google-Access-Token); without one they are a dry run with external: null.
                      * @enum {string}
                      */
                     deliver: "send" | "draft" | "do";

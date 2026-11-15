@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Cortex",
     short_name: "Cortex",
     description: "Your memory, with proof.",
-    start_url: "/",
+    start_url: "/app",
     display: "standalone",
     background_color: "#08130F",
     theme_color: "#08130F",

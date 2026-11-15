@@ -1,6 +1,7 @@
 "use client";
 // Home (design.md 10, decision D1): one vertical flow - status pill, ask and proof, suggestion,
 // timeline - with the mode dock and everything else as sheets.
+import { signOutAction } from "@/app/actions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type AskAnswer, type Mode, type Moment, type Person, type Promise_, type Receipt } from "@/lib/api";
 import { isDemo } from "@/lib/demo";
@@ -23,11 +24,13 @@ type SheetId = "ask" | "timeline" | "people" | "waiting" | "settings" | "receipt
 const read = (k: string) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
 const write = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch { /* storage blocked */ } };
 
-export default function Page() {
-  return <ToastProvider><Home /></ToastProvider>;
+export type AppUser = { name: string | null; email: string | null; image: string | null };
+
+export default function HomeApp({ user = null }: { user?: AppUser | null }) {
+  return <ToastProvider><Home user={user} /></ToastProvider>;
 }
 
-function Home() {
+function Home({ user }: { user: AppUser | null }) {
   const { data, feed, connected, error, refresh } = useCortex();
   const toast = useToast();
   const [modeLocal, setModeLocal] = useState<Mode["id"] | null>(null);
@@ -209,7 +212,8 @@ function Home() {
         onPrivacy={(s) => run(() => api.setPrivacy(s))}
         solid={solid} onSolid={(v) => { setSolid(v); write("cortex.solid", v); }}
         demo={demoOn} onDemo={(v) => { setDemoOn(v); write("cortex.demo", v); }}
-        onPairing={() => setSheet("pairing")} onReceipts={() => setSheet("receipts")} onPeople={() => setSheet("people")} />
+        onPairing={() => setSheet("pairing")} onReceipts={() => setSheet("receipts")} onPeople={() => setSheet("people")}
+        user={user} onSignOut={() => { void signOutAction(); }} />
       <ReceiptsSheet open={sheet === "receipts"} onClose={() => setSheet(null)} receipts={data.receipts} ids={ids}
         onUndo={(r: Receipt) => r.action_id && run(() => api.undoAction(r.action_id!))} />
       <CallSheet open={sheet === "call"} onClose={() => setSheet(null)} call={call} moments={data.moments} />

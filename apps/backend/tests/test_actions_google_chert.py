@@ -108,3 +108,17 @@ def test_message_is_held_for_undo_then_sent(seeded, monkeypatch):
     seeded.post(f"/actions/{held['id']}/confirm", json={"deliver": "send"})
     undone = validate(seeded.post(f"/actions/{held['id']}/undo"), "/actions/{id}/undo", "post", 200)
     assert undone["action"]["status"] == "undone" and len(sent) == 1
+
+
+def test_perception_suggests_calendar_and_reminder_once(seeded):
+    from tests.test_done_when import post_moment
+
+    post_moment(seeded, "The project demo is on Thursday at 10:30 am.")
+    post_moment(seeded, "Remind me to buy batteries by Friday.")
+    post_moment(seeded, "The project demo is on Thursday at 10:30 am.")  # same again: no duplicate
+    items = validate(seeded.get("/actions", params={"status": "proposed"}), "/actions", "get", 200)["items"]
+    cal = [a for a in items if a["type"] == "calendar_event"]
+    rem = [a for a in items if a["type"] == "reminder" and a["title"] == "Buy batteries"]
+    assert len(cal) == 1 and cal[0]["event"]["start"].startswith("2026-") and "T10:30" in cal[0]["event"]["start"]
+    assert cal[0]["event"]["end"] > cal[0]["event"]["start"] and cal[0]["mode"]
+    assert len(rem) == 1 and rem[0]["task"]["due"]

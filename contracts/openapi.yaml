@@ -67,6 +67,12 @@ x-examples:
     action_id: act_live_001
     source_moment_ids: [mom_live_001, mom_live_002]
     undo: { available: true, until: "2026-11-15T14:06:00-06:00" }
+# Private memory: with CORTEX_API_KEY set on the backend, every operation except GET /health needs
+# the key (X-Cortex-Key, or Authorization: Bearer) and answers 401 unauthorized without it. Unset
+# (local dev, the mock) it is open. Browsers never hold the key: the dashboard proxy adds it.
+security:
+  - {}
+  - cortexKey: []
 servers:
   - url: http://localhost:4010
     description: Prism mock (make mock / make dev)
@@ -88,6 +94,7 @@ paths:
     get:
       tags: [health]
       operationId: getHealth
+      security: []
       summary: Liveness check
       responses:
         "200":
@@ -586,6 +593,8 @@ paths:
                 data: {"type":"moment.created","at":"2026-11-15T14:02:12-06:00","data":{"id":"mom_live_001"}}
 
 components:
+  securitySchemes:
+    cortexKey: { type: apiKey, in: header, name: X-Cortex-Key }
   parameters:
     Id:
       name: id

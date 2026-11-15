@@ -15,7 +15,13 @@ Return ONLY JSON with exactly these keys:
   "promises": [{{"direction": "waiting_on" | "i_owe", "person_name": "... or null",
                  "what": "short imperative, e.g. Send the deck",
                  "due_text": "the words used, e.g. Friday, or null", "due_date": "YYYY-MM-DD or null",
-                 "due_inferred": true/false, "confidence": 0.0-1.0}}]
+                 "due_inferred": true/false, "confidence": 0.0-1.0}}],
+  "suggestions": [{{"type": "calendar_event" | "reminder" | "notes",
+                    "title": "short, e.g. CSE 3310 project demo",
+                    "start": "YYYY-MM-DDTHH:MM local, calendar_event only, else null",
+                    "end": "YYYY-MM-DDTHH:MM local or null (default one hour after start)",
+                    "location": "... or null", "due_date": "YYYY-MM-DD for a reminder, or null",
+                    "body": "notes only: the key points to save, else null", "confidence": 0.0-1.0}}]
 }}
 Rules:
 - people_introduced ONLY when someone is explicitly introduced by name ("This is Ash from Acme", "I'm Ash").
@@ -23,6 +29,11 @@ Rules:
 - waiting_on = someone else promised the wearer something. i_owe = the wearer promised someone.
 - {speaker_rule}
 - due_date: resolve weekday names to the next such date after today; due_inferred=false when a day was stated.
+- suggestions: at most 2 actions the wearer would want, each still needing their yes.
+  calendar_event ONLY for a scheduled event with a stated day AND time (a meeting, class, quiz, demo).
+  reminder for something the wearer must do themselves that is not already a promise above.
+  notes ONLY when a lecture, slide or whiteboard has content worth keeping (key points in body).
+  Use [] when nothing qualifies. Never suggest sending messages.
 - Do not invent names, dates or promises that are not in the transcript."""
 
 SPEAKER_RULE_WITH_PARTNER = (

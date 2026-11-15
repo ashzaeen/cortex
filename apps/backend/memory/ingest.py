@@ -15,7 +15,7 @@ from core.llm import get_llm
 from core.prompts import SPEAKER_RULE_DEFAULT, SPEAKER_RULE_WITH_PARTNER
 from core.timeutil import human, now, parse_dt
 from memory import store
-from skills import network, promises
+from skills import network, promises, suggest
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +100,7 @@ def ingest(body: dict) -> dict:
     network.announce(created)
     focus = created[0] if created else (linked[0] if linked else None)
     new_promises = promises.from_perception(p.get("promises"), doc, focus)
+    suggest.from_perception(p.get("suggestions"), store.get_moment(moment_id) or doc)
 
     if doc["source"] == "call":
         what = caption or transcript or "the caller's camera"

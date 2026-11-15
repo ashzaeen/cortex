@@ -132,6 +132,15 @@ def list_modes():
     return {"items": store.list_modes()}
 
 
+@router.post("/modes/{id}/activate", tags=["modes"])
+def activate_mode(id: str):  # noqa: A002
+    mode = store.set_active_mode(id)
+    if mode is None:
+        raise not_found("mode")
+    events.publish("mode.changed", mode)
+    return mode
+
+
 # ---------- events (SSE) ----------
 @router.get("/events", tags=["events"])
 async def stream_events(request: Request):

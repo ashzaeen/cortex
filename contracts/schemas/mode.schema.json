@@ -12,7 +12,7 @@
     "captures": { "type": "array", "items": { "type": "string" } },
     "speaks": { "type": "string", "description": "When Cortex speaks up unprompted." },
     "proposes": { "type": "array", "items": { "type": "string" } },
-    "allowed_actions": { "type": "array", "items": { "type": "string", "enum": ["follow_up_email"] } },
+    "allowed_actions": { "type": "array", "items": { "type": "string", "enum": ["follow_up_email", "flashcards", "reminder", "read_aloud"] } },
     "active": { "type": "boolean" }
   }
 }

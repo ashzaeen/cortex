@@ -10,7 +10,8 @@ import threading
 from core.timeutil import iso, now
 
 TYPES = {"moment.created", "moment.deleted", "person.created", "promise.proposed", "promise.confirmed",
-         "action.proposed", "action.updated", "receipt.created", "privacy.changed", "call.started", "call.ended"}
+         "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed",
+         "call.started", "call.ended"}
 
 _subs: list[tuple[asyncio.AbstractEventLoop, asyncio.Queue]] = []
 _lock = threading.Lock()

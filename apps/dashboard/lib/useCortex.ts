@@ -1,7 +1,7 @@
 "use client";
 // Loads everything the dashboard shows, and refreshes it whenever /api/events reports a change.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type Action, type DemoState, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
+import { api, type Action, type DemoState, type Mode, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
 
 export type FeedItem = { id: string; at: string; type: string; text: string };
 
@@ -12,14 +12,15 @@ export type CortexData = {
   actions: Action[];
   receipts: Receipt[];
   privacy: PrivacyState | null;
+  modes: Mode[];
   demo: DemoState | null;
 };
 
-const empty: CortexData = { moments: [], people: [], promises: [], actions: [], receipts: [], privacy: null, demo: null };
+const empty: CortexData = { moments: [], people: [], promises: [], actions: [], receipts: [], privacy: null, modes: [], demo: null };
 
 const EVENT_TYPES = [
   "moment.created", "moment.deleted", "person.created", "promise.proposed", "promise.confirmed",
-  "action.proposed", "action.updated", "receipt.created", "privacy.changed", "call.started", "call.ended",
+  "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed", "call.started", "call.ended",
   "demo.step", // mock only
 ];
 
@@ -29,10 +30,11 @@ function describe(type: string, d: Record<string, unknown>): string {
     case "person.created": return `New contact: ${d.name}${d.company ? ` from ${d.company}` : ""}`;
     case "promise.proposed": return `Promise detected: ${d.what}. Confirm it below.`;
     case "promise.confirmed": return `Added to Waiting on: ${d.what}`;
-    case "action.proposed": return `Proposed a follow-up email to ${(d.draft as { to?: string } | undefined)?.to ?? "a contact"}`;
-    case "action.updated": return `Email ${String(d.status).replace("_", " ")}`;
+    case "action.proposed": return `Suggested: ${d.title ?? "an action"}`;
+    case "action.updated": return `${d.title ?? "Action"}: ${String(d.status).replace("_", " ")}`;
     case "receipt.created": return String(d.summary ?? "New receipt");
     case "privacy.changed": return `Capture is now ${String(d.state).replace("_", " ")}`;
+    case "mode.changed": return `Mode is now ${d.name}`;
     case "moment.deleted": return "Deleted a moment";
     case "call.started": return "FaceTime call started";
     case "call.ended": return "FaceTime call ended";
@@ -50,11 +52,11 @@ export function useCortex() {
 
   const refresh = useCallback(async () => {
     try {
-      const [moments, people, promises, actions, receipts, privacy] = await Promise.all([
-        api.moments(), api.people(), api.promises(), api.actions(), api.receipts(), api.privacy(),
+      const [moments, people, promises, actions, receipts, privacy, modes] = await Promise.all([
+        api.moments(), api.people(), api.promises(), api.actions(), api.receipts(), api.privacy(), api.modes(),
       ]);
       const demo = await api.demo.state().catch(() => null); // only the mock has a demo driver
-      setData({ moments: moments.items, people: people.items, promises: promises.items, actions: actions.items, receipts: receipts.items, privacy, demo });
+      setData({ moments: moments.items, people: people.items, promises: promises.items, actions: actions.items, receipts: receipts.items, privacy, modes: modes.items, demo });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cannot load data.");

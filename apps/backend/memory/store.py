@@ -76,6 +76,16 @@ def list_modes() -> list[dict]:
     return sorted((contract.mode(d) for d in db.col("modes").find()), key=lambda m: order.get(m["id"], 9))
 
 
+def set_active_mode(mode_id: str) -> dict | None:
+    """POST /modes/{id}/activate: exactly one mode is active. Returns the mode, or None if unknown."""
+    ensure_modes()
+    if not db.col("modes").find_one({"_id": mode_id}):
+        return None
+    db.col("modes").update_many({}, {"$set": {"active": False}})
+    db.col("modes").update_one({"_id": mode_id}, {"$set": {"active": True}})
+    return contract.mode(db.col("modes").find_one({"_id": mode_id}))
+
+
 def active_mode() -> str:
     ensure_modes()
     doc = db.col("modes").find_one({"active": True})

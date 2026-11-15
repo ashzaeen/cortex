@@ -243,7 +243,7 @@ Scale the voice, not the UI. At 768px and up: Display quote 40 / 48, Question 30
 
 ### 5.4 Rules
 
-- Sentence case everywhere. The only uppercase is mono labels.
+- Title Case for buttons, headings, titles, links, chips, tags, toasts and status messages (decision D19). Full-sentence descriptions and helper text stay as sentences. Verbatim quotes keep their original wording. Mono labels are uppercase.
 - Cream (`--text`), never pure white. Never pure black text on glass.
 - Max line length about 62 characters for prose. Quotes can run shorter and larger.
 - Tabular numerals in mono and wherever numbers align (`font-variant-numeric: tabular-nums`).
@@ -411,7 +411,7 @@ Design mobile first. Write base CSS for phones, then enhance with `min-width` qu
 | 768 to 1023 | Tablet | Two columns (answer left, suggestion and timeline right), dock stays at bottom center, sheets become centered panels |
 | 1024 and up | Desktop | The Brass v1 dashboard: floating top pill, two-column grid, dock at bottom center, max width 1280 |
 
-Desktop is the Brass v1 board you can see in the prototype. Phone is that same content stacked in this order: status pill, answer and proof, suggestion, timeline, dock.
+Desktop is the Brass v1 board you can see in the prototype. Phone is that same content stacked in this order: status pill, timeline, suggestion, answer and proof, dock (decision D20). On laptops the timeline is the full-height left column; the suggestion and the answer share the right column, and the whole app fits one screen.
 
 ### 8.5 Page structure on phone
 
@@ -820,7 +820,7 @@ Voice: calm, precise, warm, brief. A smart friend who has perfect notes. Never g
 
 Rules:
 
-- Sentence case for all UI text. No Title Case, no all caps (except mono labels).
+- Title Case for UI labels and buttons (decision D19): "Approve and Send", "Pause Capture", "See All". Full sentences stay sentences; verbatim quotes are never changed; all caps only in mono labels.
 - Lead with the answer. One idea per sentence. Short.
 - Use the person's own words in quotes. Do not rewrite what they said.
 - Buttons are verb-first, 1 to 3 words: "Approve and send", "Set reminder", "Undo", "Pause capture".
@@ -1177,6 +1177,9 @@ Status key: DECIDED = resolved with the team lead (Nov 14, 2026). DEFAULT = proc
 | D15 | Animation library | Motion (Framer Motion) vs GSAP vs CSS only | Motion plus CSS | DEFAULT |
 | D16 | Localization | English only for now | English only, no hard-coded strings | DEFAULT |
 | D17 | Undo window length | 10 seconds in the UI, or the server's window | **Follow the server (decided):** the countdown uses the receipt's `undo.until` | DECIDED |
+| D19 | Letter case in the UI | Sentence case, or Title Case | **Title Case (decided)** for buttons, headings, titles, links, chips, tags, toasts and status. Sentences, helper text and verbatim quotes are unchanged | DECIDED |
+| D20 | Home layout | Answer left, suggestion and timeline right; or timeline left | **Timeline left (decided)**, full height; suggestion then answer on the right. On laptops the app fits one screen with panels scrolling inside, and the dock is fixed on every size | DECIDED |
+| D21 | Tile heights and scrolling | Tiles grow or scroll, or fixed heights that never scroll | **Fixed heights, never a scrollbar in a tile (decided).** Suggestion 272px (220px on laptops up to 780px tall), Ask 400px on phones and the rest of its column on laptops, Timeline shows only the rows that fit with See All for the rest. Text is clamped (titles two lines, question one line, quote at most three lines scaled to its space, proof one row). Sheets may scroll | DECIDED |
 | D18 | Suggestions in Student, Life and Assist | Empty state, preview, or working in the mock | **Working in the mock now (decided)**, replaced by real backend actions soon (flashcards, reminder, read aloud) | DECIDED |
 
 How to change a decision: edit this table and the section it affects in the same PR, and mention it in the PR description so every agent sees it.

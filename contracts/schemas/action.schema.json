@@ -2,25 +2,97 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "action.schema.json",
   "title": "Action",
-  "description": "A follow-up action Cortex proposes and the user approves. Tier 0 has one type: follow_up_email.",
+  "description": "An action Cortex suggests and the user approves. Each mode suggests its own type: follow_up_email (Focus), flashcards (Student), reminder (Life), read_aloud (Assist). Only follow_up_email carries an email draft.",
   "type": "object",
-  "required": ["id", "type", "status", "person_id", "draft", "source_moment_ids"],
+  "required": [
+    "id",
+    "type",
+    "status",
+    "person_id",
+    "source_moment_ids"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^act_[A-Za-z0-9_-]+$" },
-    "type": { "type": "string", "enum": ["follow_up_email"] },
-    "status": { "type": "string", "enum": ["proposed", "sent", "draft_saved", "undone", "dismissed", "failed"] },
-    "person_id": { "type": "string", "pattern": "^per_" },
+    "id": {
+      "type": "string",
+      "pattern": "^act_[A-Za-z0-9_-]+$"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "follow_up_email",
+        "flashcards",
+        "reminder",
+        "read_aloud"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "sent",
+        "draft_saved",
+        "done",
+        "undone",
+        "dismissed",
+        "failed"
+      ],
+      "description": "sent and draft_saved apply to email; done to the other types."
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "focus",
+        "student",
+        "life",
+        "assist"
+      ],
+      "description": "The mode that suggested it."
+    },
+    "title": {
+      "type": "string",
+      "description": "Short verb-first title for the suggestion card, e.g. \"Draft a follow-up to Ash\"."
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-paragraph description for the suggestion card."
+    },
+    "person_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^per_",
+      "description": "The person it concerns, or null (flashcards, read aloud)."
+    },
     "draft": {
       "type": "object",
-      "required": ["to", "subject", "body"],
+      "required": [
+        "to",
+        "subject",
+        "body"
+      ],
       "additionalProperties": false,
       "properties": {
-        "to": { "type": "string" },
-        "subject": { "type": "string" },
-        "body": { "type": "string" }
-      }
+        "to": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        }
+      },
+      "description": "The email draft. Always present when type is follow_up_email; absent for the other types."
     },
-    "source_moment_ids": { "type": "array", "items": { "type": "string", "pattern": "^mom_" }, "minItems": 1 }
+    "source_moment_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^mom_"
+      },
+      "minItems": 1
+    }
   }
 }

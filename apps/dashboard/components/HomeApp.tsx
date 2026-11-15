@@ -26,6 +26,8 @@ import { SuggestionCard } from "@/components/brass/SuggestionCard";
 import { TimelinePanel } from "@/components/brass/TimelinePanel";
 import { TimelineSheet } from "@/components/brass/TimelineSheet";
 import { ToastProvider, useToast } from "@/components/brass/Toast";
+import { SkillsLive } from "@/components/brass/skills/SkillsLive";
+import { SkillsSheet } from "@/components/brass/skills/SkillsSheet";
 
 type SheetId = SheetKey;
 const read = (k: string) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
@@ -249,7 +251,7 @@ function Home({ user }: { user: AppUser | null }) {
           </div>
         </main>
 
-        <ModeDock active={mode} modes={data.modes} onChange={changeMode} onActiveTap={() => openSheet("modesettings")} />
+        <ModeDock active={mode} modes={data.modes} onChange={changeMode} onActiveTap={() => openSheet("modesettings")} onSkills={() => openSheet("skills")} />
         <ModeToolsEdge mode={mode} modes={data.modes} onPick={openTool} onSettings={() => openSheet("modesettings")} />
       </div>
 
@@ -287,6 +289,9 @@ function Home({ user }: { user: AppUser | null }) {
       <LookSheet open={sheet === "look"} onClose={() => setSheet(null)} arg={sheetArg} onSaved={refresh} />
       <LimitsSheet open={sheet === "limits"} onClose={() => setSheet(null)} />
       <ProposalsSheet open={sheet === "proposals"} onClose={() => setSheet(null)} arg={sheetArg} actions={data.actions} onOpenMoment={(id) => setMomentId(id)} />
+      <SkillsSheet open={sheet === "skills"} onClose={() => setSheet(null)} data={data} refresh={refresh} onOpenMoment={(id) => setMomentId(id)}
+        onOpenPeople={() => { setPersonFocus(null); setSheet("people"); }} onOpenWaiting={() => setSheet("waiting")} />
+      <SkillsLive />
       <ModeSettingsSheet open={sheet === "modesettings"} onClose={() => setSheet(null)} mode={activeModeDoc} onChanged={refresh} onDeleted={refresh} />
       <PairingSheet open={sheet === "pairing"} onClose={() => setSheet(null)} live={privacy === "capturing"} />
 

@@ -1,6 +1,7 @@
 "use client";
 // The mode dock (design.md 11.2): the signature control. Brass indicator springs between segments.
 import { motion } from "motion/react";
+import { Sparkles } from "lucide-react";
 import type { Mode } from "@/lib/api";
 
 export const MODE_ORDER: Mode["id"][] = ["focus", "student", "life", "assist"];
@@ -12,7 +13,7 @@ export const SPRING_SNAPPY = { type: "spring", stiffness: 380, damping: 30, mass
 
 /** The four built-in modes, then any custom ones (MODE-7). Tapping the segment that is already active opens
  *  that mode's settings (DASH-10). */
-export function ModeDock({ active, modes = [], onChange, onActiveTap }: { active: Mode["id"]; modes?: Pick<Mode, "id" | "name">[]; onChange: (m: Mode["id"]) => void; onActiveTap?: () => void }) {
+export function ModeDock({ active, modes = [], onChange, onActiveTap, onSkills }: { active: Mode["id"]; modes?: Pick<Mode, "id" | "name">[]; onChange: (m: Mode["id"]) => void; onActiveTap?: () => void; onSkills?: () => void }) {
   const order = [...MODE_ORDER, ...modes.map((m) => m.id).filter((id) => !MODE_ORDER.includes(id))];
   const onKey = (e: React.KeyboardEvent) => {
     const i = Math.max(0, order.indexOf(active));
@@ -25,7 +26,8 @@ export function ModeDock({ active, modes = [], onChange, onActiveTap }: { active
       style={{ bottom: "max(12px, var(--safe-bottom))" }}
       aria-label="Mode"
     >
-      <div role="radiogroup" aria-label="Mode" onKeyDown={onKey} className="dock glass glass--pill glass--float rise flex w-full max-w-[26rem] gap-1 p-2 sm:w-auto sm:max-w-none sm:gap-1.5" style={{ animationDelay: "520ms" }}>
+      <div className="dock glass glass--pill glass--float rise flex w-full max-w-[26rem] items-center gap-1 p-2 sm:w-auto sm:max-w-none sm:gap-1.5" style={{ animationDelay: "520ms" }}>
+        <div role="radiogroup" aria-label="Mode" onKeyDown={onKey} className="flex min-w-0 flex-1 gap-1 sm:flex-none sm:gap-1.5">
         {order.map((m) => {
           const on = m === active;
           return (
@@ -50,6 +52,15 @@ export function ModeDock({ active, modes = [], onChange, onActiveTap }: { active
             </button>
           );
         })}
+        </div>
+        {onSkills && (
+          <>
+            <span aria-hidden="true" className="h-6 w-px flex-none bg-divider" />
+            <button type="button" onClick={onSkills} aria-label="Skills" className="dock-seg press relative flex min-h-12 flex-none items-center justify-center gap-1.5 rounded-pill px-3 text-sm font-semibold text-text hover:bg-fill-soft active:bg-fill-press sm:px-5">
+              <Sparkles aria-hidden="true" size={16} /><span className="max-[359px]:sr-only">Skills</span>
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );

@@ -37,6 +37,8 @@ Works today. Keep it as the fallback for demo day, and the only option until A h
 ## Decision
 Empty until Accepted. Suggested: try A, keep D as the fallback.
 
+**Built for A (2026-11-15), not yet run end to end:** `apps/call-agent/agent/Dockerfile` + `start.sh` and `apps/call-agent/connector/Dockerfile` + `connector.sh`, deployed as the Railway services `call-agent` and `chert-connector`. Both images build and start on Railway and print their image checks. Still to do: add the four secrets, a `/data` volume on the connector, the Chert sign-in approval, and one real call. See [apps/call-agent/README.md](../../apps/call-agent/README.md#hosting).
+
 ## First test (needs a human; do not start the Chert trial for it)
 1. The call owner runs `chert onboard --status` and the Chert dashboard to see whether the line and trial are still alive (the CLI says the trial lasts 24 hours from activation, and a line with no agent connected is released after 3 hours).
 2. Deploy `call-agent` with the variables above, and check the worker registers in the LiveKit Cloud project.
@@ -53,5 +55,5 @@ Empty until Accepted. Suggested: try A, keep D as the fallback.
 
 ## Consequences
 - `apps/call-agent/README.md` and `docs/CHERT_CALL_LAYER_HANDOFF.md` still say a laptop hosts the demo; update both once this is Accepted.
-- A Dockerfile for each service and a Railway setup note are the next work, once A is chosen.
+- The Dockerfiles and the Railway setup note exist (see above); accepting A means retiring the laptop as the default.
 - No contract change.

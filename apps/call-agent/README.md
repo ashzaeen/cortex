@@ -26,7 +26,28 @@ Set `CORTEX_API_URL` in `agent/.env.local` (default `http://127.0.0.1:4010`, the
 
 ## Hosting
 
-The plan is that no laptop runs any Cortex or Chert process. Whether Chert's connector (`chert dev`) can run on a server is researched in [ADR 0006](../../docs/decisions/0006-call-agent-hosting.md) (Proposed, not yet tried). On a hosted agent, `CORTEX_API_URL` must be the hosted backend: the agent logs a warning at startup when it runs on a LiveKit worker and the address is still local.
+No laptop should run any Cortex or Chert process. Two Railway services in the `cortex-api` project do the laptop's two jobs ([ADR 0006](../../docs/decisions/0006-call-agent-hosting.md), Proposed):
+
+| Service | Folder | Runs | Needs |
+| --- | --- | --- | --- |
+| `call-agent` | `agent/` | the LiveKit worker (`node agent.mjs start`), outbound only | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `GOOGLE_API_KEY` (you add these), plus `AGENT_NAME`, `CORTEX_API_URL` and `CORTEX_API_KEY` (already set; the key is a reference to the `api` service's) |
+| `chert-connector` | `connector/` | `chert dev --agent $AGENT_NAME`, which holds the FaceTime line | its `LIVEKIT_*` and `AGENT_NAME` are references to `call-agent`'s, so enter them once there; a **volume at `/data`** keeps the Chert sign-in (`CHERT_HOME=/data/chert`) |
+
+Both refuse to start and say which variables are missing, and print an image check (the agent: native LiveKit library loads; the connector: the Chert CLI version).
+
+**First sign-in:** with the variables set, the connector logs a Chert link and code (`chert login --device`). The project owner or admin opens it and approves; the sign-in lasts 30 days and is kept on the volume. It then runs `chert doctor` once (ignore its OpenAI "model" failure) and `chert dev`, and restarts `chert dev` 20 s after it exits. A redeploy sends SIGTERM and waits for the line to be released (`RAILWAY_DEPLOYMENT_DRAINING_SECONDS=60`).
+
+**Deploy** from inside each folder (Railway's CLI rejects a path argument here) after `railway login`:
+
+```bash
+cd apps/call-agent/agent && railway up --service call-agent --project 0442773d-27f9-461e-9270-67bebc60177b --environment production --ci
+```
+
+```bash
+cd apps/call-agent/connector && railway up --service chert-connector --project 0442773d-27f9-461e-9270-67bebc60177b --environment production --ci
+```
+
+Never run the laptop's `chert dev` while the server's is up: one session holds the line. Do not run `chert login` on another computer for the same project until it is clear that signing in again does not revoke the server's credential. `make test` covers `connector.sh` and `start.sh` against a stub `chert`.
 
 ## Test it
 

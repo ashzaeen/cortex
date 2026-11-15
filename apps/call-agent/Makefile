@@ -10,6 +10,8 @@ setup:
 
 test:
 	cd $(AGENT) && node --test cortex.test.mjs
+	sh connector/connector.test.sh
 
 lint:
 	cd $(AGENT) && node --check cortex.mjs && node --check cortex-tools.mjs && node --check vision.mjs && node --check agent.mjs && node --check greet.mjs && node --check face.mjs && node --check chert-rooms.mjs
+	sh -n $(AGENT)/start.sh && sh -n connector/connector.sh

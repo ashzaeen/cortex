@@ -110,3 +110,26 @@ def test_resend_request_has_a_user_agent_and_the_key(monkeypatch):
     assert seen["url"] == "https://api.resend.com/emails"
     assert seen["headers"]["User-agent"] == "cortex-backend/1.0" and seen["headers"]["Authorization"] == "Bearer re_test"
     assert b"someone@example.com" in seen["body"]
+
+
+def test_resend_rejection_reports_the_providers_reason(monkeypatch):
+    """A 403 used to surface as bare "HTTP Error 403: Forbidden"; the receipt now carries Resend's message."""
+    import io
+    import urllib.error
+    import urllib.request
+
+    import pytest
+
+    from actions import email
+    from core.config import settings
+
+    def refuse(req, timeout=0):
+        body = b'{"message":"You can only send testing emails to your own email address.","name":"validation_error"}'
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, io.BytesIO(body))
+
+    monkeypatch.setattr(urllib.request, "urlopen", refuse)
+    for k, v in {"email_dry_run": False, "email_provider": "resend", "email_from": "onboarding@resend.dev",
+                 "email_api_key": "re_test"}.items():
+        monkeypatch.setattr(settings, k, v)
+    with pytest.raises(email.EmailError, match="Resend said 403: You can only send testing emails to your own email"):
+        email.send("someone@example.com", "S", "B")

@@ -3,6 +3,7 @@ Providers: smtp (EMAIL_FROM + EMAIL_API_KEY as the SMTP password, e.g. a Gmail a
 import json
 import logging
 import smtplib
+import urllib.error
 import urllib.request
 from email.message import EmailMessage
 
@@ -13,6 +14,15 @@ log = logging.getLogger(__name__)
 
 class EmailError(Exception):
     pass
+
+
+def _reason(exc: urllib.error.HTTPError) -> str:
+    """The provider's own explanation (Resend answers JSON with a message), so the receipt says why."""
+    try:
+        body = exc.read().decode(errors="replace")
+        return (json.loads(body).get("message") or body)[:240]
+    except Exception:  # noqa: BLE001 - never let error reporting fail the error
+        return exc.reason or "no detail"
 
 
 def can_send() -> bool:
@@ -37,7 +47,10 @@ def send(to: str, subject: str, body: str):
             data=json.dumps({"from": settings.email_from, "to": [to], "subject": subject, "text": body}).encode(),
             headers={"Authorization": f"Bearer {settings.email_api_key}", "Content-Type": "application/json",
                      "User-Agent": "cortex-backend/1.0"})  # Resend (Cloudflare) answers 403 1010 to urllib's default
-        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
-            if resp.status >= 300:
-                raise EmailError(f"resend returned {resp.status}")
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
+                if resp.status >= 300:
+                    raise EmailError(f"resend returned {resp.status}")
+        except urllib.error.HTTPError as exc:
+            raise EmailError(f"Resend said {exc.code}: {_reason(exc)}") from exc
     log.info("follow-up email sent to %s", to)

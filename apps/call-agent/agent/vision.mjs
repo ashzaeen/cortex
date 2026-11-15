@@ -41,9 +41,10 @@ function downscale(rgba, width, height) {
  * @param room       the LiveKit room
  * @param callerIdentity  identity of the Chert bridge participant (chert-bridge-<call id>)
  * @param getSession returns the current Gemini RealtimeSession, or undefined if there is none
+ * @param onFrame    optional: called with each JPEG (a Buffer) just sent to Gemini, so the latest one can be saved on request
  * @returns a function that stops forwarding
  */
-export function startCallerVision(room, callerIdentity, getSession) {
+export function startCallerVision(room, callerIdentity, getSession, onFrame) {
   let stopped = false;
   let active = null; // { trackSid, cancel }
   const muted = new Set(); // track sids that the caller has muted
@@ -85,6 +86,7 @@ export function startCallerVision(room, callerIdentity, getSession) {
           type: 'realtime_input',
           value: { mediaChunks: [{ mimeType: 'image/jpeg', data: Buffer.from(encoded.data).toString('base64') }] },
         });
+        onFrame?.(Buffer.from(encoded.data));
         sent++;
         if (sent === 1 || sent % 15 === 0) {
           log('frame_sent', { count: sent, width: small.width, height: small.height, bytes: encoded.data.length });

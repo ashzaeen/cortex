@@ -148,6 +148,98 @@ ok((await call("GET", "/calls/current")).body.call === null, "no active call aft
 ok((await call("POST", "/calls/ended", { call_id: "nope" })).status === 404, "ending an unknown call is a 404");
 ok((await call("POST", "/calls/started", {})).status === 400, "starting without a call_id is a 400");
 
+// Modes (#50): voice switching, suggestions, enforcement, recap, look, routines, caregiver, custom modes.
+await call("POST", "/_demo/reset");
+const mp = (transcript, extra = {}) => call("POST", "/moments", { ts: new Date().toISOString(), source: "glasses", transcript, ...extra });
+const activeId = async () => (await call("GET", "/modes")).body.items.find((m) => m.active).id;
+r = await call("GET", "/modes");
+r.body.items.forEach((x, i) => valid("Mode", x, `v2 mode ${i}`));
+ok(r.body.suggestion === null, "no mode suggestion at first");
+ok((await call("GET", "/modes")).body.items.find((m) => m.id === "assist").retention_days === 7, "assist keeps 7 days");
+await mp("Switch to student mode");
+ok(await activeId() === "student", "voice switches mode");
+await mp("assist mode please");
+ok(await activeId() === "assist", "voice switches mode (suffix form)");
+await call("POST", "/modes/focus/activate");
+ok((await mp("hi", { mode: "Not A Slug!" })).status === 400, "bad mode id on ingest is a 400");
+await mp("The professor said the lecture covers the syllabus, the midterm and homework.");
+r = await call("GET", "/modes");
+ok(r.body.suggestion?.mode_id === "student", "lecture talk suggests Student");
+ok((await call("POST", "/modes/suggestion/dismiss")).body.dismissed === true, "dismiss a suggestion");
+await mp("The professor said the lecture covers the syllabus, the midterm and homework.");
+ok((await call("GET", "/modes")).body.suggestion === null, "a dismissed suggestion stays quiet for a while");
+await mp("In the meeting we reviewed the deck, the roadmap and the agenda.");
+ok((await call("GET", "/modes")).body.suggestion === null, "Focus talk in Focus never suggests a switch");
+
+r = await call("PATCH", "/modes/student", { allowed_actions: ["notes"] });
+ok(r.status === 200 && r.body.allowed_actions.join() === "notes", "edit allowed_actions"); valid("Mode", r.body, "PATCH /modes/student");
+ok((await call("PATCH", "/modes/student", { allowed_actions: ["teleport"] })).status === 400, "unknown action type is a 400");
+await call("POST", "/modes/student/activate");
+const before = (await call("GET", "/actions")).body.items.length;
+r = await mp("The midterm is due on Friday.");
+ok((await call("GET", "/actions")).body.items.length === before, "allowed_actions filters automatic suggestions");
+await call("PATCH", "/modes/student", { allowed_actions: ["flashcards", "notes", "calendar_event"] });
+await mp("Reminder: the exam is due on Friday.");
+const stu = (await call("GET", "/actions?mode=student")).body.items;
+ok(stu.some((a) => a.type === "calendar_event" && /^Due:/.test(a.title)), "Student deadline proposes an event");
+stu.forEach((a, i) => valid("Action", a, `student action ${i}`));
+await call("POST", "/modes/focus/activate");
+
+r = await mp("Kickoff. We decided to ship the beta on Friday.");
+valid("Moment", r.body, "moment with tags"); ok(r.body.tags?.[0] === "decision", "decision moment is tagged");
+ok((await call("GET", "/moments?tag=decision")).body.items.some((m) => m.id === r.body.id), "GET /moments?tag=decision");
+r = await call("GET", "/recap");
+ok(r.status === 200 && r.body.moment_count > 0 && r.body.decisions.length && typeof r.body.spoken === "string", "recap of the latest session");
+ok((await call("GET", "/recap?kind=lecture")).body.kind === "lecture", "recap kind=lecture");
+
+r = await call("POST", "/actions/generate", { type: "flashcards", moment_id: r.body.source_moment_ids[0] });
+ok(r.status === 201 && r.body.status === "proposed", "generate flashcards proposes an action"); valid("Action", r.body, "generate");
+ok((await call("POST", "/actions/generate", { type: "notes", moment_id: "mom_nope" })).status === 404, "generate for an unknown moment is a 404");
+
+await call("POST", "/privacy/pause", { state: "capturing" });
+r = await call("POST", "/look", { task: "find", target: "keys" });
+ok(r.status === 200 && r.body.task === "find" && typeof r.body.spoken === "string", "look find answers from memory");
+ok((await call("POST", "/look", { task: "find" })).status === 400, "look find needs a target");
+ok((await call("POST", "/look", { task: "dance" })).status === 400, "look rejects an unknown task");
+
+const hhmm = new Date().toTimeString().slice(0, 5);
+r = await call("POST", "/routines", { title: "Take medication", time: hhmm, spoken: "Time for your medication." });
+ok(r.status === 201 && r.body.active && r.body.next_at, "create a routine"); valid("Routine", r.body, "POST /routines");
+const rid = r.body.id;
+ok((await call("POST", "/routines", { title: "x", time: "25:99" })).status === 400, "bad routine time is a 400");
+ok((await call("PATCH", `/routines/${rid}`, { active: false })).body.next_at === null, "an inactive routine has no next_at");
+await call("PATCH", `/routines/${rid}`, { active: true });
+ok((await call("GET", "/routines")).body.items.length === 1, "list routines");
+ok((await call("DELETE", `/routines/${rid}`)).body.deleted === rid, "delete a routine");
+ok((await call("DELETE", `/routines/${rid}`)).status === 404, "deleting it again is a 404");
+
+ok((await call("POST", "/caregiver/send")).status === 409, "caregiver send needs consent");
+ok((await call("PUT", "/caregiver", { consent: true })).status === 400, "consent needs an email");
+r = await call("PUT", "/caregiver", { consent: true, name: "Robin", email: "robin@example.com", send_at: "19:30" });
+ok(r.body.consent && r.body.send_at === "19:30" && r.body.consented_at && r.body.shares.length, "caregiver consent on");
+r = await call("POST", "/caregiver/send");
+ok(r.status === 200 && r.body.action.type === "caregiver_summary" && r.body.action.status === "draft_saved", "caregiver send saves a dry-run draft");
+valid("Action", r.body.action, "caregiver action"); valid("Receipt", r.body.receipt, "caregiver receipt");
+r = await call("POST", `/actions/${r.body.action.id}/undo`);
+ok(r.body.action.status === "undone", "caregiver send can be undone");
+ok((await call("PUT", "/caregiver", { consent: false })).body.consented_at === null, "caregiver consent revoked");
+
+r = await call("POST", "/modes", { name: "Lab", allowed_actions: ["notes"], retention_days: 14 });
+ok(r.status === 201 && r.body.id === "lab" && r.body.custom, "create a custom mode"); valid("Mode", r.body, "POST /modes");
+ok((await call("POST", "/modes", { name: "Lab" })).status === 409, "duplicate custom mode is a 409");
+await call("POST", "/modes/lab/activate");
+ok((await mp("Pipetting now.", { mode: "lab" })).status === 201, "ingest accepts a custom mode id");
+ok((await call("DELETE", "/modes/focus")).status === 409, "built-in modes cannot be deleted");
+ok((await call("DELETE", "/modes/lab")).body.deleted === "lab" && await activeId() === "focus", "deleting the active custom mode returns to Focus");
+
+r = await call("POST", "/lists/shopping/items", { text: "oat milk" });
+ok(r.status === 201, "add a shopping item"); valid("ListItem", r.body, "list item");
+await call("POST", "/lists/expenses/items", { text: "lunch", amount: 12.5 });
+r = await call("GET", "/lists");
+ok(r.body.items.find((l) => l.id === "expenses").total === 12.5 && r.body.items.find((l) => l.id === "shopping").items.length === 1, "lists and expense total");
+ok((await call("GET", "/digest")).body.moment_count > 0, "digest of today");
+ok((await call("GET", "/rewind?q=decided")).body.found === true, "rewind finds a line");
+
 // Demo driver runs end to end from a reset.
 await call("POST", "/_demo/reset");
 let d; do { d = (await call("POST", "/_demo/next")).body; } while (d.index < d.total);

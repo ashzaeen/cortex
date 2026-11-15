@@ -4,6 +4,7 @@ Collections: moments (+ embedding), people, promises, actions, receipts, modes, 
 """
 import logging
 
+import certifi
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import PyMongoError
 
@@ -24,7 +25,12 @@ def init():
             log.warning("DATABASE_URL is empty: using in-memory MongoDB (data is lost on restart).")
         _client, _mock = mongomock.MongoClient(tz_aware=True), True
     else:
-        _client, _mock = MongoClient(settings.database_url, tz_aware=True, serverSelectionTimeoutMS=8000), False
+        _client, _mock = MongoClient(
+            settings.database_url,
+            tz_aware=True,
+            tlsCAFile=certifi.where(),
+            serverSelectionTimeoutMS=8000,
+        ), False
     _db = _client[settings.mongodb_db]
     ensure_indexes()
 

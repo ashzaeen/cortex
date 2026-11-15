@@ -71,7 +71,8 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /** One moment, for replaying it with its snapshot (MEM-10) */
+        get: operations["getMoment"];
         put?: never;
         post?: never;
         /** Delete a moment and everything derived from it (D-9) */
@@ -101,6 +102,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily digest, people met, promises, follow-ups and list items for one day (MEM-9)
+         * @description Built only from that day's stored records. /ask answers "what did I do today?" with the same digest.
+         */
+        get: operations["getDigest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rewind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay the exact transcript line that answers a question, with its moment and snapshot (MEM-10)
+         * @description The line is copied from the stored transcript, never paraphrased. found is false when nothing matches. /ask routes "rewind", "replay" and "word for word" questions here.
+         */
+        get: operations["rewind"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/people": {
         parameters: {
             query?: never;
@@ -120,6 +161,29 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/people/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a contact card, its promises and proposed actions, and its links on moments (MEM-4)
+         * @description The moments stay; delete them with DELETE /moments/{id}.
+         */
+        delete: operations["deletePerson"];
+        options?: never;
+        head?: never;
+        /** Edit a contact card by hand (MEM-4); only the fields sent change */
+        patch: operations["updatePerson"];
         trace?: never;
     };
     "/people/{id}/brief": {
@@ -212,6 +276,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/actions/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn one stored moment into a proposed action that Cortex writes itself (STU-2 flashcards, FOC-3 whiteboard notes, AST-2 read aloud)
+         * @description Cortex writes the content from the moment (flashcards as Q/A pairs, notes as key points, the text to
+         *     read aloud) and proposes it; nothing runs until the user confirms. Works in any mode because the user
+         *     asked for it. Omit moment_id to use the newest moment with a snapshot (else the newest moment).
+         */
+        post: operations["generateAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/actions/{id}/confirm": {
         parameters: {
             query?: never;
@@ -248,6 +334,66 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shopping and expense lists (MEM-11)
+         * @description Filled by voice at ingest ("add oat milk to the shopping list", "log this receipt, $12 for lunch") or by hand.
+         */
+        get: operations["listLists"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lists/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ListId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add an item to a list by hand */
+        post: operations["addListItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lists/{id}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ListId"];
+                item_id: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a list item */
+        delete: operations["deleteListItem"];
+        options?: never;
+        head?: never;
+        /** Check off or edit a list item */
+        patch: operations["updateListItem"];
         trace?: never;
     };
     "/receipts": {
@@ -376,12 +522,35 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Make this mode the active one (the mode dock); emits mode.changed */
+        /**
+         * Make this mode the active one (the mode dock, a voice command or a confirmed suggestion); emits mode.changed
+         * @description Clears any pending mode suggestion. Cortex never switches silently; clients confirm with a chime and the spoken label.
+         */
         post: operations["activateMode"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/modes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a custom mode (MODE-7). Built-in modes cannot be deleted (409). If it was active, Focus becomes active. */
+        delete: operations["deleteMode"];
+        options?: never;
+        head?: never;
+        /** Change a mode's settings (DASH-10), e.g. which actions it may suggest; emits mode.changed */
+        patch: operations["updateMode"];
         trace?: never;
     };
     "/modes": {
@@ -391,14 +560,698 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Mode presets; one is active */
+        /** Mode presets; one is active. Also the pending mode suggestion, if any (MODE-2 auto-suggest). */
         get: operations["listModes"];
+        put?: never;
+        /** Create a custom mode (MODE-7, API only). It starts inactive. */
+        post: operations["createMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/modes/suggestion/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say no to the pending mode suggestion. The same mode is not suggested again for 30 minutes. */
+        post: operations["dismissModeSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recap of the latest session (FOC-2 meeting recap, STU-1 live lecture notes, FOC-1 action items)
+         * @description A session is the newest run of moments with no gap over 30 minutes. Built only from stored moments;
+         *     every note, decision and follow-up links its source moment. moment_count is 0 when there is nothing.
+         */
+        get: operations["getRecap"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/look": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Look at the scene and answer now (AST-1 describe, AST-2 read, AST-3 hazards, AST-4 find, STU-3 tutor)
+         * @description Nothing is stored: the answer is spoken and shown, and the user can save the view as a moment
+         *     afterwards (POST /moments). Send snapshot_base64 for what the camera sees now; otherwise moment_id,
+         *     or the newest moment with a snapshot from the last 10 minutes. find without a view searches memory.
+         *     Assist is support, not a medical or mobility device.
+         */
+        post: operations["look"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/routines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Routine reminders (AST-5), next first */
+        get: operations["listRoutines"];
+        put?: never;
+        /** Add a routine reminder; emits routine.due at its time */
+        post: operations["createRoutine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/routines/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a routine reminder */
+        delete: operations["deleteRoutine"];
+        options?: never;
+        head?: never;
+        /** Change a routine reminder (pause it with active false) */
+        patch: operations["updateRoutine"];
+        trace?: never;
+    };
+    "/caregiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Caregiver sharing (AST-6, AST-7) and a preview of exactly what today's summary would send */
+        get: operations["getCaregiver"];
+        /** Give or revoke consent. With consent, the summary is emailed daily at send_at (dry run unless email is set up). */
+        put: operations["setCaregiver"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/caregiver/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send today's summary now (the same as the daily send), with a receipt and an undo window */
+        post: operations["sendCaregiverSummary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The skills and their SKL-0 contract (trigger, inputs, steps, output, confirmation, undo, source moment, if unsure) */
+        get: operations["listSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Are the glasses streaming? Skill panels use this to offer Use my glasses, or to fall back to the device camera */
+        get: operations["getGlassesView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/people/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contact search by topic, company, role or name (NET-5) */
+        get: operations["searchPeople"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/world": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the world: what is this? (SKL-4)
+         * @description Looks at the view (snapshot_base64, a moment, or source glasses for the latest glasses frame) and answers in a sentence or two,
+         *     then saves the view and answer as a moment unless save is false. source glasses with no glasses streaming is 409 no_glasses
+         *     (You don't have your glasses on): the dashboard then offers the device camera.
+         */
+        post: operations["askWorld"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/translate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Live translation (SKL-5) */
+        post: operations["translate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/translate/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Default languages */
+        get: operations["getTranslateSettings"];
+        /** Set default languages */
+        put: operations["putTranslateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/immersion/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Name what the camera sees in the language you are learning (SKL-6) */
+        post: operations["nameObjects"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/immersion/vocab": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved words */
+        get: operations["listVocab"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/immersion/vocab/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a saved word */
+        delete: operations["deleteVocab"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/immersion/quiz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The next quiz question (least-known word first) */
+        get: operations["getQuiz"];
+        put?: never;
+        /** Answer the quiz question */
+        post: operations["answerQuiz"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/immersion/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Language being learned */
+        get: operations["getImmersionSettings"];
+        /** Set the language being learned */
+        put: operations["putImmersionSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/proactive/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Proactive nudge settings (off by default) */
+        get: operations["getProactiveSettings"];
+        /** Turn the proactive nudge on or off, set the wait and the cooldown */
+        put: operations["putProactiveSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/proactive/observe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a frame; Cortex offers help if the same confusing thing stays in view (SKL-7)
+         * @description Frames are never stored. An offer is only an offer: nothing happens until the user accepts.
+         */
+        post: operations["observeScene"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/proactive/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open offers */
+        get: operations["listOffers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/proactive/offers/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept an offer: Cortex explains what it sees */
+        post: operations["acceptOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/proactive/offers/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss an offer (the quiet time doubles) */
+        post: operations["dismissOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/coach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent coaching sessions */
+        get: operations["listCoach"];
+        put?: never;
+        /** Start a coaching session (SKL-8) */
+        post: operations["startCoach"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/coach/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** One coaching session */
+        get: operations["getCoach"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/coach/{id}/step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a frame and/or what the wearer said; get the next line */
+        post: operations["coachStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/coach/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a coaching session */
+        post: operations["endCoach"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/nudges/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overdue nudge settings: quiet hours and daily cap */
+        get: operations["getNudgeSettings"];
+        /** Set quiet hours (default 22:00 to 08:00), the daily cap (default 3), or turn nudges off */
+        put: operations["putNudgeSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/nudges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Today's nudges */
+        get: operations["listNudges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/nudges/tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check for overdue promises now (the backend also does this every minute) */
+        post: operations["tickNudges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/nudges/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss a nudge */
+        post: operations["dismissNudge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promises/{id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close out a confirmed promise (WAI-7: got it) */
+        post: operations["completePromise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/promises/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss a promise */
+        post: operations["dismissPromise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/brief/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Automatic pre-meeting brief on or off */
+        get: operations["getAutoBriefSettings"];
+        /** Turn the automatic brief on or off */
+        put: operations["putAutoBriefSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/brief/tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Brief for any approved calendar event starting within 10 minutes that names someone on file (BRF-6) */
+        post: operations["tickAutoBrief"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/brief/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for the brief by phone call (BRF-7)
+         * @description Queues the request and publishes brief.call. Dialing is the call agent's job (area:call): the status stays requested until it takes the request.
+         */
+        post: operations["requestBriefCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/brief/call/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** A brief call request */
+        get: operations["getBriefCall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** The call agent reports dialing, completed or failed */
+        patch: operations["updateBriefCall"];
         trace?: never;
     };
     "/events": {
@@ -411,8 +1264,12 @@ export interface paths {
         /**
          * Live event stream for the dashboard (Server-Sent Events)
          * @description Each SSE message has `event: <type>` and `data: <JSON>`. Types:
-         *     moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
-         *     action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended.
+         *     moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed,
+         *     promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed,
+         *     mode.suggested, routine.due, list.updated, call.started, call.ended, nudge.due, brief.due, brief.call, skill.offer, coach.updated. nudge.due carries a Nudge (clients speak it); brief.due a BriefDue; brief.call a BriefCall; skill.offer an Offer;
+         *     coach.updated {session, spoken, mistake}. person.deleted carries {id};
+         *     list.updated carries the whole List; mode.suggested carries a ModeSuggestion; routine.due carries the
+         *     Routine that is due now (clients speak its spoken line).
          *     The data payload is the affected entity (see components.schemas.Event).
          *     For call.started and call.ended the payload is a Call (components.schemas.Call).
          *     Prism returns the example once; real streaming comes from the backend.
@@ -430,6 +1287,119 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description A mode id: focus, student, life, assist, or a custom mode's slug. */
+        ModeId: string;
+        /** @description Cortex thinks another mode fits (MODE-2). It never switches on its own: the user confirms (activate, or say yes) or dismisses. */
+        ModeSuggestion: {
+            mode_id: components["schemas"]["ModeId"];
+            /** @description Short, e.g. Sounds like a lecture. */
+            reason: string;
+            /** @description The moment that prompted it. */
+            moment_id: string | null;
+            /** Format: date-time */
+            at: string;
+        };
+        ModeUpdate: {
+            name?: string;
+            description?: string;
+            captures?: string[];
+            speaks?: string;
+            proposes?: string[];
+            allowed_actions?: components["schemas"]["allowed_actions"];
+            auto_suggest?: boolean;
+            retention_days?: number | null;
+        };
+        ModeCreate: {
+            id?: components["schemas"]["ModeId"];
+            name: string;
+            description?: string;
+            captures?: string[];
+            speaks?: string;
+            proposes?: string[];
+            allowed_actions?: components["schemas"]["allowed_actions"];
+            auto_suggest?: boolean;
+            retention_days?: number | null;
+        };
+        RecapLine: {
+            text: string;
+            moment_id: string;
+            /** Format: date-time */
+            at?: string;
+        };
+        Recap: {
+            /** @enum {string} */
+            kind: "meeting" | "lecture";
+            mode?: components["schemas"]["ModeId"] | null;
+            title: string;
+            /** @description The recap to speak (about 20 seconds). */
+            spoken: string;
+            bullets: string[];
+            /** @description Running notes, oldest first, one per moment. */
+            notes: components["schemas"]["RecapLine"][];
+            decisions: components["schemas"]["RecapLine"][];
+            /** @description Action items and promises from the session. */
+            follow_ups: components["schemas"]["RecapLine"][];
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            ended_at: string | null;
+            moment_count: number;
+            source_moment_ids: string[];
+        };
+        LookResult: {
+            /** @enum {string} */
+            task: "describe" | "read" | "hazards" | "find" | "tutor";
+            spoken: string;
+            /** @description The full answer (read: the text as printed; tutor: the steps). */
+            text: string;
+            /** @description find and hazards: whether it was seen; null for the other tasks. */
+            found: boolean | null;
+            /** @description The stored moment used, if any (never the live view). */
+            moment: components["schemas"]["moment.schema"] | null;
+        };
+        RoutineIn: {
+            title: string;
+            time: components["schemas"]["time"];
+            days?: components["schemas"]["days"];
+            spoken?: string;
+        };
+        RoutineUpdate: {
+            title?: string;
+            time?: components["schemas"]["time"];
+            days?: components["schemas"]["days"];
+            spoken?: string;
+            active?: boolean;
+        };
+        CaregiverIn: {
+            /** @description false revokes sharing at once. */
+            consent: boolean;
+            name?: string | null;
+            /**
+             * Format: email
+             * @description Required when consent is true.
+             */
+            email?: string | null;
+            /** @description Local HH:MM; default 20:00. */
+            send_at?: string;
+        };
+        Caregiver: {
+            consent: boolean;
+            name: string | null;
+            email: string | null;
+            send_at: string;
+            /** Format: date-time */
+            consented_at: string | null;
+            /** Format: date-time */
+            last_sent_at: string | null;
+            /** @description Plain list of what the summary includes and what it never includes. */
+            shares: string[];
+            /** @description Exactly what today's email would say. */
+            preview: {
+                subject: string;
+                body: string;
+                source_moment_ids: string[];
+            };
+        };
         Error: {
             error: {
                 code: string;
@@ -442,8 +1412,7 @@ export interface components {
             ts: string;
             /** @enum {string} */
             source: "glasses" | "phone" | "call" | "dashboard";
-            /** @enum {string} */
-            mode?: "focus" | "student" | "life" | "assist";
+            mode?: components["schemas"]["ModeId"];
             /** @description If capture already transcribed it. */
             transcript?: string | null;
             /** @description Short audio clip if not transcribed on device. */
@@ -474,6 +1443,36 @@ export interface components {
             open_promises: components["schemas"]["promise.schema"][];
             sources: components["schemas"]["moment.schema"][];
         };
+        Digest: {
+            /** Format: date */
+            date: string;
+            /** @description The recap to speak. */
+            spoken: string;
+            bullets: string[];
+            moment_count: number;
+            /** @description Met or seen that day. */
+            people: components["schemas"]["person.schema"][];
+            /** @description Made that day, either direction. */
+            promises: components["schemas"]["promise.schema"][];
+            actions: components["schemas"]["action.schema"][];
+            source_moment_ids: string[];
+        };
+        Rewind: {
+            found: boolean;
+            moment: components["schemas"]["moment.schema"] | null;
+            /** @description The exact transcript sentence; null for a snapshot with no words. */
+            line: string | null;
+            spoken: string;
+        };
+        List: {
+            /** @enum {string} */
+            id: "shopping" | "expenses";
+            name: string;
+            /** @description Newest first. */
+            items: components["schemas"]["list-item.schema"][];
+            /** @description Expenses: the sum of amounts. Shopping: null. */
+            total: number | null;
+        };
         ActionResult: {
             action: components["schemas"]["action.schema"];
             receipt: components["schemas"]["receipt.schema"];
@@ -502,9 +1501,235 @@ export interface components {
         CurrentCall: {
             call: components["schemas"]["Call"] | null;
         };
+        SkillInfo: {
+            /** @enum {string} */
+            id: "network" | "waiting" | "brief" | "world" | "translate" | "immersion" | "nudge" | "coach";
+            code: string;
+            name: string;
+            tagline: string;
+            best_mode: string;
+            /** @description True when the skill looks through a camera (glasses or device). */
+            uses_view: boolean;
+            trigger: string;
+            inputs: string;
+            steps: string[];
+            output: string;
+            confirmation: string;
+            undo: string;
+            source_moment: string;
+            if_unsure: string;
+            enabled: boolean;
+        };
+        GlassesView: {
+            available: boolean;
+            moment_id: string | null;
+            age_seconds: number | null;
+            /** @description You don't have your glasses on. when none are streaming. */
+            message: string | null;
+        };
+        /** @description Where a skill looks. Send one of: snapshot_base64 (device camera or upload), moment_id, or source glasses (the latest glasses frame, at most 2 minutes old). source glasses with none is 409 no_glasses. */
+        View: {
+            snapshot_base64?: string | null;
+            moment_id?: string;
+            /** @enum {string} */
+            source?: "glasses" | "device";
+        };
+        WorldIn: components["schemas"]["View"] & {
+            /** @description Defaults to What is this? */
+            question?: string | null;
+            /** @default true */
+            save: boolean;
+        };
+        WorldResult: {
+            spoken: string;
+            text: string;
+            confidence: number;
+            /** @description True below 0.5; the spoken line then says it is not sure. */
+            unsure: boolean;
+            saved: boolean;
+            moment: components["schemas"]["moment.schema"] | null;
+        };
+        TranslateIn: {
+            text?: string | null;
+            audio_base64?: string | null;
+            /** @description Defaults to the saved setting. */
+            target_language?: string | null;
+            /** @description Defaults to auto-detect. */
+            source_language?: string | null;
+            /** @default false */
+            save: boolean;
+        };
+        TranslateResult: {
+            spoken: string;
+            text: string;
+            original: string;
+            /** @description Empty when Cortex could not translate it. */
+            translation: string;
+            source_language: string;
+            target_language: string;
+            confidence: number;
+            unsure: boolean;
+            moment: components["schemas"]["moment.schema"] | null;
+        };
+        TranslateSettings: {
+            target_language?: string;
+            source_language?: string;
+        };
+        ImmersionSettings: {
+            language?: string;
+        };
+        NameIn: components["schemas"]["View"] & {
+            /** @description Defaults to the saved language. */
+            language?: string | null;
+        };
+        VocabItem: {
+            id: string;
+            language: string;
+            /** @description English name. */
+            object: string;
+            word: string;
+            /** @description 1 is least known. */
+            box: number;
+            right: number;
+            wrong: number;
+            source_moment_id: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        NameResult: {
+            spoken: string;
+            text: string;
+            items: components["schemas"]["VocabItem"][];
+            language: string;
+            moment: components["schemas"]["moment.schema"] | null;
+        };
+        Quiz: {
+            vocab_id: string;
+            language: string;
+            object: string;
+            box: number;
+            prompt: string;
+            /** @description Empty when there are too few words to offer choices. */
+            choices: string[];
+        };
+        QuizResult: {
+            spoken: string;
+            text: string;
+            correct: boolean;
+            expected: string;
+            box: number;
+        };
+        ProactiveSettings: {
+            /** @default false */
+            enabled: boolean;
+            /** @default 20 */
+            dwell_seconds: number;
+            /** @default 30 */
+            cooldown_minutes: number;
+        };
+        /** @description A proactive offer of help. Also the data of the skill.offer event. */
+        Offer: {
+            id: string;
+            scene: string;
+            text: string;
+            /** @enum {string} */
+            status: "offered" | "accepted" | "dismissed";
+            /** Format: date-time */
+            created_at: string;
+        };
+        Observation: {
+            offered: boolean;
+            /** @enum {string} */
+            reason: "disabled" | "nothing_confusing" | "watching" | "cooldown" | "offered";
+            dwell_seconds: number;
+            offer: components["schemas"]["Offer"] | null;
+        };
+        CoachStartIn: components["schemas"]["View"] & {
+            goal: string;
+        };
+        CoachStepIn: components["schemas"]["View"] & {
+            /** @description next, repeat, back, or anything else the wearer says. */
+            said?: string | null;
+        };
+        CoachSession: {
+            id: string;
+            goal: string;
+            steps: string[];
+            step_index: number;
+            current_step: string | null;
+            /** @enum {string} */
+            status: "active" | "done" | "ended";
+            mistakes: number;
+            /** @description The summary saved when the job was finished. */
+            moment_id: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description What Cortex says next, and the session. The coach.updated event carries the same (session, spoken, mistake). */
+        CoachReply: {
+            spoken: string;
+            text: string;
+            session: components["schemas"]["CoachSession"];
+            /** @description Set when Cortex saw something go wrong; it stops and corrects. */
+            mistake: string | null;
+        };
+        NudgeSettings: {
+            /** @default true */
+            enabled: boolean;
+            /** @default 22:00 */
+            quiet_start: string;
+            /** @default 08:00 */
+            quiet_end: string;
+            /** @default 3 */
+            daily_cap: number;
+        };
+        /** @description An overdue-promise nudge. Also the data of the nudge.due event (clients speak it). */
+        Nudge: {
+            id: string;
+            promise_id: string;
+            person_id: string;
+            /** @enum {string} */
+            direction: "waiting_on" | "i_owe";
+            spoken: string;
+            text: string;
+            days_overdue: number;
+            /** @enum {string} */
+            status: "open" | "dismissed";
+            source_moment_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        AutoBriefSettings: {
+            /** @default true */
+            enabled: boolean;
+        };
+        /** @description The automatic brief for an upcoming event. Also the data of the brief.due event. */
+        BriefDue: {
+            person_id: string;
+            event_title: string;
+            /** Format: date-time */
+            event_start: string;
+            spoken: string;
+            bullets: string[];
+        };
+        /** @description A request for the brief by phone call. Also the data of the brief.call event. */
+        BriefCall: {
+            id: string;
+            person_id: string;
+            /** @enum {string} */
+            status: "requested" | "dialing" | "completed" | "failed";
+            spoken: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        PersonMatch: {
+            person: components["schemas"]["person.schema"];
+            /** @description The search words that hit. */
+            matched: string[];
+        };
         Event: {
             /** @enum {string} */
-            type: "moment.created" | "moment.deleted" | "person.created" | "promise.proposed" | "promise.confirmed" | "action.proposed" | "action.updated" | "receipt.created" | "privacy.changed" | "mode.changed" | "call.started" | "call.ended";
+            type: "moment.created" | "moment.deleted" | "person.created" | "person.updated" | "person.deleted" | "promise.proposed" | "promise.confirmed" | "action.proposed" | "action.updated" | "receipt.created" | "privacy.changed" | "mode.changed" | "mode.suggested" | "routine.due" | "list.updated" | "call.started" | "call.ended" | "nudge.due" | "brief.due" | "brief.call" | "skill.offer" | "coach.updated";
             /** Format: date-time */
             at: string;
             data: Record<string, never>;
@@ -522,8 +1747,8 @@ export interface components {
             ts: string;
             /** @enum {string} */
             source: "glasses" | "phone" | "call" | "dashboard" | "seed";
-            /** @enum {string} */
-            mode: "focus" | "student" | "life" | "assist";
+            /** @description The mode active when it was captured: focus, student, life, assist or a custom mode's slug. */
+            mode: string;
             /** @description What was said, as text. */
             transcript: string | null;
             /** @description What was seen, as a short caption. */
@@ -533,6 +1758,8 @@ export interface components {
             /** @description URL of a stored video clip, capped at 10 seconds. */
             video_url?: string | null;
             place?: string | null;
+            /** @description Labels Cortex added, e.g. decision (FOC-5). Absent when there are none. */
+            tags?: string[];
             /** @description People linked to this moment. */
             person_ids: string[];
             /** @description True if captured while off-the-record; such moments are not stored, so stored moments are always false unless kept by explicit user choice. */
@@ -602,29 +1829,26 @@ export interface components {
         };
         /**
          * Action
-         * @description An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist). Only follow_up_email carries an email draft; the other types carry their own optional payload (event, task, doc, message).
+         * @description An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist), caregiver_summary (Assist: the daily summary emailed to a consenting caregiver, AST-6). Only follow_up_email and caregiver_summary carry an email draft; the other types carry their own optional payload (event, task, doc, message).
          */
         "action.schema": {
             id: string;
             /** @enum {string} */
-            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message";
+            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary";
             /**
              * @description sent and draft_saved apply to email and message; done to the other types.
              * @enum {string}
              */
             status: "proposed" | "sent" | "draft_saved" | "done" | "undone" | "dismissed" | "failed";
-            /**
-             * @description The mode that suggested it.
-             * @enum {string}
-             */
-            mode?: "focus" | "student" | "life" | "assist";
+            /** @description The mode that suggested it (a built-in or custom mode id). */
+            mode?: string;
             /** @description Short verb-first title for the suggestion card, e.g. "Draft a follow-up to Ash". */
             title?: string;
             /** @description One-paragraph description for the suggestion card. */
             summary?: string;
             /** @description The person it concerns, or null (flashcards, notes, read aloud). */
             person_id: string | null;
-            /** @description The email draft. Always present when type is follow_up_email; absent for the other types. */
+            /** @description The email draft. Always present when type is follow_up_email or caregiver_summary; absent for the other types. */
             draft?: {
                 to: string;
                 subject: string;
@@ -702,20 +1926,76 @@ export interface components {
             text: string;
         };
         /**
+         * ListItem
+         * @description One entry on a simple list (MEM-11): a shopping item or a logged expense, filled by voice or by hand.
+         */
+        "list-item.schema": {
+            id: string;
+            /** @enum {string} */
+            list: "shopping" | "expenses";
+            text: string;
+            /** @description Expenses only: the amount in the user's currency. */
+            amount: number | null;
+            /** @description Shopping: bought. Expenses: reconciled. */
+            done: boolean;
+            /** @description The moment that added it (proof); null when added by hand. Deleting that moment deletes the item. */
+            source_moment_id: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /**
          * Mode
-         * @description A preset over the one shared memory. Memory is never split by mode.
+         * @description A preset over the one shared memory (MODE-1). Memory is never split by mode. The four built-in modes are focus, student, life and assist; custom modes (MODE-7) use any other short slug.
          */
         "mode.schema": {
-            /** @enum {string} */
-            id: "focus" | "student" | "life" | "assist";
+            /** @description focus, student, life, assist, or a custom mode's slug. */
+            id: string;
             name: string;
+            /** @description One line on who the mode is for. */
+            description?: string;
             captures: string[];
             /** @description When Cortex speaks up unprompted. */
             speaks: string;
             proposes: string[];
-            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message")[];
+            /** @description Action types Cortex may suggest on its own in this mode. Actions the user asks for directly work in any mode. */
+            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary")[];
+            /** @description False: Cortex proposes nothing on its own in this mode; it only answers. Default true. */
+            auto_suggest?: boolean;
+            /** @description How long moments captured in this mode are kept; null keeps them until deleted. Shown in settings (MEM-12 applies it). */
+            retention_days?: number | null;
+            /** @description True for a user-defined mode (MODE-7). */
+            custom?: boolean;
             active: boolean;
         };
+        /** @description Action types Cortex may suggest on its own in this mode. Actions the user asks for directly work in any mode. */
+        allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary")[];
+        /**
+         * Routine
+         * @description A reminder the user set for a time of day (AST-5), spoken at that time. Wellness support, not a medical device.
+         */
+        "routine.schema": {
+            id: string;
+            /** @description Short, e.g. Take the evening medicine. */
+            title: string;
+            /** @description Local time, HH:MM (24-hour). */
+            time: string;
+            /** @description Days it repeats; empty means every day. */
+            days: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[];
+            /** @description What Cortex says at that time. */
+            spoken: string;
+            active: boolean;
+            /**
+             * Format: date-time
+             * @description The next time it fires; null when inactive.
+             */
+            next_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description Local time, HH:MM (24-hour). */
+        time: string;
+        /** @description Days it repeats; empty means every day. */
+        days: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[];
     };
     responses: {
         /** @description Error */
@@ -738,6 +2018,8 @@ export interface components {
     };
     parameters: {
         Id: string;
+        ListId: "shopping" | "expenses";
+        ItemId: string;
     };
     requestBodies: never;
     headers: never;
@@ -777,6 +2059,8 @@ export interface operations {
             query?: {
                 since?: string;
                 limit?: number;
+                /** @description Only moments with this tag, e.g. decision (FOC-5 decision log). */
+                tag?: string;
             };
             header?: never;
             path?: never;
@@ -932,6 +2216,45 @@ export interface operations {
             };
         };
     };
+    getMoment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "mom_live_002",
+                     *       "ts": "2026-11-15T14:02:40-06:00",
+                     *       "source": "glasses",
+                     *       "mode": "focus",
+                     *       "transcript": "I'll send you the deck Friday.",
+                     *       "caption": "Ash holding a phone, Acme banner behind them.",
+                     *       "snapshot_url": "fixtures/snapshots/placeholder-booth.svg",
+                     *       "place": "HackUTA expo hall",
+                     *       "person_ids": [
+                     *         "per_ash"
+                     *       ],
+                     *       "off_record": false
+                     *     }
+                     */
+                    "application/json": components["schemas"]["moment.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
     deleteMoment: {
         parameters: {
             query?: never;
@@ -1027,6 +2350,136 @@ export interface operations {
             };
         };
     };
+    getDigest: {
+        parameters: {
+            query?: {
+                /** @description YYYY-MM-DD in the user's timezone; default today. */
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Digest */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "date": "2026-11-15",
+                     *       "spoken": "Today you captured 2 moments across focus mode. Met Ash from Acme. Ash promised to send the deck by Friday, Nov 20.",
+                     *       "bullets": [
+                     *         "Met Ash from Acme",
+                     *         "Ash promised to send the deck by Friday, Nov 20"
+                     *       ],
+                     *       "moment_count": 2,
+                     *       "people": [
+                     *         {
+                     *           "id": "per_ash",
+                     *           "name": "Ash",
+                     *           "company": "Acme",
+                     *           "role": null,
+                     *           "consent": "introduction",
+                     *           "introduced_moment_id": "mom_live_001",
+                     *           "topics": [
+                     *             "Q4 launch"
+                     *           ],
+                     *           "notes": null,
+                     *           "name_confidence": 0.95
+                     *         }
+                     *       ],
+                     *       "promises": [
+                     *         {
+                     *           "id": "prm_live_001",
+                     *           "direction": "waiting_on",
+                     *           "person_id": "per_ash",
+                     *           "what": "Send the deck",
+                     *           "due": {
+                     *             "date": "2026-11-20",
+                     *             "inferred": false,
+                     *             "text": "Friday"
+                     *           },
+                     *           "status": "confirmed",
+                     *           "source_moment_id": "mom_live_002"
+                     *         }
+                     *       ],
+                     *       "actions": [
+                     *         {
+                     *           "id": "act_live_001",
+                     *           "type": "follow_up_email",
+                     *           "status": "sent",
+                     *           "person_id": "per_ash",
+                     *           "draft": {
+                     *             "to": "ash@acme.example",
+                     *             "subject": "Great meeting you at HackUTA",
+                     *             "body": "Hi Ash, great to meet you today. Looking forward to the deck on Friday."
+                     *           },
+                     *           "source_moment_ids": [
+                     *             "mom_live_001",
+                     *             "mom_live_002"
+                     *           ]
+                     *         }
+                     *       ],
+                     *       "source_moment_ids": [
+                     *         "mom_live_001",
+                     *         "mom_live_002"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Digest"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    rewind: {
+        parameters: {
+            query: {
+                /** @example Rewind what Ash promised me */
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rewind */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "found": true,
+                     *       "moment": {
+                     *         "id": "mom_live_002",
+                     *         "ts": "2026-11-15T14:02:40-06:00",
+                     *         "source": "glasses",
+                     *         "mode": "focus",
+                     *         "transcript": "I'll send you the deck Friday.",
+                     *         "caption": "Ash holding a phone, Acme banner behind them.",
+                     *         "snapshot_url": "fixtures/snapshots/placeholder-booth.svg",
+                     *         "place": "HackUTA expo hall",
+                     *         "person_ids": [
+                     *           "per_ash"
+                     *         ],
+                     *         "off_record": false
+                     *       },
+                     *       "line": "I'll send you the deck Friday.",
+                     *       "spoken": "Today at 2:02 PM, with Ash: 'I'll send you the deck Friday.'"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Rewind"];
+                };
+            };
+        };
+    };
     listPeople: {
         parameters: {
             query?: never;
@@ -1109,6 +2562,96 @@ export interface operations {
                     "application/json": components["schemas"]["person.schema"];
                 };
             };
+        };
+    };
+    deletePerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deletion receipt */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "rcp_del_002",
+                     *       "kind": "deletion",
+                     *       "created_at": "2026-11-15T14:10:00-06:00",
+                     *       "summary": "Deleted the contact card for Ash. Also removed 1 promise with them.",
+                     *       "action_id": null,
+                     *       "source_moment_ids": [],
+                     *       "undo": {
+                     *         "available": false,
+                     *         "until": null
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["receipt.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    updatePerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "company": "Acme Robotics"
+                 *     }
+                 */
+                "application/json": {
+                    name?: string;
+                    company?: string | null;
+                    role?: string | null;
+                    notes?: string | null;
+                    topics?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Updated person */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "per_ash",
+                     *       "name": "Ash",
+                     *       "company": "Acme",
+                     *       "role": null,
+                     *       "consent": "introduction",
+                     *       "introduced_moment_id": "mom_live_001",
+                     *       "topics": [
+                     *         "Q4 launch"
+                     *       ],
+                     *       "notes": null,
+                     *       "name_confidence": 0.95
+                     *     }
+                     */
+                    "application/json": components["schemas"]["person.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
     briefPerson: {
@@ -1335,7 +2878,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "proposed" | "sent" | "draft_saved" | "done" | "undone" | "dismissed" | "failed";
-                mode?: "focus" | "student" | "life" | "assist";
+                mode?: components["schemas"]["ModeId"];
             };
             header?: never;
             path?: never;
@@ -1393,8 +2936,7 @@ export interface operations {
                     person_id?: string | null;
                     /** @description Required for every type except follow_up_email, which can find its own. */
                     source_moment_ids?: string[];
-                    /** @enum {string} */
-                    mode?: "focus" | "student" | "life" | "assist";
+                    mode?: components["schemas"]["ModeId"];
                     /** @description Required for every type except follow_up_email. */
                     title?: string;
                     summary?: string;
@@ -1432,6 +2974,43 @@ export interface operations {
                     "application/json": components["schemas"]["action.schema"];
                 };
             };
+        };
+    };
+    generateAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "type": "flashcards",
+                 *       "moment_id": "mom_seed_005"
+                 *     }
+                 */
+                "application/json": {
+                    /** @enum {string} */
+                    type: "flashcards" | "notes" | "read_aloud";
+                    moment_id?: string;
+                    mode?: components["schemas"]["ModeId"];
+                };
+            };
+        };
+        responses: {
+            /** @description Proposed action */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["action.schema"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     confirmAction: {
@@ -1527,6 +3106,188 @@ export interface operations {
                 };
             };
             409: components["responses"]["Error"];
+        };
+    };
+    listLists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "items": [
+                     *         {
+                     *           "id": "shopping",
+                     *           "name": "Shopping",
+                     *           "total": null,
+                     *           "items": [
+                     *             {
+                     *               "id": "itm_live_001",
+                     *               "list": "shopping",
+                     *               "text": "oat milk",
+                     *               "amount": null,
+                     *               "done": false,
+                     *               "source_moment_id": "mom_live_002",
+                     *               "created_at": "2026-11-15T14:02:40-06:00"
+                     *             }
+                     *           ]
+                     *         },
+                     *         {
+                     *           "id": "expenses",
+                     *           "name": "Expenses",
+                     *           "total": 0,
+                     *           "items": []
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": {
+                        items: components["schemas"]["List"][];
+                    };
+                };
+            };
+        };
+    };
+    addListItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ListId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "text": "batteries"
+                 *     }
+                 */
+                "application/json": {
+                    text: string;
+                    /** @description Expenses only. */
+                    amount?: number | null;
+                    source_moment_id?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "itm_live_002",
+                     *       "list": "shopping",
+                     *       "text": "batteries",
+                     *       "amount": null,
+                     *       "done": false,
+                     *       "source_moment_id": null,
+                     *       "created_at": "2026-11-15T14:03:00-06:00"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["list-item.schema"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    deleteListItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ListId"];
+                item_id: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The removed item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "itm_live_002",
+                     *       "list": "shopping",
+                     *       "text": "batteries",
+                     *       "amount": null,
+                     *       "done": true,
+                     *       "source_moment_id": null,
+                     *       "created_at": "2026-11-15T14:03:00-06:00"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["list-item.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    updateListItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ListId"];
+                item_id: components["parameters"]["ItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "done": true
+                 *     }
+                 */
+                "application/json": {
+                    text?: string;
+                    amount?: number | null;
+                    done?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "id": "itm_live_002",
+                     *       "list": "shopping",
+                     *       "text": "batteries",
+                     *       "amount": null,
+                     *       "done": true,
+                     *       "source_moment_id": null,
+                     *       "created_at": "2026-11-15T14:03:00-06:00"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["list-item.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
     listReceipts: {
@@ -1763,6 +3524,69 @@ export interface operations {
             404: components["responses"]["Error"];
         };
     };
+    deleteMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deleted: string;
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    updateMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "allowed_actions": [
+                 *         "flashcards",
+                 *         "calendar_event"
+                 *       ],
+                 *       "retention_days": 30
+                 *     }
+                 */
+                "application/json": components["schemas"]["ModeUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated mode */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mode.schema"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
     listModes: {
         parameters: {
             query?: never;
@@ -1795,16 +3619,1240 @@ export interface operations {
                      *           "allowed_actions": [
                      *             "follow_up_email"
                      *           ],
+                     *           "auto_suggest": true,
+                     *           "retention_days": null,
                      *           "active": true
                      *         }
-                     *       ]
+                     *       ],
+                     *       "suggestion": null
                      *     }
                      */
                     "application/json": {
                         items: components["schemas"]["mode.schema"][];
+                        suggestion?: components["schemas"]["ModeSuggestion"] | null;
                     };
                 };
             };
+        };
+    };
+    createMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "name": "Lab",
+                 *       "captures": [
+                 *         "lab steps"
+                 *       ],
+                 *       "speaks": "on request",
+                 *       "proposes": [
+                 *         "notes"
+                 *       ],
+                 *       "allowed_actions": [
+                 *         "notes"
+                 *       ]
+                 *     }
+                 */
+                "application/json": components["schemas"]["ModeCreate"];
+            };
+        };
+        responses: {
+            /** @description Created mode */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mode.schema"];
+                };
+            };
+            400: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    dismissModeSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dismissed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description False when nothing was pending. */
+                        dismissed: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getRecap: {
+        parameters: {
+            query?: {
+                /** @description Only moments captured in this mode. */
+                mode?: components["schemas"]["ModeId"];
+                kind?: "meeting" | "lecture";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recap */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recap"];
+                };
+            };
+        };
+    };
+    look: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "task": "read"
+                 *     }
+                 */
+                "application/json": {
+                    /** @enum {string} */
+                    task: "describe" | "read" | "hazards" | "find" | "tutor";
+                    /** @description find: the object; hazards: what to look for, e.g. the door. */
+                    target?: string;
+                    /** @description tutor: what the user asked about the problem. */
+                    question?: string;
+                    /** @description JPEG of what the camera sees now. Not stored. */
+                    snapshot_base64?: string | null;
+                    moment_id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description What Cortex saw */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    listRoutines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Routines */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["routine.schema"][];
+                    };
+                };
+            };
+        };
+    };
+    createRoutine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "title": "Take the evening medicine",
+                 *       "time": "20:00",
+                 *       "days": []
+                 *     }
+                 */
+                "application/json": components["schemas"]["RoutineIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["routine.schema"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    deleteRoutine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deleted: string;
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    updateRoutine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoutineUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["routine.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    getCaregiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Caregiver settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Caregiver"];
+                };
+            };
+        };
+    };
+    setCaregiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "consent": true,
+                 *       "name": "Sam",
+                 *       "email": "sam@example.com",
+                 *       "send_at": "20:00"
+                 *     }
+                 */
+                "application/json": components["schemas"]["CaregiverIn"];
+            };
+        };
+        responses: {
+            /** @description Caregiver settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Caregiver"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    sendCaregiverSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caregiver_summary action and its receipt */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            409: components["responses"]["Error"];
+        };
+    };
+    listSkills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["SkillInfo"][];
+                    };
+                };
+            };
+        };
+    };
+    getGlassesView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GlassesView"];
+                };
+            };
+        };
+    };
+    searchPeople: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["PersonMatch"][];
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    askWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorldIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    translate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranslateIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranslateResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    getTranslateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranslateSettings"];
+                };
+            };
+        };
+    };
+    putTranslateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranslateSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranslateSettings"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    nameObjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NameIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NameResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    listVocab: {
+        parameters: {
+            query?: {
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["VocabItem"][];
+                    };
+                };
+            };
+        };
+    };
+    deleteVocab: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deleted: boolean;
+                        id: string;
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    getQuiz: {
+        parameters: {
+            query?: {
+                language?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Quiz"];
+                };
+            };
+            409: components["responses"]["Error"];
+        };
+    };
+    answerQuiz: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    vocab_id: string;
+                    answer: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuizResult"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    getImmersionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImmersionSettings"];
+                };
+            };
+        };
+    };
+    putImmersionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImmersionSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImmersionSettings"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    getProactiveSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProactiveSettings"];
+                };
+            };
+        };
+    };
+    putProactiveSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProactiveSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProactiveSettings"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    observeScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["View"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Observation"];
+                };
+            };
+            400: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    listOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Offer"][];
+                    };
+                };
+            };
+        };
+    };
+    acceptOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["View"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    dismissOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        status: string;
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    listCoach: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["CoachSession"][];
+                    };
+                };
+            };
+        };
+    };
+    startCoach: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachStartIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachReply"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    getCoach: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachSession"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    coachStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachStepIn"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachReply"];
+                };
+            };
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    endCoach: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachSession"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    getNudgeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NudgeSettings"];
+                };
+            };
+        };
+    };
+    putNudgeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NudgeSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NudgeSettings"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    listNudges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Nudge"][];
+                    };
+                };
+            };
+        };
+    };
+    tickNudges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["Nudge"][];
+                    };
+                };
+            };
+        };
+    };
+    dismissNudge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Nudge"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    completePromise: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["promise.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    dismissPromise: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["promise.schema"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    getAutoBriefSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutoBriefSettings"];
+                };
+            };
+        };
+    };
+    putAutoBriefSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutoBriefSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutoBriefSettings"];
+                };
+            };
+        };
+    };
+    tickAutoBrief: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["BriefDue"][];
+                    };
+                };
+            };
+        };
+    };
+    requestBriefCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    person_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Queued */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefCall"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    getBriefCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefCall"];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    updateBriefCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "dialing" | "completed" | "failed";
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefCall"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     streamEvents: {

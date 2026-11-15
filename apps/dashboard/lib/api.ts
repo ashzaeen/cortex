@@ -15,6 +15,21 @@ export type Brief = S["Brief"];
 export type ActionResult = S["ActionResult"];
 export type PrivacyState = S["PrivacyState"];
 export type Call = S["Call"];
+export type ModeSuggestion = S["ModeSuggestion"];
+export type ModeUpdate = S["ModeUpdate"];
+export type ModeCreate = S["ModeCreate"];
+export type Recap = S["Recap"];
+export type LookResult = S["LookResult"];
+export type LookTask = LookResult["task"];
+export type Routine = S["routine.schema"];
+export type RoutineIn = S["RoutineIn"];
+export type RoutineUpdate = S["RoutineUpdate"];
+export type Caregiver = S["Caregiver"];
+export type CaregiverIn = S["CaregiverIn"];
+export type CortexList = S["List"];
+export type ListItem = S["list-item.schema"];
+export type Digest = S["Digest"];
+export type Rewind = S["Rewind"];
 
 // Mock-only demo driver (apps/dashboard/mock); absent on the real backend.
 export type DemoStep = { i: number; beat: string; label: string; you: string; done: boolean };
@@ -54,14 +69,35 @@ export const api = {
   receipts: () => call<{ items: Receipt[] }>("GET", "/receipts"),
   privacy: () => call<PrivacyState>("GET", "/privacy"),
   currentCall: () => call<{ call: Call | null }>("GET", "/calls/current"),
-  modes: () => call<{ items: Mode[] }>("GET", "/modes"),
-  activateMode: (id: Mode["id"]) => call<Mode>("POST", `/modes/${id}/activate`),
+  modes: () => call<{ items: Mode[]; suggestion?: ModeSuggestion | null }>("GET", "/modes"),
+  activateMode: (id: Mode["id"]) => call<Mode>("POST", `/modes/${encodeURIComponent(id)}/activate`),
+  updateMode: (id: Mode["id"], body: ModeUpdate) => call<Mode>("PATCH", `/modes/${encodeURIComponent(id)}`, body),
+  createMode: (body: ModeCreate) => call<Mode>("POST", "/modes", body),
+  deleteMode: (id: Mode["id"]) => call<{ deleted: string }>("DELETE", `/modes/${encodeURIComponent(id)}`),
+  dismissModeSuggestion: () => call<{ dismissed: boolean }>("POST", "/modes/suggestion/dismiss"),
+  recap: (kind: "meeting" | "lecture" = "meeting") => call<Recap>("GET", `/recap?kind=${kind}`),
+  look: (body: { task: LookTask; target?: string; question?: string; snapshot_base64?: string | null }) => call<LookResult>("POST", "/look", body),
+  generate: (type: "flashcards" | "notes" | "read_aloud", moment_id?: string) => call<Action>("POST", "/actions/generate", { type, moment_id }),
+  routines: () => call<{ items: Routine[] }>("GET", "/routines"),
+  createRoutine: (body: RoutineIn) => call<Routine>("POST", "/routines", body),
+  updateRoutine: (id: string, body: RoutineUpdate) => call<Routine>("PATCH", `/routines/${encodeURIComponent(id)}`, body),
+  deleteRoutine: (id: string) => call<{ deleted: string }>("DELETE", `/routines/${encodeURIComponent(id)}`),
+  caregiver: () => call<Caregiver>("GET", "/caregiver"),
+  setCaregiver: (body: CaregiverIn) => call<Caregiver>("PUT", "/caregiver", body),
+  sendCaregiver: () => call<ActionResult>("POST", "/caregiver/send"),
+  lists: () => call<{ items: CortexList[] }>("GET", "/lists"),
+  addListItem: (list: string, text: string, amount?: number | null) => call<ListItem>("POST", `/lists/${list}/items`, { text, amount: amount ?? null }),
+  updateListItem: (list: string, id: string, body: { text?: string; amount?: number | null; done?: boolean }) =>
+    call<ListItem>("PATCH", `/lists/${list}/items/${encodeURIComponent(id)}`, body),
+  deleteListItem: (list: string, id: string) => call<ListItem>("DELETE", `/lists/${list}/items/${encodeURIComponent(id)}`),
+  digest: (date?: string) => call<Digest>("GET", `/digest${date ? `?date=${date}` : ""}`),
+  rewind: (q: string) => call<Rewind>("GET", `/rewind?q=${encodeURIComponent(q)}`),
   ask: (question: string) => call<AskAnswer>("POST", "/ask", { question, channel: "dashboard" }),
   brief: (personId: string) => call<Brief>("GET", `/people/${encodeURIComponent(personId)}/brief`),
   ingest: (transcript: string, source: "phone" | "dashboard" = "dashboard") =>
     call<Moment>("POST", "/moments", { ts: new Date().toISOString(), source, transcript }),
   // Phone capture (#4): a snapshot (base64 JPEG, no data: prefix) plus what was said.
-  capture: (body: { transcript: string | null; snapshot_base64: string | null }) =>
+  capture: (body: { transcript: string | null; snapshot_base64: string | null; mode?: string }) =>
     call<Moment>("POST", "/moments", { ts: new Date().toISOString(), source: "phone", ...body }),
   confirmPromise: (id: string) => call<Promise_>("POST", `/promises/${encodeURIComponent(id)}/confirm`),
   proposeEmail: (personId: string) =>

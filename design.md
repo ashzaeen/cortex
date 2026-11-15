@@ -409,9 +409,9 @@ Design mobile first. Write base CSS for phones, then enhance with `min-width` qu
 | 320 to 389 | Small phone (SE, mini) | Same as phone, tighter gutters (16), smaller display type, never horizontal scroll |
 | 390 to 767 | Phone (primary) | Single column, 16 gutters, bottom dock, sheets from bottom |
 | 768 to 1023 | Tablet | Two columns (answer left, suggestion and timeline right), dock stays at bottom center, sheets become centered panels |
-| 1024 and up | Desktop | The Brass v1 dashboard: floating top pill, two-column grid, dock at bottom center, max width 1280 |
+| 1024 and up | Desktop | The Brass v1 dashboard: floating top pill, three-column grid (mode tools rail, timeline, suggestion and answer), dock at bottom center, max width 1280 |
 
-Desktop is the Brass v1 board you can see in the prototype. Phone is that same content stacked in this order: status pill, timeline, suggestion, answer and proof, dock (decision D20). On laptops the timeline is the full-height left column; the suggestion and the answer share the right column, and the whole app fits one screen.
+Desktop is the Brass v1 board you can see in the prototype, with the mode tools rail added on the left (11.2b). Phone is that same content stacked in this order: status pill, timeline, suggestion, answer and proof, dock (decision D20); the tools open from a tab on the left edge. On laptops the rail is a 15rem column, the timeline is the full-height middle column, and the suggestion and the answer share the right column; the whole app fits one screen.
 
 ### 8.5 Page structure on phone
 
@@ -463,7 +463,7 @@ This is a web app that must behave like a native app on an iPhone. Get these rig
 
 - Never hijack the iOS back-swipe from the left edge or the home indicator swipe.
 - Sheets: drag handle at the top, detents (peek, half, full), velocity-based snapping, rubber banding past the ends.
-- Horizontal swipe on content to change mode [DECISION D8, default: yes with the dock indicator following the finger, plus tap on the dock as the explicit path].
+- No horizontal swipe to change mode [DECISION D8, decided: no]. Tap the dock to change mode. The mode tools tab on the left edge is a tap target, never a swipe, so the iOS back-swipe stays free.
 - Long-press a moment to peek at its proof without navigating.
 - Pull down on the status pill for quick controls (pause, mode, call). [Nice to have]
 
@@ -569,6 +569,20 @@ Anatomy: floating pill (glass), four segments (Focus, Student, Life, Assist), a 
 States: the active segment is a brass fill with `--ink` text, weight 600. Inactive segments are transparent with `--text`. Pressed: scale 0.97 and `--fill-press`.
 
 Behavior: the brass indicator slides between segments with a spring (stiffness 380, damping 30) and slightly stretches in the direction of travel. Content crossfades with an 8px rise (see 12). Ambient shifts per 4.6. Minimum segment width 76px, height 48px. On narrow screens (below 360px) reduce padding but keep labels. Do not use icons only: labels stay.
+
+### 11.2b Mode tools rail
+
+Purpose: the tools of the active mode, one tap away. The list changes with the mode; it lives in one data file (`lib/modeTools.ts`), so adding or removing a tool never touches layout code.
+
+Anatomy: a glass column titled `<MODE> TOOLS` (mono label), up to 12 rows (44px high pills: a 18px line icon in brass, then the label), and a `<Mode> Settings` row at the bottom. Every icon has a text label; never icons alone.
+
+Laptop (1024 and up): the left column of the three-column grid, 15rem wide, full height. Phone and tablet: a 36 x 56px glass tab on the left edge, vertically centered. Tapping it slides a matte panel in from the left (spring, 86vw up to 20rem) over a 50 percent scrim; Escape, the scrim or the close button dismiss it and focus returns to the tab. The tab is a tap target only (see 9.4).
+
+What a tap does depends on the tool, and the tool says which: open a sheet, run a preset Ask, open Capture with a preset, or draft something from the latest moment (a suggestion to approve; nothing runs by itself). Assist gets no special large-type UI; it uses the same rail.
+
+Tapping the active segment on the dock opens that mode's settings sheet (suggest on its own, which actions Cortex may suggest, how long moments are kept).
+
+A mode change plays a short two-note chime and speaks "<Mode> mode." A suggested switch ("Sounds like a lecture. Switch to Student?") is a chip above the dock with Switch and Not Now; it never switches by itself.
 
 ### 11.3 Ask surface
 
@@ -1167,7 +1181,7 @@ Status key: DECIDED = resolved with the team lead (Nov 14, 2026). DEFAULT = proc
 | D5 | Light theme | Dark only vs add light later | Dark only for now | DEFAULT |
 | D6 | Front-end stack | React plus Vite plus Tailwind tokens, or Next.js | **Next.js (decided)**, already in use (ADR 0005), with Tailwind reading the tokens | DECIDED |
 | D7 | Ask input | Voice first with text secondary, or text first | Voice first, text always available | DEFAULT |
-| D8 | Horizontal swipe to change mode | Yes (with dock tap as the explicit path) or no | Yes | DEFAULT |
+| D8 | Horizontal swipe to change mode | Yes (with dock tap as the explicit path) or no | **No (decided 2026-11-15, @ashzaeen).** The dock tap is the only way to change mode by hand; the left edge is now the mode tools rail (11.2b) | DECIDED |
 | D9 | Sound and haptics on web | None in v1 (no iOS web haptics). Native adds Taptic | None in v1 | DEFAULT |
 | D10 | Desktop scope | Full dashboard as in Brass v1 or phone layout only centered | Brass v1 dashboard at 1024 and up | DEFAULT |
 | D11 | Name, logo, app icon | Wordmark plus ring icon as proposed in 16.4 | Proposed | DEFAULT |

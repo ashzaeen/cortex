@@ -5,15 +5,20 @@ import { signOutAction } from "@/app/actions";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type AskAnswer, type Mode, type Moment, type Person, type Promise_, type Receipt } from "@/lib/api";
+import { chime } from "@/lib/chime";
 import { isDemo } from "@/lib/demo";
 import { friendly } from "@/lib/errors";
 import { lightSeed, shortIds } from "@/lib/format";
+import type { CapturePreset, SheetKey, Tool } from "@/lib/modeTools";
 import { useCortex } from "@/lib/useCortex";
 import { Ambient } from "@/components/brass/Ambient";
 import { AskPanel } from "@/components/brass/AskPanel";
 import { CaptureSheet } from "@/components/brass/CaptureSheet";
 import { DemoPanel } from "@/components/brass/DemoPanel";
-import { MODE_LABEL, MODE_ORDER, ModeDock } from "@/components/brass/ModeDock";
+import { MODE_ORDER, ModeDock, modeLabel } from "@/components/brass/ModeDock";
+import { ModeChip } from "@/components/brass/ModeChip";
+import { ModeToolsEdge, ModeToolsRail } from "@/components/brass/ModeTools";
+import { CaregiverSheet, DecisionsSheet, DigestSheet, LimitsSheet, ListsSheet, LookSheet, ModeSettingsSheet, ProposalsSheet, RecapSheet, RewindSheet, RoutinesSheet } from "@/components/brass/modeSheets";
 import { PairingSheet } from "@/components/brass/PairingSheet";
 import { AskSheet, CallSheet, MomentSheet, PeopleSheet, primeSpeech, ReceiptsSheet, SettingsSheet, speak, WaitingOnSheet } from "@/components/brass/sheets";
 import { StatusPill } from "@/components/brass/StatusPill";
@@ -22,7 +27,7 @@ import { TimelinePanel } from "@/components/brass/TimelinePanel";
 import { TimelineSheet } from "@/components/brass/TimelineSheet";
 import { ToastProvider, useToast } from "@/components/brass/Toast";
 
-type SheetId = "ask" | "timeline" | "people" | "waiting" | "settings" | "receipts" | "call" | "capture" | "pairing";
+type SheetId = SheetKey;
 const read = (k: string) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
 const write = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? "1" : "0"); } catch { /* storage blocked */ } };
 
@@ -33,9 +38,18 @@ export default function HomeApp({ user = null }: { user?: AppUser | null }) {
 }
 
 function Home({ user }: { user: AppUser | null }) {
-  const { data, feed, connected, error, loaded, refresh } = useCortex();
+  // Live events: speak a routine when it is due (AST-5). The mode chime is handled below, from the mode itself.
+  const { data, feed, connected, error, loaded, refresh } = useCortex((e) => {
+    if (e.type === "routine.due") {
+      const line = String(e.data.spoken || e.data.title || "");
+      if (line) speak(line);
+      toastRef.current?.({ text: `Reminder: ${String(e.data.title ?? "")}` });
+    }
+  });
   const loading = !loaded && !error;
   const toast = useToast();
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast; });
   const [modeLocal, setModeLocal] = useState<Mode["id"] | null>(null);
   const mode: Mode["id"] = modeLocal ?? data.modes.find((m) => m.active)?.id ?? "focus";
   const [selected, setSelected] = useState<string | null>(null);
@@ -44,6 +58,8 @@ function Home({ user }: { user: AppUser | null }) {
   const [thinking, setThinking] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const [sheet, setSheet] = useState<SheetId | null>(null);
+  const [sheetArg, setSheetArg] = useState<string | undefined>(undefined);
+  const [capturePreset, setCapturePreset] = useState<CapturePreset | undefined>(undefined);
   const [momentId, setMomentId] = useState<string | null>(null);
   const [personFocus, setPersonFocus] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Set<string>>(new Set());
@@ -90,6 +106,16 @@ function Home({ user }: { user: AppUser | null }) {
   }, [mode, refresh]);
   useEffect(() => { if (modeLocal && data.modes.find((x) => x.active)?.id === modeLocal) setModeLocal(null); }, [data.modes, modeLocal]);
 
+  // A chime and the spoken mode name whenever the active mode changes (MODE-2): from a tap, a voice
+  // command on the glasses, or accepting a suggestion. Not on the first load.
+  const prevMode = useRef<string | null>(null);
+  useEffect(() => {
+    if (!data.modes.length) return;
+    const current = data.modes.find((m) => m.active)?.id ?? null;
+    if (prevMode.current && current && current !== prevMode.current) { chime(); speak(`${modeLabel(current, data.modes)} mode.`); }
+    prevMode.current = current;
+  }, [data.modes]);
+
   // ---------- ask
   const ask = useCallback(async (q: string) => {
     setQuestion(q); setThinking(true); setRecent((r) => [q, ...r.filter((x) => x !== q)].slice(0, 4));
@@ -123,6 +149,28 @@ function Home({ user }: { user: AppUser | null }) {
     return open.at(-1) ?? null;
   }, [data.actions, mode]);
 
+  // ---------- mode tools (the left rail): a tap opens a sheet, asks, captures with a preset, or drafts something
+  const openSheet = (id: SheetId, arg?: string) => { setSheetArg(arg); if (id === "people") setPersonFocus(null); setSheet(id); };
+  const openTool = (tool: Tool) => {
+    const a = tool.action;
+    if (a.kind === "sheet") openSheet(a.sheet, a.arg);
+    else if (a.kind === "ask") void ask(a.q);
+    else if (a.kind === "capture") { setCapturePreset(a.preset); setSheet("capture"); }
+    else {
+      const src = [...moments].sort((x, y) => Date.parse(y.ts) - Date.parse(x.ts)).find((m) => m.transcript || m.caption);
+      if (!src) { toast({ text: "Capture Something First" }); return; }
+      void run(async () => { await api.generate(a.type, src.id); toast({ text: `${tool.label} Ready to Approve` }); });
+    }
+  };
+  const activeModeDoc = data.modes.find((m) => m.id === mode) ?? null;
+  const modeChip = data.suggestion && data.suggestion.mode_id !== mode ? data.suggestion : null;
+  const promiseOpen = data.promises.some((p) => p.status === "proposed");
+  // The toast layer sits above whichever chips are showing (the promise chip and the mode chip stack above the dock).
+  useEffect(() => {
+    document.documentElement.style.setProperty("--chip-offset", `${((promiseOpen ? 1 : 0) + (modeChip ? 1 : 0)) * 64}px`);
+    return () => { document.documentElement.style.removeProperty("--chip-offset"); };
+  }, [promiseOpen, modeChip]);
+
   // ---------- keyboard (design.md 17): 1-4 modes, / ask, P pause
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -137,30 +185,19 @@ function Home({ user }: { user: AppUser | null }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // ---------- horizontal swipe to change mode (D8); ignores the iOS back-swipe edge
-  const swipe = useRef<{ x: number; y: number } | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => { const t = e.touches[0]; swipe.current = t.clientX > 24 ? { x: t.clientX, y: t.clientY } : null; };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const s = swipe.current; swipe.current = null; if (!s) return;
-    const t = e.changedTouches[0]; const dx = t.clientX - s.x, dy = t.clientY - s.y;
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    const i = MODE_ORDER.indexOf(mode);
-    changeMode(MODE_ORDER[(i + (dx < 0 ? 1 : 3)) % 4]);
-  };
-
   const pillState = !connected && error ? "offline" : call ? "on_call" : privacy;
   const proof = sel ?? null;
 
   return (
     <>
       <Ambient mode={mode} seed={lightSeed(sel?.ts)} paused={privacy !== "capturing"} pullKey={`${mode}:${selected ?? ""}`} />
-      <div className="relative z-[1] min-h-dvh lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="relative z-[1] min-h-dvh lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
           <StatusPill
             state={pillState}
-            modeLabel={MODE_LABEL[mode]}
+            modeLabel={modeLabel(mode, data.modes)}
             onToggle={togglePause}
             onOpenSettings={() => setSheet("settings")}
-            onCapture={() => setSheet("capture")}
+            onCapture={() => { setCapturePreset(undefined); setSheet("capture"); }}
             onCall={() => setSheet("call")}
             links={[
               { label: "People", onClick: () => { setPersonFocus(null); setSheet("people"); } },
@@ -170,9 +207,12 @@ function Home({ user }: { user: AppUser | null }) {
           />
 
         <main
-          className="home-main mx-auto grid w-full max-w-[1280px] grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-6 md:px-6 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-5 lg:px-10 lg:pt-5"
+          className="home-main mx-auto grid w-full max-w-[1280px] grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-6 md:px-6 lg:min-h-0 lg:grid-cols-[15rem_minmax(0,1fr)_minmax(0,1fr)] lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-5 lg:px-10 lg:pt-5"
           style={{ paddingBottom: "calc(var(--dock-h) + max(12px, var(--safe-bottom)) + 32px + var(--driver-offset, 0px))" }}
         >
+          <div className="rise hidden min-w-0 lg:block lg:h-full lg:min-h-0" style={{ animationDelay: "330ms" }}>
+            <ModeToolsRail mode={mode} modes={data.modes} onPick={openTool} onSettings={() => openSheet("modesettings")} />
+          </div>
           <div className="rise min-w-0 lg:h-full lg:min-h-0" style={{ animationDelay: "350ms" }}>
             <TimelinePanel max={20} loading={loading}
               moments={moments} people={data.people} promises={data.promises} ids={ids} selected={selected}
@@ -209,7 +249,8 @@ function Home({ user }: { user: AppUser | null }) {
           </div>
         </main>
 
-        <ModeDock active={mode} onChange={changeMode} />
+        <ModeDock active={mode} modes={data.modes} onChange={changeMode} onActiveTap={() => openSheet("modesettings")} />
+        <ModeToolsEdge mode={mode} modes={data.modes} onPick={openTool} onSettings={() => openSheet("modesettings")} />
       </div>
 
       {demoOn && data.demo && <DemoPanel demo={data.demo} run={run} />}
@@ -231,23 +272,35 @@ function Home({ user }: { user: AppUser | null }) {
       <ReceiptsSheet open={sheet === "receipts"} onClose={() => setSheet(null)} receipts={data.receipts} ids={ids}
         onUndo={(r: Receipt) => r.action_id && run(() => api.undoAction(r.action_id!))} />
       <CallSheet open={sheet === "call"} onClose={() => setSheet(null)} call={call} moments={data.moments} />
-      <CaptureSheet open={sheet === "capture"} onClose={() => setSheet(null)} privacy={privacy} onSaved={(t) => { toast({ text: t }); refresh(); autoFollow.current = true; }} />
+      <CaptureSheet open={sheet === "capture"} onClose={() => setSheet(null)} privacy={privacy} preset={capturePreset}
+        onSaved={(t, moment, preset) => {
+          toast({ text: t }); refresh(); autoFollow.current = true;
+          if (preset.then) api.generate(preset.then, moment.id).then(() => { toast({ text: "Notes Ready to Approve" }); refresh(); }).catch((e) => toast({ text: friendly(e), tone: "danger" }));
+        }} />
+      <RecapSheet open={sheet === "recap"} onClose={() => setSheet(null)} arg={sheetArg} onOpenMoment={(id) => setMomentId(id)} />
+      <DecisionsSheet open={sheet === "decisions"} onClose={() => setSheet(null)} moments={moments} onOpenMoment={(id) => setMomentId(id)} />
+      <ListsSheet open={sheet === "lists"} onClose={() => setSheet(null)} arg={sheetArg} />
+      <DigestSheet open={sheet === "digest"} onClose={() => setSheet(null)} onOpenMoment={(id) => setMomentId(id)} />
+      <RewindSheet open={sheet === "rewind"} onClose={() => setSheet(null)} onOpenMoment={(id) => setMomentId(id)} />
+      <RoutinesSheet open={sheet === "routines"} onClose={() => setSheet(null)} />
+      <CaregiverSheet open={sheet === "caregiver"} onClose={() => setSheet(null)} onSent={refresh} />
+      <LookSheet open={sheet === "look"} onClose={() => setSheet(null)} arg={sheetArg} onSaved={refresh} />
+      <LimitsSheet open={sheet === "limits"} onClose={() => setSheet(null)} />
+      <ProposalsSheet open={sheet === "proposals"} onClose={() => setSheet(null)} arg={sheetArg} actions={data.actions} onOpenMoment={(id) => setMomentId(id)} />
+      <ModeSettingsSheet open={sheet === "modesettings"} onClose={() => setSheet(null)} mode={activeModeDoc} onChanged={refresh} onDeleted={refresh} />
       <PairingSheet open={sheet === "pairing"} onClose={() => setSheet(null)} live={privacy === "capturing"} />
 
       {/* Proposed promises surface as a confirm chip right above the dock (D-4 one-tap confirm). */}
       <PromiseChip promises={data.promises} people={data.people} onConfirm={(p) => run(() => api.confirmPromise(p.id))} />
+      <ModeChip suggestion={modeChip} modes={data.modes} slot={promiseOpen ? 1 : 0}
+        onSwitch={(id) => changeMode(id)}
+        onDismiss={() => run(() => api.dismissModeSuggestion())} />
     </>
   );
 }
 
 function PromiseChip({ promises, people, onConfirm }: { promises: Promise_[]; people: Person[]; onConfirm: (p: Promise_) => void }) {
   const p = promises.filter((x) => x.status === "proposed").at(-1);
-  const has = !!p;
-  // Tell the toast layer to sit above the chip while it shows (the two share the spot above the dock).
-  useEffect(() => {
-    document.documentElement.style.setProperty("--chip-offset", has ? "64px" : "0px");
-    return () => { document.documentElement.style.removeProperty("--chip-offset"); };
-  }, [has]);
   const who = p ? people.find((x) => x.id === p.person_id)?.name.split(" ")[0] ?? "Someone" : "";
   return (
     <div className="pointer-events-none fixed inset-x-0 z-[25] flex justify-center px-4" style={{ bottom: "calc(max(12px, var(--safe-bottom)) + var(--dock-h) + 16px + var(--driver-offset, 0px))" }}>

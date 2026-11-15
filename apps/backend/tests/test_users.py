@@ -60,3 +60,19 @@ def test_live_events_reach_only_their_user():
         return got
 
     assert asyncio.run(run()) == 0
+
+
+def test_captures_without_a_user_are_shared_with_everyone(seeded):
+    client = seeded
+    body = {"ts": "2026-11-15T15:00:00-06:00", "source": "glasses", "transcript": "Shared note from the glasses."}
+    shared = validate(client.post("/moments", json=body), "/moments", "post", 201)  # no X-Cortex-User
+    a, b = ids(client, "/moments", A, limit=100), ids(client, "/moments", B, limit=100)
+    assert shared["id"] in a and shared["id"] in b
+    assert not any(i.startswith("mom_seed_") for i in a)  # the test fixtures stay hidden
+    found = validate(client.get("/moments/search", headers=A, params={"q": "shared note glasses"}),
+                     "/moments/search", "get", 200)["results"]
+    assert found and found[0]["moment"]["id"] == shared["id"]
+    mine = validate(client.post("/moments", json={**body, "transcript": "Private to A."}, headers=A),
+                    "/moments", "post", 201)
+    assert mine["id"] not in ids(client, "/moments", B, limit=100)
+    assert mine["id"] not in ids(client, "/moments", limit=100)

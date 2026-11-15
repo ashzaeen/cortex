@@ -44,7 +44,8 @@ def publish(type_: str, data: dict):
     del history[:-200]
     me = user.current()
     with _lock:
-        subs = [(loop, q) for loop, q, who in _subs if who == me]
+        # The shared default memory is seen by everyone, so its events reach every client.
+        subs = [(loop, q) for loop, q, who in _subs if who == me or me == user.DEFAULT]
     for loop, q in subs:
         try:
             loop.call_soon_threadsafe(q.put_nowait, msg)

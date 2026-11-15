@@ -71,8 +71,9 @@ x-examples:
 # the key (X-Cortex-Key, or Authorization: Bearer) and answers 401 unauthorized without it. Unset
 # (local dev, the mock) it is open. Browsers never hold the key: the dashboard proxy adds it.
 # Per-user memory: X-Cortex-User (an email) picks whose memory a request reads and writes. Each user
-# starts with their own copy of the demo profile; nothing one user does reaches another. No header =
-# the default memory (fixtures). The dashboard proxy sends the signed-in email.
+# starts with their own copy of the demo profile; nothing one user adds reaches another. No header =
+# the shared default memory, which every signed-in user also sees (its test fixtures excepted). The
+# dashboard proxy sends the signed-in email; the glasses app and call agent send the wearer's.
 security:
   - {}
   - cortexKey: []

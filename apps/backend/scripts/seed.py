@@ -39,7 +39,7 @@ def _embed(llm, text: str) -> list[float]:
 
 
 def upsert(coll: str, doc: dict):
-    db.col(coll).replace_one({"_id": doc["_id"]}, doc, upsert=True)
+    db.own(coll).replace_one({"_id": doc["_id"]}, doc, upsert=True)
 
 
 def _profile_delta(moments: list[dict]) -> timedelta:

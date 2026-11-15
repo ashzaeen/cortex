@@ -135,11 +135,16 @@ def timeline_ids(user_id: str, start: datetime, end: datetime, limit: int = 500)
     if not _pool:
         return None
     try:
+        from core import user as _user
+
+        # A signed-in user also sees the shared default memory (core/merged.py); fixtures are dropped
+        # later, when the ids are loaded through the merged view.
+        users = list(dict.fromkeys([user_id, _user.DEFAULT]))
         rows = fetchall(
             """SELECT moment_id FROM timeline
-               WHERE user_id = %s AND time >= %s AND time < %s
+               WHERE user_id = ANY(%s) AND time >= %s AND time < %s
                ORDER BY time DESC LIMIT %s""",
-            (user_id, start, end, limit),
+            (users, start, end, limit),
         )
         return [r["moment_id"] for r in rows]
     except Exception as exc:  # noqa: BLE001

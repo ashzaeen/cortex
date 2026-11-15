@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cortex - Glass v2 Brass</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Fraunces:ital,wght@0,400;0,500;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{text-decoration:none}a:hover{opacity:0.85}
+button{font-family:inherit;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #D2A860;outline-offset:3px}
+html{scroll-behavior:smooth}
+@keyframes tally{0%,100%{opacity:1}50%{opacity:0.45}}
+@media (prefers-reduced-motion: reduce){.tally{animation:none !important}}
+</style>
+</helmet>
+<div style="position: relative; overflow: hidden; min-height: 980px; box-sizing: border-box; background: #08130F; color: #EEE7D4; font-family: 'Manrope', system-ui, sans-serif">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; filter: blur(46px); opacity: 0.95">
+<div style="position: absolute; top: 40px; left: 60px; width: 430px; height: 520px; border-radius: 28px; background: #1F5A48"></div>
+<div style="position: absolute; top: 120px; right: 40px; width: 520px; height: 360px; border-radius: 40px; background: #8A6A32"></div>
+<div style="position: absolute; bottom: 20px; left: 300px; width: 640px; height: 300px; border-radius: 60px; background: #12372E"></div>
+<div style="position: absolute; top: 330px; left: 470px; width: 190px; height: 190px; border-radius: 50%; background: #D2A860"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,19,15,0.35), rgba(8,19,15,0.7))"></div>
+
+<div style="position: relative; z-index: 1; min-height: 980px; box-sizing: border-box; padding: 28px 40px 36px; display: flex; flex-direction: column; gap: 28px; max-width: 1280px; margin: 0 auto">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 8px 8px 24px; border-radius: 999px; background: rgba(14,32,26,0.58); border: 1px solid rgba(238,231,212,0.18); backdrop-filter: blur(24px) saturate(130%); -webkit-backdrop-filter: blur(24px) saturate(130%)">
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" class="tally" style="{{orbStyle}}"></span>
+<span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Cortex</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9FB3A8">{{liveLabel}}</span>
+</div>
+<nav aria-label="Sections" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="#ask" style="min-height: 44px; display: flex; align-items: center; padding: 0 16px; border-radius: 999px; font-size: 14px; color: #EEE7D4">Ask</a>
+<a href="#now" style="min-height: 44px; display: flex; align-items: center; padding: 0 16px; border-radius: 999px; font-size: 14px; color: #EEE7D4">Suggestion</a>
+<a href="#timeline" style="min-height: 44px; display: flex; align-items: center; padding: 0 16px; border-radius: 999px; font-size: 14px; color: #EEE7D4">Timeline</a>
+<button type="button" onClick="{{togglePause}}" style="min-height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid rgba(238,231,212,0.18); background: rgba(238,231,212,0.10); color: #EEE7D4; font-size: 14px; font-weight: 600">{{pauseLabel}}</button>
+</nav>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 24px; align-items: start">
+
+<section id="ask" style="border-radius: 28px; padding: 36px; display: flex; flex-direction: column; gap: 20px; background: rgba(14,32,26,0.58); border: 1px solid rgba(238,231,212,0.18); backdrop-filter: blur(28px) saturate(130%); -webkit-backdrop-filter: blur(28px) saturate(130%)">
+<label for="q" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #9FB3A8">ASK YOUR MEMORY</label>
+<input id="q" readonly="" value="What did Priya promise me?" style="font-family: 'Fraunces', Georgia, serif; font-size: 30px; font-weight: 500; background: transparent; border: none; color: #EEE7D4; padding: 0">
+<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #DCD5C0">Priya said she would send you the deck on Friday.</p>
+<div style="border-radius: 20px; padding: 22px; background: rgba(238,231,212,0.10); border: 1px solid rgba(238,231,212,0.18); display: flex; flex-direction: column; gap: 12px">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em; color: #D2A860">PROOF {{sel.id}} - {{sel.time}}</div>
+<div style="font-family: 'Fraunces', Georgia, serif; font-style: italic; font-size: 22px; line-height: 1.4">{{sel.quote}}</div>
+<div style="font-size: 14px; line-height: 1.5; color: #9FB3A8">{{sel.note}}</div>
+</div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 24px">
+
+<section id="now" style="border-radius: 28px; padding: 32px; display: flex; flex-direction: column; gap: 16px; background: rgba(14,32,26,0.58); border: 1px solid rgba(238,231,212,0.18); backdrop-filter: blur(28px) saturate(130%); -webkit-backdrop-filter: blur(28px) saturate(130%)">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #9FB3A8">SUGGESTED IN {{cur.label}}</span>
+<h2 style="margin: 0; font-family: 'Fraunces', Georgia, serif; font-size: 28px; font-weight: 500; letter-spacing: -0.01em">{{cur.sug}}</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #DCD5C0">{{cur.body}}</p>
+<sc-if value="{{notDone}}" hint-placeholder-val="{{true}}">
+<div>
+<button type="button" onClick="{{approve}}" style="min-height: 48px; padding: 0 26px; border-radius: 999px; border: none; background: #D2A860; color: #0B1712; font-size: 15px; font-weight: 700">{{cur.btn}}</button>
+</div>
+</sc-if>
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<span style="font-size: 15px; font-weight: 600; color: #D2A860">{{cur.doneMsg}}</span>
+<button type="button" onClick="{{undo}}" style="min-height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid rgba(238,231,212,0.18); background: rgba(238,231,212,0.10); color: #EEE7D4; font-size: 14px; font-weight: 600">Undo</button>
+</div>
+</sc-if>
+</section>
+
+<section id="timeline" style="border-radius: 28px; padding: 20px; display: flex; flex-direction: column; gap: 6px; background: rgba(14,32,26,0.58); border: 1px solid rgba(238,231,212,0.18); backdrop-filter: blur(28px) saturate(130%); -webkit-backdrop-filter: blur(28px) saturate(130%)">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #9FB3A8; padding: 8px 14px">TIMELINE</div>
+<sc-for list="{{moments}}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{m.pick}}" style="{{m.style}}">
+<span aria-hidden="true" style="{{m.frame}}"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto">
+<span style="font-size: 15px; font-weight: 600">{{m.title}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #9FB3A8">{{m.time}} - {{m.id}}</span>
+</span>
+<span style="font-size: 12px; color: #D2A860">{{m.tag}}</span>
+</button>
+</sc-for>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 14px 14px 8px; border-top: 1px solid rgba(238,231,212,0.18); margin-top: 6px">
+<span style="font-size: 14px; color: #DCD5C0">Waiting on: Priya, the deck</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9FB3A8">DUE FRI</span>
+</div>
+</section>
+
+</div>
+</div>
+
+<div style="display: flex; justify-content: center; margin-top: auto; padding-top: 8px">
+<div role="group" aria-label="Mode" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 8px; border-radius: 999px; background: rgba(14,32,26,0.58); border: 1px solid rgba(238,231,212,0.18); backdrop-filter: blur(30px) saturate(140%); -webkit-backdrop-filter: blur(30px) saturate(140%)">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button>
+</sc-for>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":980}}'>
+class Component extends DCLogic {
+  state = { mode: 'focus', sel: 'm2', done: false, paused: false };
+  renderVals() {
+    const s = this.state;
+    const defs = [
+      { id: 'focus', label: 'Focus', sug: 'Draft a follow-up to Priya', body: 'Thanks for the intro today. You mentioned sending the deck on Friday, and I will watch for it. Could we find 20 minutes next week?', btn: 'Approve and send', doneMsg: 'Sent to Priya at Acme' },
+      { id: 'student', label: 'Student', sug: 'Turn the whiteboard into flashcards', body: 'Cards made from the API sketch you photographed, ready to review tonight.', btn: 'Add to my deck', doneMsg: 'Cards added to your deck' },
+      { id: 'life', label: 'Life', sug: 'Remind me when the deck is due', body: 'A reminder on Friday about the deck from Priya, with a nudge if nothing has arrived.', btn: 'Set reminder', doneMsg: 'Reminder set for Friday' },
+      { id: 'assist', label: 'Assist', sug: 'Read the whiteboard aloud', body: 'Reads the text on the snapshot in order, then offers to describe the diagram.', btn: 'Read aloud', doneMsg: 'Reading aloud now' }
+    ];
+    const modes = defs.map((m) => ({
+      ...m,
+      pick: () => this.setState({ mode: m.id, done: false }),
+      style: 'min-height:48px;padding:0 26px;border-radius:999px;border:none;font-size:15px;font-weight:600;color:' + (s.mode === m.id ? '#0B1712' : '#EEE7D4') + ';background:' + (s.mode === m.id ? '#D2A860' : 'transparent')
+    }));
+    const cur = defs.find((m) => m.id === s.mode);
+    const frames = ['#2C5E4F', '#8A6A32', '#3B4F48', '#6B5A3A'];
+    const base = [
+      { id: 'm1', time: '2:14 PM', title: 'Met Priya from Acme', tag: 'Network', quote: '"This is Priya from Acme."', note: 'Contact card created from your introduction.' },
+      { id: 'm2', time: '2:16 PM', title: 'Priya will send the deck Friday', tag: 'Waiting on', quote: '"I\'ll send you the deck Friday."', note: 'Tracked under Waiting on, due Friday.' },
+      { id: 'm3', time: '2:31 PM', title: 'Whiteboard: API sketch', tag: 'Snapshot', quote: 'Snapshot saved from your glasses.', note: 'The text and the diagram are kept with this moment.' },
+      { id: 'm4', time: '3:02 PM', title: 'Standup: two action items', tag: 'Focus', quote: '"I will own the contract draft."', note: 'Two tasks proposed, none created yet.' }
+    ];
+    const moments = base.map((m, i) => ({
+      ...m,
+      pick: () => this.setState({ sel: m.id }),
+      frame: 'width:56px;height:40px;flex:0 0 56px;border-radius:6px;background:' + frames[i] + ';border:1px solid ' + (s.sel === m.id ? '#D2A860' : 'rgba(238,231,212,0.18)'),
+      style: 'min-height:60px;width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:0 14px;border-radius:18px;border:none;color:#EEE7D4;background:' + (s.sel === m.id ? 'rgba(238,231,212,0.10)' : 'transparent')
+    }));
+    const sel = base.find((m) => m.id === s.sel);
+    return {
+      modes, cur, moments, sel,
+      done: s.done, notDone: !s.done,
+      approve: () => this.setState({ done: true }),
+      undo: () => this.setState({ done: false }),
+      togglePause: () => this.setState({ paused: !s.paused }),
+      pauseLabel: s.paused ? 'Resume capture' : 'Pause capture',
+      liveLabel: s.paused ? 'PAUSED' : 'REC - ' + cur.label.toUpperCase(),
+      orbStyle: 'width:10px;height:10px;border-radius:50%;display:inline-block;animation:tally 2.4s ease-in-out infinite;background:' + (s.paused ? '#9FB3A8' : '#D2A860')
+    };
+  }
+}
+</script>
+</body>
+</html>

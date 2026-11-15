@@ -13,6 +13,8 @@ Meet Ash → Ash's promise is tracked → ask with proof → spoken brief → ap
 - PRD: [Project Cortex - Product Concept for HackUTA 2026.md](Project%20Cortex%20-%20Product%20Concept%20for%20HackUTA%202026.md)
 - Priority plan: [Cortex Core Priority Plan - Flawless Demo.md](Cortex%20Core%20Priority%20Plan%20-%20Flawless%20Demo.md)
 
+For any UI work, also read [design.md](design.md) (the Brass design system, source of truth for look, feel and motion) and the reference mockup in [docs/design/](docs/design/).
+
 Never edit, move or rewrite those two files. Where anything else disagrees with them, they win; record the conflict in [docs/RISKS.md](docs/RISKS.md).
 
 ## Priority rule

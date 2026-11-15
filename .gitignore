@@ -28,3 +28,6 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Original design export (extracted copy lives in docs/design/)
+C2 - Glass v2 Brass-html.zip

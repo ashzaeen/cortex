@@ -698,6 +698,17 @@ Glass, pill or 20px radius, appears above the dock, auto-dismisses after 4s (10s
 
 A matte list (readability first). Sections: Capture (pause, schedule, quiet places), What Cortex keeps (retention, delete everything for a day, export), Connections (glasses, calendar, email, FaceTime line), Appearance (reduce motion, reduce transparency, text size follow system). Every destructive action has an undo window or a clear confirmation with consequences stated.
 
+
+### 11.18 Skills sheet
+
+Skills are the abilities any mode can call (Network, Waiting on, Brief, Ask the world, Translate, Immersion, Nudge, Coach). They open from a **Skills segment at the right end of the dock**, set apart from the four modes, as one matte full sheet (11.14).
+
+- **Tab strip:** a horizontally scrolling row of pills, 44px high, each a Lucide icon plus its name (never an icon alone). The active pill uses the selected chip style (brass wash, brass text and border). It is a `tablist`: left and right arrows move between tabs, and the active pill scrolls to the center. Network, Waiting on and Brief come first, then the skills that look or listen.
+- **Panel:** header (Fraunces 24 name, mono `SKL-n` tag, one calm line), a **How It Works** disclosure that shows the SKL-0 contract (trigger, reads, steps, output, asks first, undo, source, if unsure) from `GET /skills`, then the skill's controls. One brass button per panel.
+- **Skills that look** (Ask the world, Immersion, Nudge, Coach) share a **view source** row of chips: Glasses, Camera, Photo. Glasses is the default. When the glasses are not streaming, the panel shows a nested card: "You don't have your glasses on.", one line saying it fills in by itself when they are on, and a secondary "Use the Camera Instead" button. It never guesses and never silently switches.
+- **Answers** appear in a nested card labeled `CORTEX SAYS` (or `NOT SURE`), Fraunces 24 for the spoken line, then a mono confidence tag and a link to the saved moment. Every answer is also spoken.
+- **Live offers:** a proactive offer, an overdue nudge and the automatic pre-meeting brief are spoken; an offer also shows as a glass chip above the dock with "Yes, Explain" and "Not Now". Nothing runs without a tap.
+- No new colors: one brass accent, as everywhere. Settings (quiet hours, daily cap, wait times) are plain rows and sliders inside the panel.
 ---
 
 ## 12. Motion system

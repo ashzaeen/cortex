@@ -9,6 +9,8 @@
 // Mock-only extras (not in the contract): GET /_demo, POST /_demo/next, /_demo/play, /_demo/reset,
 // and the events `demo.step` and `person.updated` (re-meeting a known person; proposed in #43).
 
+import { createSkills } from "./skills.mjs";
+
 const UNDO_WINDOW_MS = 60_000;
 const STOP = new Set("a an the and or of to in on at for with me my i you your what did is are was were who whom about from by this that it do does any open where when".split(" "));
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -584,6 +586,8 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     demoNext();
   }
 
+  const skills = createSkills({ getDb: () => db, emit, id, now, ingest });
+
   // ------------------------------------------------------------ routes
   const ok = (status, body) => ({ status, body });
   const err = (status, code, message) => ({ status, body: { error: { code, message } } });
@@ -596,6 +600,8 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     let mm;
 
     if (m === "GET" && p === "/health") return ok(200, { ok: true });
+    const skilled = skills.handle(m, p, q, body, { briefFor: brief });
+    if (skilled) return skilled;
     if (p === "/moments" && m === "POST") {
       const out = ingest(body);
       return out.error ? err(...out.error) : ok(201, out.moment);
@@ -804,7 +810,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
   }
 
   reset();
-  const ticker = setInterval(() => tick(), 20_000);
+  const ticker = setInterval(() => { tick(); skills.tick(); skills.briefTick(brief); }, 20_000);
   ticker.unref?.();
   return {
     handle,

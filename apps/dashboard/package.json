@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 3000",
     "mock": "node mock/server.mjs",
-    "test": "node mock/test.mjs && node mock/profile-test.mjs && node scripts/build-tokens.mjs --check",
+    "test": "node mock/test.mjs && node mock/skills-test.mjs && node mock/profile-test.mjs && node scripts/build-tokens.mjs --check",
     "mock:demo": "node mock/server.mjs --profile demo",
     "typecheck": "tsc --noEmit",
     "types": "openapi-typescript ../../contracts/openapi.yaml -o lib/api-types.ts",

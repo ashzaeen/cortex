@@ -222,3 +222,50 @@ def test_t0_9_pause_off_record_and_delete_with_derived_data(seeded, tmp_path):
     hits = seeded.get("/moments/search", params={"q": "Ash from Acme"}).json()["results"]
     assert intro["id"] not in [h["moment"]["id"] for h in hits]
     assert "moment.deleted" in event_types()
+
+
+# ---- spoken words in a video are kept (the model hears the video's audio)
+def _hearing(monkeypatch, said, who=None):
+    """Make the mock model report speech for a video, as Gemini does when it hears the clip."""
+    from core.llm_mock import MockLLM
+
+    real = MockLLM.perceive
+
+    def perceive(self, **kw):
+        out = real(self, **kw)
+        out["transcript"] = said
+        if who:
+            out["people_introduced"] = [{"name": who[0], "company": who[1], "role": None, "confidence": 0.95}]
+        return out
+
+    monkeypatch.setattr(MockLLM, "perceive", perceive)
+
+
+def _video(c, **extra):
+    return validate(c.post("/moments", json={"ts": TS, "source": "glasses",
+                                              "video_base64": base64.b64encode(mov(8)).decode(), **extra}),
+                    "/moments", "post", 201)
+
+
+def test_video_speech_is_stored_searchable_and_answerable(client, monkeypatch):
+    _hearing(monkeypatch, "  This is Ash from Acme.  ", who=("Ash", "Acme"))
+    moment = _video(client)
+    assert moment["transcript"] == "This is Ash from Acme."
+    assert any(m["id"] == moment["id"] and m["transcript"] == "This is Ash from Acme."
+               for m in client.get("/moments").json()["items"])
+    answer = validate(client.post("/ask", json={"question": "Who did I meet from Acme?", "channel": "voice"}),
+                      "/ask", "post", 200)
+    assert answer["grounded"] and answer["sources"][0]["id"] == moment["id"]
+
+
+def test_video_without_speech_keeps_null_transcript(client, monkeypatch):
+    for said in (None, "", "null", "None", "No speech.", "(silence)", 42):
+        _hearing(monkeypatch, said)
+        assert _video(client)["transcript"] is None, said
+
+
+def test_a_given_transcript_wins_and_stills_never_get_one(client, monkeypatch):
+    _hearing(monkeypatch, "The model heard something else.")
+    assert _video(client, transcript="I said this.")["transcript"] == "I said this."
+    still = post_moment(client, snapshot=JPEG)
+    assert still["transcript"] is None

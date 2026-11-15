@@ -43,6 +43,8 @@ export const api = {
   actions: () => call<{ items: Action[] }>("GET", "/actions"),
   receipts: () => call<{ items: Receipt[] }>("GET", "/receipts"),
   privacy: () => call<PrivacyState>("GET", "/privacy"),
+  modes: () => call<{ items: Mode[] }>("GET", "/modes"),
+  activateMode: (id: Mode["id"]) => call<Mode>("POST", `/modes/${id}/activate`),
   ask: (question: string) => call<AskAnswer>("POST", "/ask", { question, channel: "dashboard" }),
   brief: (personId: string) => call<Brief>("GET", `/people/${encodeURIComponent(personId)}/brief`),
   ingest: (transcript: string, source: "phone" | "dashboard" = "dashboard") =>
@@ -53,7 +55,7 @@ export const api = {
   confirmPromise: (id: string) => call<Promise_>("POST", `/promises/${encodeURIComponent(id)}/confirm`),
   proposeEmail: (personId: string) =>
     call<Action>("POST", "/actions/propose", { type: "follow_up_email", person_id: personId }),
-  confirmAction: (id: string, deliver: "send" | "draft") =>
+  confirmAction: (id: string, deliver: "send" | "draft" | "do") =>
     call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/confirm`, { deliver }),
   undoAction: (id: string) => call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/undo`),
   setPrivacy: (state: PrivacyState["state"]) => call<PrivacyState>("POST", "/privacy/pause", { state }),

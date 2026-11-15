@@ -203,7 +203,7 @@ function proposeEmail(personId, sourceIds) {
   const a = {
     id: id("act"), type: "follow_up_email", status: "proposed", mode: "focus", person_id: personId,
     title: `Draft a follow-up to ${first}`,
-    summary: `Thanks for the intro today.${open.length ? ` You mentioned ${open[0].what.toLowerCase()} by ${open[0].due.text ?? "soon"}, and Cortex will watch for it.` : ""} Could we find 20 minutes next week?`,
+    summary: `Thanks for the intro today.${open.length ? ` You mentioned you would ${open[0].what.toLowerCase()} by ${open[0].due.text ?? "soon"}, and Cortex will watch for it.` : ""} Could we find 20 minutes next week?`,
     draft: {
       to: `${first.toLowerCase()}@${(person.company ?? "example").toLowerCase().replace(/[^a-z0-9]+/g, "")}.example`,
       subject: `Great meeting you${person.company ? `, from ${person.company}` : ""}`,

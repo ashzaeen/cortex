@@ -1,4 +1,5 @@
 """Request bodies, mirroring contracts/openapi.yaml. Bad input returns 400 in the contract error shape."""
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -34,10 +35,41 @@ class PromiseCreate(BaseModel):
     source_moment_id: str
 
 
+class EventIn(BaseModel):
+    title: str
+    start: datetime
+    end: datetime
+    location: str | None = None
+    description: str | None = None
+
+
+class TaskIn(BaseModel):
+    title: str
+    notes: str | None = None
+    due: date | None = None
+
+
+class DocIn(BaseModel):
+    title: str
+    body: str
+
+
+class MessageIn(BaseModel):
+    to: str = Field(pattern=r"^\+[1-9][0-9]{6,14}$")
+    text: str = Field(max_length=4000)
+
+
 class ActionPropose(BaseModel):
-    type: Literal["follow_up_email"]
-    person_id: str
+    type: Literal["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message"]
+    person_id: str | None = None
     source_moment_ids: list[str] | None = None
+    mode: Literal["focus", "student", "life", "assist"] | None = None
+    title: str | None = None
+    summary: str | None = None
+    event: EventIn | None = None
+    task: TaskIn | None = None
+    doc: DocIn | None = None
+    message: MessageIn | None = None
 
 
 class DraftEdits(BaseModel):
@@ -47,7 +79,7 @@ class DraftEdits(BaseModel):
 
 
 class ActionConfirm(BaseModel):
-    deliver: Literal["send", "draft"]
+    deliver: Literal["send", "draft", "do"]
     draft: DraftEdits | None = None
 
 

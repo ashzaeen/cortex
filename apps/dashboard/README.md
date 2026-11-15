@@ -9,7 +9,7 @@ Companion web app in the **Brass** design system ([design.md](../../design.md)).
 | Path | What |
 | --- | --- |
 | `/` | Landing page: 3D glasses, a live reel of the Ash flow, modes, privacy. Continue with Google, or Try the Demo |
-| `/app` | The app. Requires Google sign-in when `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are set (see `auth.ts` and `.env.example`); open otherwise |
+| `/app` | The app. Requires Google sign-in when `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are set (see `auth.ts` and `.env.example`); open otherwise. Sign-in also grants Calendar events, Tasks and Drive (`drive.file`); the `/api` proxy forwards the user's Google access token to the backend on action confirm and undo only (`lib/google-token.ts`), and it never reaches the browser |
 | `/demo` | The app on the sample week, in the browser, no account |
 | `/styleguide` | Every component in every state |
 

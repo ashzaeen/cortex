@@ -39,9 +39,9 @@ def _set(action_id: str, **fields) -> dict:
     return doc
 
 
-def list_actions(status: str | None = None, limit: int = 100) -> list[dict]:
-    """GET /actions (#40): newest first, optionally filtered by status."""
-    query = {"status": status} if status else {}
+def list_actions(status: str | None = None, mode: str | None = None, limit: int = 100) -> list[dict]:
+    """GET /actions (#40, #45): newest first, optionally filtered by status and mode."""
+    query = {k: v for k, v in {"status": status, "mode": mode}.items() if v}
     return [contract.action(d) for d in db.col("actions").find(query).sort("created_at", -1).limit(limit)]
 
 
@@ -71,8 +71,9 @@ def propose(person_id: str, source_moment_ids: list[str] | None = None) -> dict:
         "subject": (data.get("subject") or f"Great meeting you, {first}").strip(),
         "body": (data.get("body") or f"Hi {first},\n\nGreat meeting you today. Talk soon.").strip(),
     }
-    doc = {"_id": new_id("act"), "type": "follow_up_email", "status": "proposed", "person_id": person_id,
-           "draft": draft, "source_moment_ids": ids, "created_at": now()}
+    doc = {"_id": new_id("act"), "type": "follow_up_email", "status": "proposed", "mode": "focus",
+           "title": f"Draft a follow-up to {first}", "person_id": person_id, "draft": draft,
+           "source_moment_ids": ids, "created_at": now()}
     db.col("actions").insert_one(doc)
     tiger.log_action(tiger.USER, now(), doc["_id"], "proposed", "cortex", {"type": "follow_up_email"})
     events.publish("action.proposed", contract.action(doc))
@@ -109,14 +110,18 @@ def _deliver_later(action_id: str):
     t.start()
 
 
-def confirm(action_id: str, deliver: str, draft_edits: dict | None) -> dict:
-    from actions import email
+def confirm(action_id: str, deliver: str, draft_edits: dict | None, google_token: str | None = None) -> dict:
+    from actions import doers, email
 
     doc = db.col("actions").find_one({"_id": action_id})
     if not doc:
         raise not_found("action")
     if doc["status"] != "proposed":
         raise ApiError(409, "not_proposed", f"Action is {doc['status']}, not proposed.")
+    if doc["type"] != "follow_up_email":
+        return doers.confirm(doc, deliver, google_token)
+    if deliver not in {"send", "draft"}:
+        raise ApiError(400, "bad_request", "A follow-up email is confirmed with deliver: send or draft.")
     draft = {**doc["draft"], **{k: v for k, v in (draft_edits or {}).items() if k in {"to", "subject", "body"} and v is not None}}
     person = network.get(doc["person_id"])
     who = f"{person['name']}" + (f" ({person['company']})" if person.get("company") else "")
@@ -138,10 +143,14 @@ def confirm(action_id: str, deliver: str, draft_edits: dict | None) -> dict:
     return {"action": contract.action(doc), "receipt": rcp}
 
 
-def undo(action_id: str) -> dict:
+def undo(action_id: str, google_token: str | None = None) -> dict:
+    from actions import doers
+
     doc = db.col("actions").find_one({"_id": action_id})
     if not doc:
         raise not_found("action")
+    if doc["type"] != "follow_up_email":
+        return doers.undo(doc, google_token)
     if doc["status"] not in {"sent", "draft_saved"}:
         raise ApiError(409, "not_undoable", f"Action is {doc['status']}.")
     open_rcp = db.col("receipts").find_one({"action_id": action_id, "undo.available": True})

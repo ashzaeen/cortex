@@ -46,15 +46,25 @@ def promise(doc: dict) -> dict:
 
 
 def action(doc: dict) -> dict:
-    d = doc.get("draft") or {}
-    return {
+    out = {
         "id": doc["_id"],
         "type": doc["type"],
         "status": doc["status"],
-        "person_id": doc["person_id"],
-        "draft": {"to": d.get("to", ""), "subject": d.get("subject", ""), "body": d.get("body", "")},
+        "person_id": doc.get("person_id"),
         "source_moment_ids": list(doc.get("source_moment_ids", [])),
     }
+    for k in ("mode", "title", "summary"):
+        if doc.get(k):
+            out[k] = doc[k]
+    if doc["type"] == "follow_up_email":
+        d = doc.get("draft") or {}
+        out["draft"] = {"to": d.get("to", ""), "subject": d.get("subject", ""), "body": d.get("body", "")}
+    for k in ("event", "task", "doc", "message"):
+        if doc.get(k):
+            out[k] = doc[k]
+    if "external" in doc:
+        out["external"] = doc["external"]
+    return out
 
 
 def receipt(doc: dict) -> dict:

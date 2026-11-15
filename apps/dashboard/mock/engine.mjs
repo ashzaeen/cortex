@@ -268,15 +268,42 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     return p;
   }
 
+  // Calendar, tasks, Drive and texts (ACT-5 to ACT-9): the mock never calls Google or Chert, so these
+  // behave like the backend's dry run (external: null).
+  const PAYLOAD = { calendar_event: "event", reminder: "task", flashcards: "doc", notes: "doc", message: "message" };
+  const DEFAULT_MODE = { calendar_event: "focus", reminder: "life", flashcards: "student", notes: "student", message: "life", read_aloud: "assist" };
+  function proposeOther(body) {
+    const key = PAYLOAD[body.type];
+    if (!(body.type in DEFAULT_MODE)) return err(400, "bad_request", "Unknown action type.");
+    const payload = key ? body[key] : undefined;
+    const title = body.title ?? payload?.title ?? (body.type === "message" && payload?.to ? `Text ${payload.to}` : null);
+    const ids = (body.source_moment_ids ?? []).filter((x) => db.moments.some((mo) => mo.id === x));
+    if (!title) return err(400, "bad_request", `title is required for ${body.type}.`);
+    if (!ids.length) return err(400, "bad_request", "source_moment_ids must name at least one stored moment.");
+    if ((body.type === "calendar_event" || body.type === "message") && !payload) return err(400, "bad_request", `${key} is required for ${body.type}.`);
+    const a = { id: id("act"), type: body.type, status: "proposed", mode: body.mode ?? DEFAULT_MODE[body.type], title,
+      person_id: body.person_id ?? null, source_moment_ids: ids };
+    if (body.summary) a.summary = body.summary;
+    if (key) a[key] = payload ?? (key === "task" ? { title, notes: body.summary ?? null, due: null } : { title, body: body.summary ?? title });
+    db.actions.push(a);
+    emit("action.proposed", a);
+    return ok(201, a);
+  }
+
   function confirmAction(a, deliver) {
     const person = db.people.find((p) => p.id === a.person_id);
     let summary;
     if (a.type === "follow_up_email") {
       a.status = deliver === "draft" ? "draft_saved" : "sent";
       summary = `${deliver === "draft" ? "Saved a draft to" : "Sent to"} ${person?.name ?? "contact"}${person?.company ? ` at ${person.company}` : ""}`;
+    } else if (a.type === "message") {
+      a.status = "draft_saved"; a.external = null;
+      summary = `Saved the text to ${a.message.to} as a draft. (Dry run: texting is off.)`;
     } else {
       a.status = "done";
-      summary = { flashcards: "Cards added to your deck", reminder: "Reminder set", read_aloud: "Reading aloud now" }[a.type];
+      if (a.type in PAYLOAD) a.external = null;
+      summary = { flashcards: "Cards added to your deck", reminder: "Reminder set", read_aloud: "Reading aloud now",
+        calendar_event: `Added “${a.title}” to your calendar`, notes: `Saved the notes “${a.title}”` }[a.type];
     }
     emit("action.updated", a);
     return { action: a, receipt: receipt("action", summary, a.source_moment_ids, a.id, true) };
@@ -389,6 +416,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
       return ok(200, { items: db.actions.filter((a) => (!status || a.status === status) && (!mode || a.mode === mode)) });
     }
     if (p === "/actions/propose" && m === "POST") {
+      if (body?.type && body.type !== "follow_up_email") return proposeOther(body);
       const a = body?.person_id && proposeEmail(body.person_id, body.source_moment_ids);
       return a ? ok(201, a) : err(400, "bad_request", "A known person_id is required.");
     }
@@ -397,7 +425,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
       if (!a) return err(404, "not_found", "No such action.");
       if (a.status !== "proposed") return err(409, "not_proposed", `Action is already ${a.status}.`);
       if (body?.draft) a.draft = { ...a.draft, ...body.draft };
-      return ok(200, confirmAction(a, body?.deliver === "draft" ? "draft" : "send"));
+      return ok(200, confirmAction(a, body?.deliver === "draft" ? "draft" : body?.deliver ?? "send"));
     }
     if ((mm = p.match(/^\/actions\/([^/]+)\/undo$/)) && m === "POST") {
       const a = db.actions.find((x) => x.id === decodeURIComponent(mm[1]));

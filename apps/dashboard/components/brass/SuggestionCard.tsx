@@ -13,7 +13,19 @@ const VERB: Record<Action["type"], string> = {
   flashcards: "Add to My Deck",
   reminder: "Set Reminder",
   read_aloud: "Read Aloud",
+  calendar_event: "Add to Calendar",
+  notes: "Save to Drive",
+  message: "Approve and Text",
 };
+
+// One plain line under the summary: who or where it goes, so nothing leaves unseen.
+function target(a: Action): string | null {
+  if (a.type === "follow_up_email" && a.draft) return `TO ${a.draft.to || "NO ADDRESS YET"}`;
+  if (a.type === "message" && a.message) return `TEXT ${a.message.to}`;
+  if (a.type === "calendar_event" && a.event) return `${new Date(a.event.start).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).toUpperCase()}${a.event.location ? ` · ${a.event.location.toUpperCase()}` : ""}`;
+  if (a.type === "reminder" && a.task?.due) return `DUE ${a.task.due}`;
+  return null;
+}
 
 type Phase = { kind: "idle" } | { kind: "approving" } | { kind: "done"; receipt: Receipt; action: Action } | { kind: "undone"; receipt: Receipt } | { kind: "failed"; message: string };
 
@@ -107,9 +119,7 @@ export function SuggestionCard({ mode, action, sourceIds, onDone, onChanged }: P
             <>
               <h3 className="t-title sug-title line-clamp-2">{titleCase(action.title ?? "Suggested action")}</h3>
               {action.summary && <p className={`t-callout sug-summary ${action.type === "follow_up_email" ? "line-clamp-1" : "line-clamp-2"}`}>{action.summary}</p>}
-              {action.type === "follow_up_email" && action.draft && (
-                <p className="t-data sug-to truncate text-text-3">TO {action.draft.to || "NO ADDRESS YET"}</p>
-              )}
+              {target(action) && <p className="t-data sug-to truncate text-text-3">{target(action)}</p>}
               {phase.kind === "failed" && <p className="line-clamp-1 text-[0.9375rem] text-danger" role="alert">{phase.message}</p>}
               <div className="mt-auto flex flex-none items-center gap-2">
                 {phase.kind === "approving" ? (
@@ -118,7 +128,7 @@ export function SuggestionCard({ mode, action, sourceIds, onDone, onChanged }: P
                   </span>
                 ) : (
                   <>
-                    <Button variant="primary" onClick={() => approve(action.type === "follow_up_email" ? "send" : "do")}>
+                    <Button variant="primary" onClick={() => approve(action.type === "follow_up_email" || action.type === "message" ? "send" : "do")}>
                       {phase.kind === "failed" ? "Retry" : VERB[action.type]}
                     </Button>
                     {action.type === "follow_up_email" && <Button variant="ghost" onClick={() => approve("draft")}>Save Draft</Button>}

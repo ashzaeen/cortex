@@ -403,9 +403,16 @@ paths:
               type: object
               required: [type]
               properties:
-                type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud] }
+                type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud, calendar_event, notes, message] }
                 person_id: { type: [string, "null"], description: "Required for follow_up_email." }
-                source_moment_ids: { type: array, items: { type: string } }
+                source_moment_ids: { type: array, items: { type: string }, description: "Required for every type except follow_up_email, which can find its own." }
+                mode: { type: string, enum: [focus, student, life, assist] }
+                title: { type: string, description: "Required for every type except follow_up_email." }
+                summary: { type: string }
+                event: { $ref: "./schemas/action.schema.json#/properties/event" }
+                task: { $ref: "./schemas/action.schema.json#/properties/task" }
+                doc: { $ref: "./schemas/action.schema.json#/properties/doc" }
+                message: { $ref: "./schemas/action.schema.json#/properties/message" }
       responses:
         "201":
           description: Proposed action
@@ -420,7 +427,7 @@ paths:
     post:
       tags: [actions]
       operationId: confirmAction
-      summary: Approve and do it (email - send or save as draft), and write a receipt
+      summary: Approve and do it (email - send or save as draft; Google Calendar, Tasks or Drive; a Chert text), and write a receipt
       requestBody:
         required: true
         content:
@@ -429,7 +436,7 @@ paths:
               type: object
               required: [deliver]
               properties:
-                deliver: { type: string, enum: [send, draft, do], description: "send or draft for email; do for the other types" }
+                deliver: { type: string, enum: [send, draft, do], description: "send or draft for email; send for message; do for the other types. calendar_event, reminder, flashcards and notes are written to the Google account the dashboard signed in with (forwarded by the dashboard proxy as X-Google-Access-Token); without one they are a dry run with external: null." }
                 draft:
                   type: object
                   description: Optional user edits to the draft
@@ -453,7 +460,7 @@ paths:
     post:
       tags: [actions]
       operationId: undoAction
-      summary: Undo while the undo window is open
+      summary: Undo while the undo window is open (deletes the calendar event or task, trashes the Drive doc, or cancels the held email or text)
       responses:
         "200":
           description: Undone, with receipt

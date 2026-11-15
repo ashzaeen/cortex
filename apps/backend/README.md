@@ -27,7 +27,7 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 | `api/` | `routes.py`: every contract operation plus `GET /events` (SSE); `models.py`: request bodies |
 | `memory/` | `ingest.py` (POST /moments pipeline), `search.py` (vector + freshness merge), `store.py`, `delete.py` (cascade) |
 | `skills/` | `network.py` (introductions), `promises.py` (waiting-on chips), `brief.py`, `ask.py` (grounded answers) |
-| `actions/` | `followup.py` (propose, confirm send/draft, undo), `email.py` (dry run, SMTP, Resend) |
+| `actions/` | `followup.py` (propose, confirm send/draft, undo; dispatches other types), `email.py` (dry run, SMTP, Resend), `doers.py` (calendar_event, reminder, flashcards, notes, message, read_aloud), `google.py` (Calendar, Tasks, Drive with the forwarded `X-Google-Access-Token`), `chert.py` (texts from the Chert line) |
 | `core/` | config, MongoDB, Tiger Data, Gemini + mock, prompts, SSE broker, receipts, contract serializers, snapshots |
 | `scripts/seed.py` | `make seed` loader for `fixtures/*.json` |
 | `tests/` | contract tests and the done-when tests for T0-1 to T0-7 and T0-9 |

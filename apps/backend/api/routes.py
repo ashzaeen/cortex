@@ -2,14 +2,14 @@
 Handlers are sync (FastAPI runs them in a thread pool), so blocking model and DB calls are safe."""
 import asyncio
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
-from actions import followup
+from actions import doers, followup
 from api import models
 from core import db, events, receipts, tiger
 from core.config import REPO_ROOT, settings
-from core.errors import not_found
+from core.errors import ApiError, not_found
 from core.llm import get_llm
 from core.timeutil import parse_dt
 from memory import delete, ingest, search, store
@@ -90,23 +90,32 @@ def confirm_promise(id: str):  # noqa: A002
 
 # ---------- actions ----------
 @router.get("/actions", tags=["actions"])
-def list_actions(status: str | None = Query(None, pattern="^(proposed|sent|draft_saved|undone|dismissed|failed)$")):
-    return {"items": followup.list_actions(status)}
+def list_actions(status: str | None = Query(None, pattern="^(proposed|sent|draft_saved|done|undone|dismissed|failed)$"),
+                 mode: str | None = Query(None, pattern="^(focus|student|life|assist)$")):
+    return {"items": followup.list_actions(status, mode)}
 
 
 @router.post("/actions/propose", status_code=201, tags=["actions"])
 def propose_action(body: models.ActionPropose):
-    return followup.propose(body.person_id, body.source_moment_ids)
+    if body.type == "follow_up_email":
+        if not body.person_id:
+            raise ApiError(400, "bad_request", "person_id is required for follow_up_email.")
+        return followup.propose(body.person_id, body.source_moment_ids)
+    return doers.propose(body.model_dump(mode="json", exclude_none=True))
+
+
+# The dashboard proxy forwards the signed-in user's Google access token for the Google actions.
+GoogleToken = Header(None, alias="X-Google-Access-Token", include_in_schema=False)
 
 
 @router.post("/actions/{id}/confirm", tags=["actions"])
-def confirm_action(id: str, body: models.ActionConfirm):  # noqa: A002
-    return followup.confirm(id, body.deliver, body.draft.model_dump() if body.draft else None)
+def confirm_action(id: str, body: models.ActionConfirm, google_token: str | None = GoogleToken):  # noqa: A002
+    return followup.confirm(id, body.deliver, body.draft.model_dump() if body.draft else None, google_token)
 
 
 @router.post("/actions/{id}/undo", tags=["actions"])
-def undo_action(id: str):  # noqa: A002
-    return followup.undo(id)
+def undo_action(id: str, google_token: str | None = GoogleToken):  # noqa: A002
+    return followup.undo(id, google_token)
 
 
 # ---------- receipts ----------

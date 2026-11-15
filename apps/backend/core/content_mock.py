@@ -9,11 +9,11 @@ def _sentences(transcript: str, caption: str) -> list[str]:
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if len(s.strip()) > 12]
 
 
-def run(task: str, **kw) -> dict:
-    if task in {"flashcards", "notes"}:
+def run(name: str, /, **kw) -> dict:
+    if name in {"flashcards", "notes"}:
         src = _sentences(kw.get("transcript", ""), kw.get("caption", ""))
-        if task == "flashcards":
+        if name == "flashcards":
             cards = [{"q": "What was said about " + " ".join(re.findall(r"[A-Za-z0-9']+", s)[:4]) + "?", "a": s} for s in src[:5]]
-            return {"title": "Flashcards", "cards": cards if len(cards) >= 3 else []}
+            return {"title": "Flashcards", "cards": cards}
         return {"title": "Notes", "heading": "Notes", "points": src[:7], "terms": [], "dates": []}
     return {}

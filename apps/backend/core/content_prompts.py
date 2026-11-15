@@ -72,7 +72,7 @@ Return ONLY JSON:
   "decisions": [{{"text": "a decision that was actually made, naming who decides what", "moment_id": "the id it came from"}}],
   "follow_ups": [{{"text": "an action item as 'Who: do what by when' only if stated", "moment_id": "the id it came from"}}]}}
 decisions and follow_ups must be [] when nothing was decided or assigned: never invent one. Every moment_id must be one of the ids above.
-Report what was said or shown. Do not call anything a milestone or progress."""
+Report what was said or shown. Do not call anything a milestone or progress. Only say something is overdue if the commitments list marks it OVERDUE; never work out dates yourself."""
 
 FLASHCARDS = """You are Cortex. Make study flashcards from this lecture moment. Local time: {now_local}.
 HEARD: \"\"\"{transcript}\"\"\"
@@ -86,13 +86,51 @@ NOTES = """You are Cortex. Turn this moment into study or meeting notes. Local t
 HEARD: \"\"\"{transcript}\"\"\"
 SAW: {caption}
 {image_note}
-Return ONLY JSON: {{"title": "short topic title", "heading": "one line saying what this is", "points": ["key points, most important first, each a full short fact"],
+Return ONLY JSON: {{"title": "short topic title", "heading": "one line saying what this is, with no dates or clock times", "points": ["key points, most important first, each a full short fact"],
  "terms": ["key terms or names worth remembering, or empty"], "dates": ["any deadline or date mentioned, e.g. Quiz Thursday, or empty"]}}
-Only what was said or shown. 3 to 7 points."""
+Only what was said or shown. 3 to 7 points. Each point is a fact, never a guess about what it means (no "indicating", "suggesting", "likely"); skip background objects that were not the subject."""
 
-CAREGIVER = """Write a warm, plain two-sentence note to {caregiver} about how {user}'s day went with Cortex, using ONLY these counts and items:
+CAREGIVER = """Write a warm, plain note of two short sentences from Cortex to {caregiver} about how the day went for the person Cortex helps, using ONLY these counts and items:
 {facts}
-Return ONLY JSON: {{"summary": "two short sentences, calm and kind, no medical claims, no advice"}}
-Never mention photos, what was said or who they met."""
+Return ONLY JSON: {{"summary": "two short sentences, calm and kind"}}
+Write in the third person ("they", "their day"), never as that person and never as {caregiver}. Do not repeat any person's name or any detail from a reminder; say only what kind of things were planned (for example "their usual evening routines are set"). Never mention photos or what was said or seen. No medical claims, no advice, no greeting."""
 
-PROMPTS = {"brief": BRIEF, "digest": DIGEST, "recap": RECAP, "flashcards": FLASHCARDS, "notes": NOTES, "caregiver": CAREGIVER}
+LOOK = """You are Cortex, worn as smart glasses. The image is what the wearer sees right now. Local time: {now_local}.
+""" + STYLE + """
+TASK: {task}
+{detail}
+Return ONLY JSON: {{"spoken": "one or two short sentences for text-to-speech, under 30 words", "text": "the full answer for the screen", "found": true|false|null}}
+Never identify anyone from their face. If something is unreadable or out of frame, say which part. This is support, not a medical or mobility device."""
+
+LOOK_LENS = {
+    "focus": "The wearer is working: notice documents, screens, whiteboards and the people present (no identities).",
+    "student": "The wearer is studying: notice slides, problems, equations and diagrams first.",
+    "life": "The wearer is out and about: notice objects and exactly where they are placed.",
+    "assist": "The wearer needs support: notice obstacles, steps, doors and any readable text first.",
+}
+
+LOOK_RULES = {
+    "describe": "Describe the scene in two short sentences. Sentence one: where the wearer is and the main thing directly in front of them. "
+                "Sentence two: the nearest or most useful other thing. No inventory lists, no colors or style details nobody asked for. "
+                "found = null. text: at most three sentences.",
+    "read": "Read all printed text in view, top to bottom, exactly as written, one line per line. text = that text verbatim. "
+            "spoken = only the most important lines (a title, a date, a price, a name), under 25 words. If part of it is unreadable, "
+            "say which part. found = null.",
+    "hazards": "Say what in view could be in the way: steps, edges, doors, obstacles, wet floor, cables, each with where it is "
+               "(left, right, ahead, near, far). Look especially for: {target}. found = true if {target} is visible. "
+               "Never say it is safe, clear or fine to move. If you see nothing in the way, say only that you do not see anything in "
+               "this view, and add: I can't tell you it's safe to move.",
+    "find": "Find {target} and say where it is relative to the wearer (left, right, ahead, near, far) and what it is next to. "
+            "found = true if {target} is visible, else false and say what you do see instead, in one short sentence.",
+    "tutor": "The wearer is a student looking at a problem and asks: {question}. If no problem, equation, circuit or question is visible, "
+             "say so in one sentence and ask them to show it, with found = null. Otherwise explain how to solve it step by step "
+             "without giving the final answer first. text = numbered steps; spoken = the first step only.",
+}
+
+
+def look_detail(task: str, mode: str, target: str, question: str) -> str:
+    rule = LOOK_RULES[task].format(target=target or "anything in the way", question=question or "how do I solve this?")
+    return (LOOK_LENS.get(mode, "") + "\n" + rule).strip()
+
+
+PROMPTS = {"look": LOOK, "brief": BRIEF, "digest": DIGEST, "recap": RECAP, "flashcards": FLASHCARDS, "notes": NOTES, "caregiver": CAREGIVER}

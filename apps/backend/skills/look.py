@@ -8,7 +8,7 @@ import base64
 import binascii
 from datetime import timedelta
 
-from core import contract, db
+from core import content, content_prompts, contract, db
 from core.errors import ApiError, not_found
 from core.llm import get_llm
 from core.timeutil import human, now
@@ -69,8 +69,12 @@ def look(task: str, target: str | None = None, question: str | None = None, snap
         from core import snapshots
 
         image = snapshots.load_bytes(doc.get("snapshot_url"))
-    data = get_llm().look(task=task, image=image, target=(target or "").strip(), question=(question or "").strip(),
-                          now_local=human(now()), caption=(doc or {}).get("caption")) or {}
+    tgt, qst = (target or "").strip(), (question or "").strip()
+    data = content.run("look", image, now_local=human(now()), task=task,
+                       detail=content_prompts.look_detail(task, store.active_mode(), tgt, qst)) if image else {}
+    if not (data or {}).get("spoken"):  # offline, no picture (a stored caption only), or an unusable answer: the older path
+        data = get_llm().look(task=task, image=image, target=tgt, question=qst, now_local=human(now()),
+                              caption=(doc or {}).get("caption")) or {}
     spoken = (data.get("spoken") or "").strip() or "I couldn't make that out."
     found = data.get("found") if task in {"find", "hazards"} else None
     result = {"task": task, "spoken": spoken[:300], "text": (data.get("text") or spoken).strip(),

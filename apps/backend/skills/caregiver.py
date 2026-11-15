@@ -9,7 +9,7 @@ import re
 import threading
 from datetime import timedelta
 
-from core import contract, db, events, receipts, tiger, user
+from core import content, contract, db, events, receipts, tiger, user
 from core.config import settings
 from core.errors import ApiError
 from core.ids import new_id
@@ -39,6 +39,25 @@ def _day_bounds():
     return start, start + timedelta(days=1)
 
 
+def _tidy(title: str) -> str:
+    """"Remind me to pay Jamie back" -> "Pay Jamie back": a reminder reads as what to do, not as a command to Cortex."""
+    t = re.sub(r"(?i)^remind me (?:to |that |about )?", "", (title or "").strip()).strip()
+    return (t[:1].upper() + t[1:]) if t else title
+
+
+def _note(who: str, moments: int, todays: list[dict], reminders: list[str]) -> str:
+    """Two warm sentences from the same counts and titles the email lists, nothing else (never photos, speech or people)."""
+    facts = "\n".join([f"- Moments captured today: {moments}",
+                       *[f"- Routine: {r['title']} at {r['time']}" for r in todays[:6]],
+                       *[f"- Reminder: {t}" for t in reminders[:6]]])
+    try:
+        text = str((content.run("caregiver", caregiver=who, facts=facts) or {}).get("summary") or "").strip()
+    except Exception:  # noqa: BLE001 - the email never depends on the model
+        log.exception("caregiver note failed; sending the plain summary")
+        return ""
+    return text if 20 <= len(text) <= 400 else ""
+
+
 def preview() -> dict:
     st = _state()
     start, end = _day_bounds()
@@ -47,7 +66,9 @@ def preview() -> dict:
     reminders = [a["title"] for a in db.col("actions").find({"type": "reminder", "created_at": {"$gte": start, "$lt": end},
                                                              "status": {"$nin": ["dismissed", "undone"]}})]
     who = st.get("name") or "there"
-    lines = [f"Hi {who},", "", f"Here is today's Cortex summary ({start:%A, %b} {start.day}).", "",
+    reminders = [_tidy(t) for t in reminders]
+    note = _note(who, len(moments), todays, reminders)
+    lines = [f"Hi {who},", "", f"Here is today's Cortex summary ({start:%A, %b} {start.day}).", "", *([note, ""] if note else []),
              f"- Moments captured today: {len(moments)}"]
     lines += [f"- Routine: {r['title']} at {r['time']}" for r in sorted(todays, key=lambda r: r["time"])] or [
         "- No routine reminders today"]

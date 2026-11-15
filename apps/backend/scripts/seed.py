@@ -38,6 +38,12 @@ def _embed(llm, text: str) -> list[float]:
     return vec
 
 
+def _extras() -> dict:
+    """Optional extras.json beside the other profile files: routines, the caregiver, immersion words, coach sessions."""
+    path = _src / "extras.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
 def upsert(coll: str, doc: dict):
     db.own(coll).replace_one({"_id": doc["_id"]}, doc, upsert=True)
 
@@ -112,6 +118,20 @@ def seed(reset: bool = False, shift: timedelta | None = None) -> dict:
                             "created_at": move(parse_dt(r["created_at"])),
                             "undo": {**r["undo"], "until": move(until) if until else None}})
     counts["receipts"] = len(load("receipts"))
+
+    extras = _extras()
+    for r in extras.get("routines", []):
+        upsert("routines", {**{k: v for k, v in r.items() if k != "id"}, "_id": r["id"], "created_at": now(), "last_fired": None})
+    for v in extras.get("vocab", []):
+        upsert("vocab", {**{k: v2 for k, v2 in v.items() if k != "id"}, "_id": v["id"], "created_at": now()})
+    for c in extras.get("coach_sessions", []):
+        upsert("coach_sessions", {**{k: v for k, v in c.items() if k != "id"}, "_id": c["id"],
+                                  "created_at": move(parse_dt(c["created_at"])), "updated_at": now()})
+    if extras.get("caregiver"):  # the person is set up but has NOT consented: nothing is ever sent from seed data
+        caregiver = {"name": None, "email": None, "send_at": "20:00", **extras["caregiver"]}
+        caregiver["consent"] = False
+        db.col("state").replace_one({"_id": "caregiver"}, {"_id": "caregiver", **caregiver}, upsert=True)
+    counts.update({k: len(extras.get(k, [])) for k in ("routines", "vocab", "coach_sessions")})
 
     db.col("modes").delete_many({})
     store.ensure_modes()

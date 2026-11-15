@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { createEngine } from "./engine.mjs";
-import { demoEngineOptions, PROFILE_FILES, ASSETS } from "./profile.mjs";
+import { demoEngineOptions, PROFILE_FILES, ASSETS, seedExtras } from "./profile.mjs";
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const APP = join(ROOT, "apps/dashboard");
@@ -115,6 +115,23 @@ ok(finale.grounded && /deck/i.test(finale.answer), "finale answers the open deck
 call("POST", "/_demo/reset");
 ok(call("GET", "/moments?limit=100").body.items.length === files.moments.length, "reset restores the profile");
 engine.stop();
+
+// 6. The extras (extras.json) give routines, the caregiver, lists, immersion words and a coach session something to show,
+// and the moments tagged decision feed the Decisions view and the meeting recap.
+const rich = createEngine(demoEngineOptions(files));
+seedExtras(rich, files.extras);
+const get = (path) => rich.handle("GET", path).body;
+ok(get("/routines").items.length === files.extras.routines.length, "routines are seeded");
+const cg = get("/caregiver");
+ok(cg.consent === false && cg.name === files.extras.caregiver.name && /Routine:/.test(cg.preview.body), "caregiver is set up, never consented, and previews");
+ok(get("/lists").items.find((l) => l.id === "shopping").items.length >= 4, "the shopping list has items");
+ok(get("/lists").items.find((l) => l.id === "expenses").total === 18.4, "the expenses list has the lunch");
+ok(get("/skills/immersion/vocab").items.length === files.extras.vocab.length, "immersion words are seeded");
+ok(get("/skills/coach").items.some((c) => c.status === "done"), "a finished coach session is seeded");
+ok(get("/moments?tag=decision&limit=50").items.length >= 2, "decision-tagged moments exist");
+ok(get("/promises").items.some((x) => x.status === "confirmed" && x.due.date && x.due.date < new Date().toISOString().slice(0, 10)), "an overdue promise exists for the nudges");
+ok(get("/actions").items.some((a) => a.type === "calendar_event" && a.status === "done"), "an approved calendar event exists for the auto brief");
+rich.stop();
 
 if (failures) { console.error(`profile: ${failures} failed, ${passes} passed`); process.exit(1); }
 console.log(`profile: OK (${passes} checks: schemas, ids, snapshots, dates, recall, Ash re-meeting)`);

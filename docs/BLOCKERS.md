@@ -26,7 +26,7 @@ The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spe
 | D-7 follow-up email | passes (dry run) | not run | One real send through SMTP or Resend |
 | D-9 pause and delete | passes | not run | Delete cascade on Atlas and Tiger Data |
 
-**Unblock:** @ClosetCoderSad runs each done-when test against a real but **separate** Atlas database (the hosted one holds the demo seed, and these tests write), comments **How I verified this** on #15 to #21, and updates STATUS.md.
+**Unblock:** @ashzaeen runs each done-when test against a real but **separate** Atlas database (the hosted one holds the demo seed, and these tests write), comments **How I verified this** on #15 to #21, and updates STATUS.md.
 
 ## 3. Human and hardware blockers (`needs-human`)
 
@@ -37,10 +37,10 @@ The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spe
 | #3 | Capture latency and frame rate measured | D-1 | @794KHSameer |
 | #36, #39 | Run the iOS app on a real iPhone (iOS 17.2+) with the Gen 1 glasses. Simulator builds pass; @ashzaeen has no iPhone | D-1 | @ahnafzabir-utd, @794KHSameer |
 | #42 | Open the Vercel dashboard on an iPhone and check that the live timeline loads from the hosted backend | D-8 | @ashzaeen (needs someone's iPhone) |
-| #6 | How the free Chert line is issued, whether the trial clock has started, and which teammate's iPhone gets the iMessage code | D-10 | @ahnafzabir-utd |
-| #7 | Our own LiveKit project and env | D-10 | @ahnafzabir-utd |
-| #11 | Greeting within 10 s: seen at about 5 to 7 s on real calls (handoff); needs to be recorded on the issue and closed | D-10 | @ahnafzabir-utd |
-| #12 | Demo phone verified for outbound calls and texts | CALL-5, fallback | @ahnafzabir-utd |
+| #6 | How the free Chert line is issued, whether the trial clock has started, and which teammate's iPhone gets the iMessage code | D-10 | @ashzaeen (needs a teammate's iPhone) |
+| #7 | Our own LiveKit project and env | D-10 | @ashzaeen |
+| #11 | Greeting within 10 s: seen at about 5 to 7 s on real calls (handoff); needs to be recorded on the issue and closed | D-10 | @ashzaeen |
+| #12 | Demo phone verified for outbound calls and texts | CALL-5, fallback | @ashzaeen (needs a teammate's iPhone) |
 | #30, #31, #33 | Freeze the script, record the backup video, at least 10 rehearsals | D-11 | team |
 
 ## 4. Integration gaps (agent work)
@@ -54,26 +54,25 @@ The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spe
 
 ## 5. Housekeeping the owners should do
 
-- **#5** (how caller camera frames reach our code) is answered by the merged call agent (`vision.mjs`); @ahnafzabir-utd can close it.
+- **#5** (how caller camera frames reach our code) is answered by the merged call agent (`vision.mjs`); @ashzaeen can close it.
 - **#4** (phone-capture fallback) is built as the dashboard's Capture sheet and verified on the mock; @794KHSameer can close it or say what's left.
-- `apps/call-agent/agent/agent.mjs.before-vision` is a leftover backup in the repo (@ahnafzabir-utd).
-- `contracts/README.md` still says "Status: Proposed", though every area builds against it (@ClosetCoderSad).
+- `apps/call-agent/agent/agent.mjs.before-vision` is a leftover backup in the repo (@ashzaeen).
+- `contracts/README.md` still says "Status: Proposed", though every area builds against it (@ashzaeen).
 - The hosted backend does not redeploy on push. After a backend change, run `railway up --ci --service api` from the repo root (see [apps/backend/README.md](../apps/backend/README.md)).
 
 ## 6. Open decisions
 
 - [ ] Is the plan's frozen demo final over the PRD demo, which has Student, Life and Assist beats? (#30)
 - [x] Calendar and task actions (ACT-5, ACT-6): built (no tiers any more).
-- [ ] ADR 0004 (sponsor stack) is still Proposed. The call agent already uses LiveKit Agents (Node) and Gemini Live; @ahnafzabir-utd can accept it as built. The spec's PLAT-3 still calls 0001 to 0004 Proposed; 0001, 0002, 0003 and 0005 are Accepted.
-- [ ] @ClosetCoderSad reviews #41's looser `person_id` on the D-7 action, and schedules #45.
+- [ ] ADR 0004 (sponsor stack) is still Proposed. The call agent already uses LiveKit Agents (Node) and Gemini Live; @ashzaeen can accept it as built. The spec's PLAT-3 still calls 0001 to 0004 Proposed; 0001, 0002, 0003 and 0005 are Accepted.
+- [ ] @ashzaeen reviews #41's looser `person_id` on the D-7 action, and schedules #45.
 - [ ] Which one extra skill or mode goes in the demo after rehearsal?
 
 ## Next actions, by person
 
 | Who | Do next |
 | --- | --- |
-| @ClosetCoderSad | Real-stack done-when runs for D-3 to D-7 and D-9 on a scratch database; #43 re-introduction |
-| @ahnafzabir-utd | Wire the call agent to `POST /ask`, the brief and `POST /moments` (#22); close #5 and #11; #6 Chert line, #7 LiveKit |
+| @ahnafzabir-utd | iOS app on a real iPhone with the glasses (#36, #39) |
 | @794KHSameer | #2 glasses go/no-go, #10 glasses for demo day, #3 latency; run the iOS app on a real iPhone (#36, #39) |
-| @ashzaeen | iPhone check of the Vercel dashboard (#42); #29 seed Ash after #43; #30 freeze the script |
+| @ashzaeen | Leads everything except capture: real-stack done-when runs for D-3 to D-7 and D-9 on a scratch database; #43 re-introduction; wire the call agent to `POST /ask`, the brief and `POST /moments` (#22); close #5 and #11; #6 Chert line, #7 LiveKit; iPhone check of the Vercel dashboard (#42); #29 seed Ash after #43; #30 freeze the script |
 | Every agent | Anything in the spec; demo checklist items help most. Claim per AGENTS.md, and update this file or STATUS.md when a blocker clears |

@@ -4,7 +4,7 @@ info:
   version: 0.1.0-proposed
   description: |
     Status: PROPOSED. Draft contract between capture, backend, dashboard and call agent.
-    The backend lead may change it through the contract-change process in AGENTS.md.
+    The contract owner (@ashzaeen) may change it through the contract-change process in AGENTS.md.
     Entity schemas live in ./schemas and are the single source of truth.
     Mock it with `make mock` (Prism, port 4010).
 x-examples:

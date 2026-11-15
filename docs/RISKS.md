@@ -25,7 +25,7 @@ Live risk list. The demo fallbacks table lives in the [priority plan](../Cortex%
 
 ## Open TODOs (setup)
 
-- Owners: @ClosetCoderSad (backend, contracts), @ahnafzabir-utd (call), @794KHSameer (capture), @ashzaeen (dashboard, demo, infra; assumed from the PRD's "Dashboard and demo" role, change if wrong). Teammates must accept their collaborator invites before issues can be assigned to them and before CODEOWNERS review requests work.
+- Owners (since 2026-11-15): @ashzaeen leads every feature except capture (backend, contracts, call, dashboard, demo, infra); @794KHSameer owns capture and @ahnafzabir-utd the iOS app. Teammates must accept their collaborator invites before issues can be assigned to them and before CODEOWNERS review requests work.
 - GitHub Project board was skipped: the `gh` token lacks the `project` scope. To add it: `gh auth refresh -s project`, then create a board with columns Backlog, Ready, In progress, In review, Done.
 - Workflow: no branches or PRs; everyone pulls, merges locally, runs `make check` and pushes to `main` (team decision, 2026-11-14).
 
@@ -39,5 +39,5 @@ Branch protection on `main` (2026-11-14): direct pushes allowed; force pushes an
 4. **Go/no-go checks.** The plan has checks the brief did not list: a greeting within 10 s in a test call, and the demo phone verified for outbound calls and texts. Both were added as M0 spikes.
 5. **Cut list.** The plan also cuts "Assist beyond a simple read-aloud" and keeps "Ask the world" out unless it comes free from search; [PLAN.md](PLAN.md) includes both.
 6. **Ash's history.** The PRD's brief example ("You met at the career fair on Oct 3") implies earlier Ash data, while the hero demo meets Ash live. **Decided 2026-11-14 (@ashzaeen, #29): seed one earlier Ash meeting** (career fair, Nov 11) so the brief can say where you met. This conflicts with the priority plan's beat 1 and D-3 ("a contact card appears with the moment attached"): with Ash seeded, the live intro re-links the existing card. Beat 1 becomes a re-meeting, which needs `person.updated` and a backend change (#43) and team agreement on the frozen script (#30). Until #43 lands the fixture stays out of `main`, and Ash is created live.
-7. **Roles.** The PRD lists four roles (pipeline, perception and memory, agent and modes, dashboard and demo); the repo has five areas because the call agent is its own area, owned by the Chert lead.
+7. **Roles.** The PRD lists four roles (pipeline, perception and memory, agent and modes, dashboard and demo); the repo has five areas because the call agent is its own area, now led by @ashzaeen.
 8. **Example name.** The PRD and plan use "Priya" as the person met in the demo. At the team's request every example in this repo uses **Ash** instead ("This is Ash from Acme"). The source files are unchanged; read Priya there as Ash.

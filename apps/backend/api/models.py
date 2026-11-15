@@ -12,6 +12,7 @@ class MomentIngest(BaseModel):
     audio_base64: str | None = None
     snapshot_base64: str | None = None
     snapshot_url: str | None = None
+    video_base64: str | None = None
     call_id: str | None = None
 
 

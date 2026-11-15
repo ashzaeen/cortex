@@ -14,6 +14,8 @@ make -C apps/backend dev        # http://localhost:8000  (docs at /docs)
 CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real backend
 ```
 
+**Hosted (#42):** https://api-production-47227cba.up.railway.app, Railway project `cortex-api`, service `api`. It builds `apps/backend/Dockerfile` from the repo root (it needs `contracts/` and `fixtures/`; Railway has `RAILWAY_DOCKERFILE_PATH=apps/backend/Dockerfile` set) and runs **one** uvicorn worker, because the SSE broker and undo timers live in process memory (`railway.json`: `/health` check, one replica). Keys live only in Railway variables; email runs with `EMAIL_DRY_RUN=true`. **Pushing to `main` does not redeploy:** run `railway up --ci --service api` from the repo root, then check `/health`. Its database holds the demo seed, so run tests that write against a separate database.
+
 **Offline (no keys, no network):** leave `DATABASE_URL` and `LLM_API_KEY` empty, or set `USE_MONGOMOCK=true LLM_MOCK=true`. Memory is in-process and lost on restart, so the server loads `fixtures/` itself at startup (`SEED_ON_START=false` to skip).
 
 **Tests:** `make test` (root) or `make -C apps/backend test`. Offline: mongomock + a rule-based mock LLM. Every response is validated against `contracts/`.
@@ -26,7 +28,7 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 | `memory/` | `ingest.py` (POST /moments pipeline), `search.py` (vector + freshness merge), `store.py`, `delete.py` (cascade) |
 | `skills/` | `network.py` (introductions), `promises.py` (waiting-on chips), `brief.py`, `ask.py` (grounded answers) |
 | `actions/` | `followup.py` (propose, confirm send/draft, undo), `email.py` (dry run, SMTP, Resend) |
-| `core/` | config, MongoDB, Tiger Data, Gemini + mock, prompts, SSE broker, receipts, contract serializers, snapshots |
+| `core/` | config, MongoDB, Tiger Data, Gemini + mock, prompts, SSE broker, receipts, contract serializers, snapshots and short videos |
 | `scripts/seed.py` | `make seed` loader for `fixtures/*.json` |
 | `tests/` | contract tests and the done-when tests for T0-1 to T0-7 and T0-9 |
 
@@ -45,7 +47,7 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 
 ## Notes for other areas
 
-- **Capture:** post one finished utterance per `POST /moments` (with a JPEG in `snapshot_base64` when there is something to see). For questions, call `POST /ask` with `channel: voice`; "Brief me on Ash" works through `/ask` as well.
+- **Capture:** post one finished utterance per `POST /moments`, with a JPEG in `snapshot_base64` or a MOV/MP4 clip of at most 10 seconds in `video_base64`. For questions, call `POST /ask` with `channel: voice`; "Brief me on Ash" works through `/ask` as well.
 - **Dashboard:** `GET /events` sends `moment.created`, `person.created`, `promise.proposed`, `promise.confirmed`, `action.proposed`, `action.updated`, `receipt.created`, `privacy.changed`, `moment.deleted`. New snapshots are absolute URLs served by `GET /snapshots/{name}`; fixture snapshots stay repo-relative and are also served at `GET /fixtures/snapshots/{name}` (both routes are outside the contract; see the contract-change issue).
 - **Call agent:** `POST /moments` with `source: call` also writes a `capture` receipt; then `POST /ask` with `channel: call`.
 - **Speaker attribution:** transcripts have no speaker labels, so "I'll send you the deck" is attributed to the person the wearer was just introduced to. An optional `speaker` field in `MomentIngest` would remove the guess (proposed as an additive contract change).

@@ -32,7 +32,7 @@ export function Ambient({ mode, seed, paused, pullKey }: { mode: Mode["id"]; see
     const el = ref.current;
     if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let px = 0, py = 0, raf = 0;
-    const apply = () => { raf = 0; el.style.transform = `translate3d(${px}px, ${py - window.scrollY * 0.2}px, 0)`; };
+    const apply = () => { raf = 0; el.style.transform = `translate3d(${px}px, ${py - Math.min(window.scrollY * 0.2, 80)}px, 0)`; /* capped so long pages stay lit */ };
     const queue = () => { if (!raf) raf = requestAnimationFrame(apply); };
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== "mouse") return;

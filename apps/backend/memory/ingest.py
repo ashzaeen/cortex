@@ -8,7 +8,7 @@ import binascii
 import logging
 import time
 
-from core import contract, db, events, receipts, snapshots, tiger
+from core import contract, db, events, receipts, snapshots, tiger, videos
 from core.errors import ApiError
 from core.ids import new_id
 from core.llm import get_llm
@@ -40,9 +40,14 @@ def ingest(body: dict) -> dict:
     transcript = (body.get("transcript") or "").strip() or None
     audio = _b64(body.get("audio_base64"), "audio_base64")
     image = _b64(body.get("snapshot_base64"), "snapshot_base64")
+    video = _b64(body.get("video_base64"), "video_base64")
     snapshot_url = body.get("snapshot_url")
-    if not (transcript or audio or image or snapshot_url):
-        raise ApiError(400, "bad_request", "Send at least one of transcript, audio_base64, snapshot_base64, snapshot_url.")
+    if not (transcript or audio or image or snapshot_url or video):
+        raise ApiError(
+            400,
+            "bad_request",
+            "Send at least one of transcript, audio_base64, snapshot_base64, snapshot_url, video_base64.",
+        )
 
     llm = get_llm()
     if audio and not transcript:
@@ -51,6 +56,11 @@ def ingest(body: dict) -> dict:
         snapshot_url = snapshots.save(image)
     elif snapshot_url:
         image = snapshots.load_bytes(snapshot_url)
+    video_url = None
+    video_duration = None
+    if video:
+        video_duration = videos.validate(video)
+        video_url = videos.save(video)
 
     ts = parse_dt(body.get("ts")) or now()
     mode = body.get("mode") or store.active_mode()
@@ -65,19 +75,20 @@ def ingest(body: dict) -> dict:
         if last and last.get("transcript"):
             context = f'Just before this, the wearer was with {partner["name"]}{company}: "{last["transcript"]}"'
 
-    p = llm.perceive(transcript=transcript or "", image=image, mode=mode, now_local=human(now()),
+    p = llm.perceive(transcript=transcript or "", image=image, video=video, mode=mode, now_local=human(now()),
                      context=context, speaker_rule=rule) or {}
 
     linked, created = network.from_introductions(p.get("people_introduced"), moment_id)
     if not linked and partner:
         linked = [partner]
     person_ids = [x["_id"] for x in linked]
-    caption = (p.get("caption") or None) if image or body.get("snapshot_base64") else None
+    caption = (p.get("caption") or None) if image or video or body.get("snapshot_base64") else None
     embed_text = " ".join(filter(None, [transcript, caption, *[x["name"] for x in linked],
                                         *[x.get("company") or "" for x in linked]]))
     doc = {
         "_id": moment_id, "ts": ts, "source": body.get("source", "phone"), "mode": mode,
         "transcript": transcript, "caption": caption, "snapshot_url": snapshot_url, "place": None,
+        "video_url": video_url, "video_duration_seconds": video_duration,
         "person_ids": person_ids, "off_record": False, "call_id": body.get("call_id"),
         "embedding": llm.embed(embed_text or "moment"), "created_at": now(),
     }
@@ -95,7 +106,7 @@ def ingest(body: dict) -> dict:
         receipts.create("capture", f"Saved from the call: {what[:120]}", [moment_id])
 
     latency = int((time.perf_counter() - t0) * 1000)
-    tiger.log_metric(tiger.USER, now(), "moment", latency, len(image or b""))
+    tiger.log_metric(tiger.USER, now(), "moment", latency, len(image or b"") + len(video or b""))
     log.info("moment %s stored in %d ms (%d people, %d promises)", moment_id, latency, len(person_ids),
              len(new_promises))
     return contract.moment(store.get_moment(moment_id))

@@ -171,6 +171,14 @@ def get_snapshot(name: str):
     return FileResponse(path)
 
 
+@router.get("/videos/{name}", include_in_schema=False)
+def get_video(name: str):
+    path = settings.video_store / name
+    if path.parent != settings.video_store or not path.is_file():
+        raise not_found("video")
+    return FileResponse(path, media_type="video/quicktime")
+
+
 @router.get("/fixtures/snapshots/{name}", include_in_schema=False)
 def get_fixture_snapshot(name: str):
     base = REPO_ROOT / "fixtures" / "snapshots"

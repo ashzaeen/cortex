@@ -81,3 +81,6 @@ export const api = {
 // repo-relative (fixtures/...), served by the API.
 export const snapshotSrc = (url: string | null | undefined) =>
   !url ? null : /^(https?:|data:|\/)/.test(url) ? url : `/api/${url}`;
+
+export const videoSrc = (url: string | null | undefined) =>
+  !url ? null : /^(https?:|data:|\/)/.test(url) ? url : `/api/${url}`;

@@ -18,7 +18,11 @@ export default function Glasses3D({ live = true }: { live?: boolean }) {
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(32, w / h, 0.1, 100);
-    camera.position.set(0, 0.25, 6.2);
+    // Pull the camera back on narrow boxes so the whole frame always fits (about 5.4 units wide).
+    const fit = (aspect: number) => { camera.aspect = aspect; camera.position.set(0, 0.25, 6.2 * Math.max(1, 1.75 / aspect)); camera.updateProjectionMatrix(); };
+    fit(w / h);
+    const ro = new ResizeObserver(() => { const W = el.clientWidth, H = el.clientHeight; if (!W || !H) return; renderer.setSize(W, H); fit(W / H); });
+    ro.observe(el);
 
     scene.add(new THREE.AmbientLight(0x9fb3a8, 0.7));
     const key = new THREE.DirectionalLight(0xe4c382, 2.2); key.position.set(3, 4, 5); scene.add(key);
@@ -81,6 +85,7 @@ export default function Glasses3D({ live = true }: { live?: boolean }) {
     tick();
     return () => {
       cancelAnimationFrame(raf);
+      ro.disconnect();
       el.removeEventListener("pointerdown", down); el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up);
       renderer.dispose(); scene.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });
       el.removeChild(renderer.domElement);

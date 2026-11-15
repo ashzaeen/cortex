@@ -37,12 +37,12 @@ export function tagFor(m: Moment, people: Person[], promises: Promise_[]): Tag {
   if (people.some((p) => p.introduced_moment_id === m.id)) return "Network";
   if (promises.some((p) => p.source_moment_id === m.id)) return "Waiting On";
   if (m.source === "call") return "Call";
-  if (m.snapshot_url && !m.transcript) return "Snapshot";
+  if ((m.snapshot_url || m.video_url) && !m.transcript) return "Snapshot";
   return (m.mode[0].toUpperCase() + m.mode.slice(1)) as Tag;
 }
 
 /** One-line title for a moment row: the transcript, or the caption. */
-export const titleFor = (m: Moment) => (m.transcript ?? m.caption ?? "Snapshot").replace(/^["“]|["”]$/g, "");
+export const titleFor = (m: Moment) => (m.transcript ?? m.caption ?? (m.video_url ? "Video" : "Snapshot")).replace(/^["“]|["”]$/g, "");
 
 /** Due chip (design.md 11.10): brass within 48 hours, danger when overdue. */
 export function dueChip(p: Promise_): { text: string; tone: "brass" | "muted" | "danger" } {

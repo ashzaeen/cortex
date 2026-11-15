@@ -30,6 +30,16 @@ Toolkit versions and requirements come from Meta's [version dependencies](https:
 4. To use the real glasses: in the Meta AI app, open Settings > App Info, tap the app version five times, and turn on Developer Mode. The app then appears under App connections > Developer mode apps. No review or publishing is needed for our own glasses.
 5. Gen 1 is a supported device, but Meta says capability availability varies by device. #2 (@794KHSameer) confirms that Gen 1 actually streams.
 
+## Build the checked-in app
+
+1. Open `CameraAccess.xcodeproj` in Xcode 26.4 or newer. Xcode resolves Meta Wearables DAT 1.0.1 from its public Swift package automatically.
+2. Select the `CameraAccess` target, choose your Apple development team under Signing & Capabilities, and use a unique bundle identifier if Xcode requests one.
+3. Add `CLIENT_TOKEN` and `META_APP_ID` as user-defined build settings for the Meta developer app used by the team.
+4. Set the user-defined `CORTEX_SERVER_URL` build setting to the complete scene-analysis endpoint reachable from the iPhone, for example `http://<laptop-ip>:8000/analyze`. Do not commit a personal IP address or API key.
+5. Run on an iPhone for real glasses, or open the debug menu to exercise camera streaming with Mock Device Kit and the included test media.
+
+The checked-in foundation currently connects, streams, captures frames, records media, and can submit a sampled JPEG to the separately configured scene-analysis endpoint. Posting the repository's `MomentIngest` contract, checking `GET /privacy`, and adding the pause/off-the-record control remain work for #36 and #39; this import does not mark either issue complete.
+
 ## Contract
 
 Talk to Cortex only through [contracts/openapi.yaml](../../../contracts/openapi.yaml):

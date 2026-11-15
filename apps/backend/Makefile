@@ -13,7 +13,7 @@ PORT ?= 8000
 STAMP := .venv/.installed
 HAVE_PY := $(shell $(PY_SYS) -c "import sys; print(int(sys.version_info >= (3, 11)))" 2>/dev/null)
 
-.PHONY: setup dev test lint seed seed-reset clean
+.PHONY: setup dev test lint seed seed-reset actions-doctor clean
 
 $(STAMP): requirements.txt requirements-dev.txt
 	$(PY_SYS) -m venv .venv
@@ -53,6 +53,9 @@ seed: $(STAMP) ## Load fixtures/*.json into the configured store (upsert by id)
 
 seed-reset: $(STAMP) ## Delete all backend data, then load fixtures
 	$(VENV_PY) -m scripts.seed --reset
+
+actions-doctor: $(STAMP) ## Are the real email, Google and text integrations set up? Add ARGS="--google" or ARGS="--email-to you@x.com" for a real try
+	$(VENV_PY) -m scripts.actions_doctor $(ARGS)
 
 clean:
 	$(PY_SYS) -c "import shutil; shutil.rmtree('.venv', ignore_errors=True)"

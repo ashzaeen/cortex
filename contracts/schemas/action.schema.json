@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "action.schema.json",
   "title": "Action",
-  "description": "An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist), caregiver_summary (Assist: the daily summary emailed to a consenting caregiver, AST-6). Only follow_up_email and caregiver_summary carry an email draft; the other types carry their own optional payload (event, task, doc, message).",
+  "description": "An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist), caregiver_summary (Assist: the daily summary emailed to a consenting caregiver, AST-6). Only follow_up_email and caregiver_summary carry an email draft; expense (Life: logs a receipt or purchase to the Expenses list, ACT-8); the other types carry their own optional payload (event, task, doc, message, expense).",
   "type": "object",
   "required": [
     "id",
@@ -27,7 +27,8 @@
         "calendar_event",
         "notes",
         "message",
-        "caregiver_summary"
+        "caregiver_summary",
+        "expense"
       ]
     },
     "status": {
@@ -184,6 +185,20 @@
         }
       }
     },
+    "auto": {
+      "type": "boolean",
+      "description": "True when Cortex ran it without asking because the mode's auto_run allows it (ACT-4). It is still receipted and undoable."
+    },
+    "expense": {
+      "type": "object",
+      "required": ["label", "amount"],
+      "additionalProperties": false,
+      "description": "expense (ACT-8): one entry for the Expenses list, from a receipt or something you said.",
+      "properties": {
+        "label": { "type": "string" },
+        "amount": { "type": ["number", "null"], "minimum": 0, "description": "Dollars; null when no total was readable." }
+      }
+    },
     "external": {
       "type": [
         "object",
@@ -202,7 +217,8 @@
             "google_calendar",
             "google_tasks",
             "google_drive",
-            "chert"
+            "chert",
+            "cortex_list"
           ]
         },
         "id": {

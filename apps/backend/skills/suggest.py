@@ -13,7 +13,7 @@ from core.errors import ApiError
 from core.timeutil import tz
 
 log = logging.getLogger(__name__)
-KINDS = {"calendar_event", "reminder", "notes", "flashcards"}
+KINDS = {"calendar_event", "reminder", "notes", "flashcards", "expense"}
 _DEADLINE = re.compile(r"^due:\s*(.+)$", re.I)
 
 
@@ -52,6 +52,16 @@ def _body(it: dict, moment: dict) -> dict | None:
         due = _date(it.get("due_date"))
         body["task"] = {"title": title, "notes": None, "due": due}
         body["summary"] = f"A Google Tasks reminder to {title[0].lower() + title[1:]}" + (f", due {due}." if due else ".")
+    elif kind == "expense":
+        try:
+            amount = round(float(it.get("amount")), 2)
+        except (TypeError, ValueError):
+            return None
+        if amount < 0:
+            return None
+        body["expense"] = {"label": title, "amount": amount}
+        body["title"] = doers.expense_title(body["expense"])
+        body["summary"] = f"Log {doers.money(amount)} for {title} to your expenses."
     else:
         text = (it.get("body") or "").strip()
         if not text:
@@ -79,21 +89,42 @@ def study_block(deadline: dict) -> dict | None:
             "summary": f"Block an hour on {block:%a %b} {block.day} at 6:00 PM to study for {m.group(1).strip()}."}
 
 
-def from_perception(items: list[dict] | None, moment: dict) -> list[dict]:
-    """Automatic suggestions only: each must be an action the moment's mode may suggest (MODE-1)."""
+def _auto_run(proposed: dict, google_token: str | None) -> dict:
+    """ACT-4: a low-risk suggestion the mode runs without asking. Same path as a tap on Approve, so it is
+    receipted and undoable; it just carries auto=true so the recap and Actions can say Cortex did it."""
+    from actions import followup
+
+    db.col("actions").update_one({"_id": proposed["id"]}, {"$set": {"auto": True}})
+    try:
+        return followup.confirm(proposed["id"], "do", None, google_token)["action"]
+    except ApiError as exc:
+        log.info("auto-run skipped, left for approval: %s", exc.message)
+        return proposed
+
+
+def from_perception(items: list[dict] | None, moment: dict, google_token: str | None = None) -> list[dict]:
+    """Automatic suggestions only: each must be an action the moment's mode may suggest (MODE-1).
+    A suggestion the mode lists in auto_run (reminder, notes, flashcards) is carried out at once (ACT-4)."""
     from skills import modes
+    from skills import modes as modes_skill
 
     created = []
     for it in (items or [])[:2]:
         body = _body(it if isinstance(it, dict) else {}, moment)
         if not body or not modes.allows(body["type"], moment.get("mode")):
             continue
+        if body["type"] == "expense" and db.col("actions").find_one(
+                {"type": "expense", "source_moment_ids": moment["_id"], "status": {"$ne": "dismissed"}}):
+            continue  # "log this receipt" already logged it from this moment
         dup = db.col("actions").find_one({"type": body["type"], "status": "proposed",
                                           "title": {"$regex": f"^{re.escape(body['title'])}$", "$options": "i"}})
         if dup:
             continue
         try:
-            created.append(doers.propose(body))
+            made = doers.propose(body)
+            if modes_skill.auto_runs(made["type"], moment.get("mode")):
+                made = _auto_run(made, google_token)
+            created.append(made)
         except ApiError as exc:
             log.info("suggestion skipped: %s", exc.message)
             continue

@@ -75,6 +75,12 @@ def ensure_modes():
         for m in presets:
             db.col("modes").insert_one({"_id": m.pop("id"), **m, "version": MODES_VERSION})
         return
+    # ACT-8: Life may also suggest logging an expense. Added once to a stored Life mode, so later edits stand.
+    if not db.col("state").find_one({"_id": "life_expense_allowed"}):
+        db.col("state").insert_one({"_id": "life_expense_allowed"})
+        life = db.col("modes").find_one({"_id": "life"})
+        if life and "expense" not in (life.get("allowed_actions") or []):
+            db.col("modes").update_one({"_id": "life"}, {"$push": {"allowed_actions": "expense"}})
     # Built-in modes stored before v2 get the new preset fields once; nothing could edit them before v2.
     for m in presets:
         doc = db.col("modes").find_one({"_id": m["id"]})

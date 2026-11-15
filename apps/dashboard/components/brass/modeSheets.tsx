@@ -94,6 +94,11 @@ export function RecapSheet({ open, onClose, arg, onOpenMoment }: { open: boolean
                 ? <ul className="flex flex-col gap-2">{data.follow_ups.map((f) => <ProofLine key={f.moment_id} text={f.text} momentId={f.moment_id} at={f.at} onOpen={onOpenMoment} />)}</ul>
                 : <p className="t-footnote">No action items in this session.</p>}
             </section>
+            {(data.auto_actions ?? []).length > 0 && (
+              <section className="flex flex-col gap-2"><Label as="h3">Done for You</Label>
+                <ul className="flex flex-col gap-2">{(data.auto_actions ?? []).map((f) => <ProofLine key={`${f.moment_id}-${f.text}`} text={f.text} momentId={f.moment_id} at={f.at} onOpen={onOpenMoment} />)}</ul>
+                <p className="t-footnote">Cortex did these without asking, because this mode allows it. Undo any of them from Actions.</p></section>
+            )}
             {arg !== "actions" && data.notes.length > 0 && (
               <section className="flex flex-col gap-2"><Label as="h3">Notes</Label>
                 <ul className="flex flex-col gap-2">{data.notes.map((n) => <ProofLine key={n.moment_id} text={n.text} momentId={n.moment_id} at={n.at} onOpen={onOpenMoment} />)}</ul></section>
@@ -448,8 +453,9 @@ export function ProposalsSheet({ open, onClose, arg, actions, onOpenMoment }: { 
 // ------------------------------------------------------------------ Mode settings (DASH-10, MODE-1, MODE-7)
 const ACTION_LABEL: Record<string, string> = {
   follow_up_email: "Follow-up emails", flashcards: "Flashcards", reminder: "Reminders", read_aloud: "Read aloud",
-  calendar_event: "Calendar events", notes: "Notes", message: "Texts", caregiver_summary: "Caregiver summary",
+  calendar_event: "Calendar events", notes: "Notes", message: "Texts", caregiver_summary: "Caregiver summary", expense: "Expenses",
 };
+const AUTO_TYPES = ["reminder", "notes", "flashcards", "expense"] as const; // the only types that may run without asking (ACT-4)
 const KEEP: { label: string; value: number | null }[] = [
   { label: "Until I delete", value: null }, { label: "1 day", value: 1 }, { label: "7 days", value: 7 }, { label: "30 days", value: 30 }, { label: "90 days", value: 90 },
 ];
@@ -477,6 +483,23 @@ export function ModeSettingsSheet({ open, onClose, mode, onChanged, onDeleted }:
             ))}
           </div>
           <p className="t-footnote">This only limits what Cortex suggests by itself. You can still ask for any of them directly.</p>
+        </Row>
+        <Row k="Run Without Asking">
+          {AUTO_TYPES.filter((a) => allowed.has(a)).length === 0 ? (
+            <p className="t-footnote">Turn on reminders, notes, flashcards or expenses above to let this mode run them for you.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Actions Cortex may run without asking">
+              {AUTO_TYPES.filter((a) => allowed.has(a)).map((a) => {
+                const on = (mode.auto_run ?? []).includes(a);
+                return (
+                  <Chip key={a} selected={on} onClick={() => save({ auto_run: (on ? (mode.auto_run ?? []).filter((x) => x !== a) : [...(mode.auto_run ?? []), a]) as Mode["auto_run"] })}>
+                    {ACTION_LABEL[a]}
+                  </Chip>
+                );
+              })}
+            </div>
+          )}
+          <p className="t-footnote">Off by default. A type you turn on is done as soon as Cortex suggests it, appears in your recap, and can be undone. Emails, calendar events and texts always ask first.</p>
         </Row>
         <Row k="Keep Moments From This Mode">
           <div className="flex flex-wrap gap-2" role="group" aria-label="How long moments are kept">

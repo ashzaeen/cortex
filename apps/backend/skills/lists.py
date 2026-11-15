@@ -22,9 +22,12 @@ _FOR = re.compile(r"\b(?:for|on|at)\s+(?:the\s+|a\s+|an\s+|my\s+)?([a-z][\w' -]{
 
 
 def out(doc: dict) -> dict:
-    return {"id": doc["_id"], "list": doc["list"], "text": doc["text"], "amount": doc.get("amount"),
+    item = {"id": doc["_id"], "list": doc["list"], "text": doc["text"], "amount": doc.get("amount"),
             "done": bool(doc.get("done", False)), "source_moment_id": doc.get("source_moment_id"),
             "created_at": iso(doc["created_at"])}
+    if doc.get("action_id"):
+        item["action_id"] = doc["action_id"]  # the expense action that logged it (ACT-8), so its receipt can undo it
+    return item
 
 
 def _list_out(list_id: str) -> dict:
@@ -70,17 +73,46 @@ def parse(transcript: str | None, caption: str | None) -> list[tuple[str, str, f
     return found
 
 
-def _insert(list_id: str, text: str, amount: float | None, source_moment_id: str | None, at=None) -> dict:
+def _insert(list_id: str, text: str, amount: float | None, source_moment_id: str | None, at=None,
+            action_id: str | None = None) -> dict:
     doc = {"_id": new_id("itm"), "list": list_id, "text": text.strip(), "amount": amount, "done": False,
            "source_moment_id": source_moment_id, "created_at": at or now()}
+    if action_id:
+        doc["action_id"] = action_id
     db.col("list_items").insert_one(doc)
     return doc
 
 
-def from_moment(moment: dict, publish: bool = True) -> list[dict]:
-    """Called by ingest for every new moment."""
-    docs = [_insert(lst, text, amt, moment["_id"], moment.get("ts"))
-            for lst, text, amt in parse(moment.get("transcript"), moment.get("caption"))]
+def log_expense(label: str, amount: float | None, source_moment_id: str | None, action_id: str) -> dict:
+    """What an approved expense action does (ACT-8): one entry on the Expenses list, linked to its action."""
+    doc = _insert("expenses", label, amount, source_moment_id, action_id=action_id)
+    events.publish("list.updated", _list_out("expenses"))
+    return out(doc)
+
+
+def _expense_action(moment: dict, label: str, amount: float | None) -> None:
+    """"Log this receipt" is a request, so it runs at once (ACT-4: no confirmation), but as a real action: a receipt
+    with the source moment and an undo, instead of a silent list write."""
+    import logging
+
+    from actions import doers, followup
+
+    try:
+        made = doers.propose({"type": "expense", "title": label, "mode": moment.get("mode"),
+                              "source_moment_ids": [moment["_id"]], "expense": {"label": label, "amount": amount}})
+        followup.confirm(made["id"], "do", None)
+    except ApiError as exc:
+        logging.getLogger(__name__).info("expense not logged: %s", exc.message)
+
+
+def from_moment(moment: dict, publish: bool = True, as_actions: bool = False) -> list[dict]:
+    """Called by ingest for every new moment. With as_actions, expenses become receipted, undoable actions."""
+    docs = []
+    for lst, text, amt in parse(moment.get("transcript"), moment.get("caption")):
+        if lst == "expenses" and as_actions:
+            _expense_action(moment, text, amt)
+        else:
+            docs.append(_insert(lst, text, amt, moment["_id"], moment.get("ts")))
     if publish:
         for list_id in dict.fromkeys(d["list"] for d in docs):
             events.publish("list.updated", _list_out(list_id))

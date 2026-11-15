@@ -17,12 +17,13 @@ Return ONLY JSON with exactly these keys:
                  "what": "short imperative, e.g. Send the deck",
                  "due_text": "the words used, e.g. Friday, or null", "due_date": "YYYY-MM-DD or null",
                  "due_inferred": true/false, "confidence": 0.0-1.0}}],
-  "suggestions": [{{"type": "calendar_event" | "reminder" | "notes",
+  "suggestions": [{{"type": "calendar_event" | "reminder" | "notes" | "expense",
                     "title": "short, e.g. CSE 3310 project demo",
                     "start": "YYYY-MM-DDTHH:MM local, calendar_event only, else null",
                     "end": "YYYY-MM-DDTHH:MM local or null (default one hour after start)",
                     "location": "... or null", "due_date": "YYYY-MM-DD for a reminder, or null",
-                    "body": "notes only: the key points to save, else null", "confidence": 0.0-1.0}}]
+                    "body": "notes only: the key points to save, else null",
+                    "amount": "expense only: the receipt total in dollars as a number, else null", "confidence": 0.0-1.0}}]
 }}
 Rules:
 - transcript: only speech you actually hear in an attached video, verbatim and in order (e.g. This is Ash from Acme).
@@ -36,6 +37,7 @@ Rules:
   calendar_event ONLY for a scheduled event with a stated day AND time (a meeting, class, quiz, demo).
   reminder for something the wearer must do themselves that is not already a promise above.
   notes ONLY when a lecture, slide or whiteboard has content worth keeping (key points in body).
+  expense ONLY when a receipt or price tag with a clear total is in view: title = the merchant or item, amount = the total.
   Use [] when nothing qualifies. Never suggest sending messages.
 - Do not invent names, dates or promises that are not in the transcript, or in the speech you heard in an attached video.{mode_rules}"""  # noqa: E501
 

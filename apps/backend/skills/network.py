@@ -16,6 +16,17 @@ def _slug_id(name: str) -> str:
     return pid if not db.col("people").find_one({"_id": pid}) else new_id("per")
 
 
+_HONORIFIC = re.compile(r"^(?:dr|prof|professor|mr|mrs|ms|mx|miss|sir|coach)\.?$", re.I)
+
+
+def given_name(name: str) -> str:
+    """The name to use in a sentence: "Prof. Morgan Lee" -> Morgan, "Ash Kim" -> Ash."""
+    words = name.split()
+    while len(words) > 1 and _HONORIFIC.match(words[0]):
+        words.pop(0)
+    return words[0]
+
+
 def find_by_name(name: str | None) -> dict | None:
     if not name:
         return None
@@ -124,6 +135,12 @@ def update(person_id: str, fields: dict) -> dict:
     """PATCH /people/{id}: correct a card by hand. Only the fields sent change."""
     get(person_id)
     upd = {k: v for k, v in fields.items() if k in ("company", "role", "notes", "topics")}
+    if "phone" in fields:
+        phone = (fields["phone"] or "").strip().replace(" ", "")
+        if phone and not re.fullmatch(r"\+[1-9][0-9]{6,14}", phone):
+            raise ApiError(400, "bad_request",
+                           "A phone number looks like +15555550123 (a plus, the country code, then the number).")
+        upd["phone"] = phone or None
     name = (fields.get("name") or "").strip()
     if name:
         upd |= {"name": name, "name_lower": name.lower(), "first_lower": name.lower().split()[0],

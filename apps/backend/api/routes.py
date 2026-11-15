@@ -28,8 +28,10 @@ def get_health():
 
 # ---------- moments ----------
 @router.post("/moments", status_code=201, tags=["moments"])
-def ingest_moment(body: models.MomentIngest):
-    return ingest.ingest(body.model_dump())
+def ingest_moment(body: models.MomentIngest, google_token: str | None = Header(None, alias="X-Google-Access-Token",
+                                                                                    include_in_schema=False)):
+    # The token only lets a mode's auto-run actions write to the signed-in user's Google account (ACT-4).
+    return ingest.ingest({**body.model_dump(), "google_token": google_token})
 
 
 @router.get("/moments", tags=["moments"])
@@ -131,6 +133,10 @@ def propose_action(body: models.ActionPropose):
         if not body.person_id:
             raise ApiError(400, "bad_request", "person_id is required for follow_up_email.")
         return followup.propose(body.person_id, body.source_moment_ids)
+    if body.type == "message" and body.person_id and not body.message:
+        from actions import texting
+
+        return texting.propose_for_person(body.person_id, None, body.source_moment_ids, body.mode)
     return doers.propose(body.model_dump(mode="json", exclude_none=True))
 
 
@@ -145,7 +151,13 @@ GoogleToken = Header(None, alias="X-Google-Access-Token", include_in_schema=Fals
 
 @router.post("/actions/{id}/confirm", tags=["actions"])
 def confirm_action(id: str, body: models.ActionConfirm, google_token: str | None = GoogleToken):  # noqa: A002
-    return followup.confirm(id, body.deliver, body.draft.model_dump() if body.draft else None, google_token)
+    edits = body.model_dump(exclude_none=True, include={"event", "task", "doc", "message", "expense"})
+    return followup.confirm(id, body.deliver, body.draft.model_dump() if body.draft else None, google_token, edits)
+
+
+@router.post("/actions/{id}/dismiss", tags=["actions"])
+def dismiss_action(id: str):  # noqa: A002
+    return followup.dismiss(id)
 
 
 @router.post("/actions/{id}/undo", tags=["actions"])

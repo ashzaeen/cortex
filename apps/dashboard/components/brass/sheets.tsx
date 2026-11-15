@@ -9,6 +9,7 @@ import { friendly } from "@/lib/errors";
 import { clock, curly, dayLabel, dueChip, receiptId, timecode } from "@/lib/format";
 import type { CortexData } from "@/lib/useCortex";
 import { useListen, voiceSupported } from "@/lib/voice";
+import { PersonTextRow } from "./actions/PersonText";
 import { sourceLabel } from "./AskPanel";
 import { Button, Chip, Frame, Label, Tag } from "./primitives";
 import { Sheet } from "./Sheet";
@@ -130,7 +131,7 @@ export function MomentSheet({ m, sid, people, onClose, onDelete }: { m: Moment |
 // ------------------------------------------------------------------ People and brief
 const initials = (n: string) => n.split(" ").filter((w) => !/\.$/.test(w)).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-export function PeopleSheet({ open, onClose, data, focusId, onEmail }: { open: boolean; onClose: () => void; data: CortexData; focusId: string | null; onEmail: (p: Person) => void }) {
+export function PeopleSheet({ open, onClose, data, focusId, onEmail, onText, onPhone }: { open: boolean; onClose: () => void; data: CortexData; focusId: string | null; onEmail: (p: Person) => void; onText: (p: Person) => void; onPhone: (p: Person, phone: string | null) => Promise<void> | void }) {
   const toast = useToast();
   const [brief, setBrief] = useState<Brief | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -183,6 +184,7 @@ export function PeopleSheet({ open, onClose, data, focusId, onEmail }: { open: b
                 <Button variant="secondary" onClick={() => doBrief(p)} disabled={loading === p.id}>{loading === p.id ? "Briefing" : "Brief Me"}</Button>
                 <Button variant="ghost" onClick={() => onEmail(p)}>Draft Follow-Up</Button>
               </div>
+              <PersonTextRow person={p} onText={onText} onPhone={onPhone} />
             </article>
           );
         })}

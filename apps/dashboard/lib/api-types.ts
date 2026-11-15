@@ -93,7 +93,7 @@ export interface paths {
         put?: never;
         /**
          * Answer a question from memory with proof (D-5)
-         * @description Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so.
+         * @description Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so. A reply that is exactly "yes" (or "send it", "go ahead"), "save a draft", "skip", "undo" or "edit" acts on the open suggestion in the active mode (ACT-1, VOI-3) and answers with what happened; a longer sentence never approves anything.
          */
         post: operations["ask"];
         delete?: never;
@@ -249,7 +249,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Actions, for example proposed emails waiting for approval */
+        /** Actions, newest first, for example proposed emails waiting for approval */
         get: operations["listActions"];
         put?: never;
         post?: never;
@@ -309,8 +309,27 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve and do it (email - send or save as draft; Google Calendar, Tasks or Drive; a Chert text), and write a receipt */
+        /** Approve and do it (email - send or save as draft; Google Calendar, Tasks or Drive; a Chert text), and write a receipt. A failed action can be confirmed again to retry. */
         post: operations["confirmAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/actions/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Skip a proposed (or failed) action (ACT-11); nothing runs, the action becomes dismissed and a receipt records it */
+        post: operations["dismissAction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1307,6 +1326,7 @@ export interface components {
             proposes?: string[];
             allowed_actions?: components["schemas"]["allowed_actions"];
             auto_suggest?: boolean;
+            auto_run?: components["schemas"]["auto_run"];
             retention_days?: number | null;
         };
         ModeCreate: {
@@ -1318,6 +1338,7 @@ export interface components {
             proposes?: string[];
             allowed_actions?: components["schemas"]["allowed_actions"];
             auto_suggest?: boolean;
+            auto_run?: components["schemas"]["auto_run"];
             retention_days?: number | null;
         };
         RecapLine: {
@@ -1339,6 +1360,8 @@ export interface components {
             decisions: components["schemas"]["RecapLine"][];
             /** @description Action items and promises from the session. */
             follow_ups: components["schemas"]["RecapLine"][];
+            /** @description Actions Cortex ran without asking during the session because the mode's auto_run allows it (ACT-4); each is still undoable from Actions. */
+            auto_actions?: components["schemas"]["RecapLine"][];
             /** Format: date-time */
             started_at: string | null;
             /** Format: date-time */
@@ -1799,6 +1822,8 @@ export interface components {
             introduced_moment_id: string;
             topics: string[];
             notes?: string | null;
+            /** @description Optional E.164 number, so Cortex can text this person once you approve (ACT-9). Only phones verified for the Chert project can receive a text. Absent or null when unknown. */
+            phone?: string | null;
             /** @description Below 0.8 the dashboard asks the user to confirm the spelling. */
             name_confidence: number;
         };
@@ -1829,12 +1854,12 @@ export interface components {
         };
         /**
          * Action
-         * @description An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist), caregiver_summary (Assist: the daily summary emailed to a consenting caregiver, AST-6). Only follow_up_email and caregiver_summary carry an email draft; the other types carry their own optional payload (event, task, doc, message).
+         * @description An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist), caregiver_summary (Assist: the daily summary emailed to a consenting caregiver, AST-6). Only follow_up_email and caregiver_summary carry an email draft; expense (Life: logs a receipt or purchase to the Expenses list, ACT-8); the other types carry their own optional payload (event, task, doc, message, expense).
          */
         "action.schema": {
             id: string;
             /** @enum {string} */
-            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary";
+            type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary" | "expense";
             /**
              * @description sent and draft_saved apply to email and message; done to the other types.
              * @enum {string}
@@ -1885,10 +1910,18 @@ export interface components {
                 to: string;
                 text: string;
             };
+            /** @description True when Cortex ran it without asking because the mode's auto_run allows it (ACT-4). It is still receipted and undoable. */
+            auto?: boolean;
+            /** @description expense (ACT-8): one entry for the Expenses list, from a receipt or something you said. */
+            expense?: {
+                label: string;
+                /** @description Dollars; null when no total was readable. */
+                amount: number | null;
+            };
             /** @description Where a done or sent action landed, so undo can remove it. Absent until then; null on a dry run. */
             external?: {
                 /** @enum {string} */
-                provider: "google_calendar" | "google_tasks" | "google_drive" | "chert";
+                provider: "google_calendar" | "google_tasks" | "google_drive" | "chert" | "cortex_list";
                 id: string;
                 url?: string | null;
             } | null;
@@ -1925,6 +1958,12 @@ export interface components {
             to: string;
             text: string;
         };
+        /** @description expense (ACT-8): one entry for the Expenses list, from a receipt or something you said. */
+        expense: {
+            label: string;
+            /** @description Dollars; null when no total was readable. */
+            amount: number | null;
+        };
         /**
          * ListItem
          * @description One entry on a simple list (MEM-11): a shopping item or a logged expense, filled by voice or by hand.
@@ -1940,6 +1979,8 @@ export interface components {
             done: boolean;
             /** @description The moment that added it (proof); null when added by hand. Deleting that moment deletes the item. */
             source_moment_id: string | null;
+            /** @description The expense action that logged this item (ACT-8), so its receipt can undo it. Absent otherwise. */
+            action_id?: string | null;
             /** Format: date-time */
             created_at: string;
         };
@@ -1958,7 +1999,9 @@ export interface components {
             speaks: string;
             proposes: string[];
             /** @description Action types Cortex may suggest on its own in this mode. Actions the user asks for directly work in any mode. */
-            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary")[];
+            allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary" | "expense")[];
+            /** @description Low-risk action types this mode runs without asking, on its own suggestions only (ACT-4): reminder, notes, flashcards, expense. Each shows in the recap and stays undoable. Empty (the default) means everything waits for approval. Only types also in allowed_actions take effect. */
+            auto_run?: ("reminder" | "notes" | "flashcards" | "expense")[];
             /** @description False: Cortex proposes nothing on its own in this mode; it only answers. Default true. */
             auto_suggest?: boolean;
             /** @description How long moments captured in this mode are kept; null keeps them until deleted. Shown in settings (MEM-12 applies it). */
@@ -1968,7 +2011,9 @@ export interface components {
             active: boolean;
         };
         /** @description Action types Cortex may suggest on its own in this mode. Actions the user asks for directly work in any mode. */
-        allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary")[];
+        allowed_actions: ("follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "caregiver_summary" | "expense")[];
+        /** @description Low-risk action types this mode runs without asking, on its own suggestions only (ACT-4): reminder, notes, flashcards, expense. Each shows in the recap and stays undoable. Empty (the default) means everything waits for approval. Only types also in allowed_actions take effect. */
+        auto_run: ("reminder" | "notes" | "flashcards" | "expense")[];
         /**
          * Routine
          * @description A reminder the user set for a time of day (AST-5), spoken at that time. Wellness support, not a medical device.
@@ -2623,6 +2668,8 @@ export interface operations {
                     role?: string | null;
                     notes?: string | null;
                     topics?: string[];
+                    /** @description E.164, for example +15555550123; null or an empty string clears it. */
+                    phone?: string | null;
                 };
             };
         };
@@ -2931,8 +2978,8 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message";
-                    /** @description Required for follow_up_email. */
+                    type: "follow_up_email" | "flashcards" | "reminder" | "read_aloud" | "calendar_event" | "notes" | "message" | "expense";
+                    /** @description Required for follow_up_email. For message, the person to text: with no message given, Cortex drafts the text from what is open with them and sends it to their phone (400 no_phone if the card has none). */
                     person_id?: string | null;
                     /** @description Required for every type except follow_up_email, which can find its own. */
                     source_moment_ids?: string[];
@@ -2944,6 +2991,7 @@ export interface operations {
                     task?: components["schemas"]["task"];
                     doc?: components["schemas"]["doc"];
                     message?: components["schemas"]["message"];
+                    expense?: components["schemas"]["expense"];
                 };
             };
         };
@@ -3036,6 +3084,38 @@ export interface operations {
                         subject?: string;
                         body?: string;
                     };
+                    /** @description Optional user edits to a calendar_event (any of title, start, end, location, description). end must be after start. */
+                    event?: {
+                        title?: string;
+                        /** Format: date-time */
+                        start?: string;
+                        /** Format: date-time */
+                        end?: string;
+                        location?: string;
+                        description?: string;
+                    };
+                    /** @description Optional user edits to a reminder (title, notes, due as YYYY-MM-DD). */
+                    task?: {
+                        title?: string;
+                        notes?: string;
+                        /** Format: date */
+                        due?: string;
+                    };
+                    /** @description Optional user edits to flashcards or notes (title, body). */
+                    doc?: {
+                        title?: string;
+                        body?: string;
+                    };
+                    /** @description Optional user edits to an expense (label, amount in dollars). */
+                    expense?: {
+                        label?: string;
+                        amount?: number;
+                    };
+                    /** @description Optional user edits to a text. to must be E.164, for example +15555550123. */
+                    message?: {
+                        to?: string;
+                        text?: string;
+                    };
                 };
             };
         };
@@ -3083,6 +3163,30 @@ export interface operations {
                     "application/json": components["schemas"]["ActionResult"];
                 };
             };
+        };
+    };
+    dismissAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dismissed, with receipt (no undo) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
         };
     };
     undoAction: {

@@ -4,14 +4,17 @@
 import { signOutAction } from "@/app/actions";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, type AskAnswer, type Mode, type Moment, type Person, type Promise_, type Receipt } from "@/lib/api";
+import { api, type Action, type AskAnswer, type Mode, type Moment, type Person, type Promise_, type Receipt } from "@/lib/api";
 import { chime } from "@/lib/chime";
 import { isDemo } from "@/lib/demo";
 import { friendly } from "@/lib/errors";
 import { lightSeed, shortIds } from "@/lib/format";
+import { givenName } from "@/lib/phone";
 import type { CapturePreset, SheetKey, Tool } from "@/lib/modeTools";
 import { useCortex } from "@/lib/useCortex";
 import { Ambient } from "@/components/brass/Ambient";
+import { ActionsSheet } from "@/components/brass/actions/ActionsSheet";
+import { isOpen } from "@/components/brass/actions/meta";
 import { AskPanel } from "@/components/brass/AskPanel";
 import { CaptureSheet } from "@/components/brass/CaptureSheet";
 import { DemoPanel } from "@/components/brass/DemoPanel";
@@ -145,11 +148,22 @@ function Home({ user }: { user: AppUser | null }) {
     toast({ text: "Moment Deleted", undo: () => { clearTimeout(timer); setPendingDelete((s) => { const n = new Set(s); n.delete(m.id); return n; }); } });
   };
 
-  // ---------- suggestion for the current mode
+  // ---------- skip a suggestion with undo (ACT-11, design.md 11.15): hide it now, tell the server when the undo toast closes
+  const [pendingSkip, setPendingSkip] = useState<Set<string>>(new Set());
+  const skipAction = useCallback((a: Action) => {
+    const drop = () => setPendingSkip((s) => { const n = new Set(s); n.delete(a.id); return n; });
+    setPendingSkip((s) => new Set(s).add(a.id));
+    const timer = setTimeout(() => {
+      api.dismissAction(a.id).then(refresh).catch((e) => toast({ text: friendly(e), tone: "danger" })).finally(drop);
+    }, 9000);
+    toast({ text: "Skipped", undo: () => { clearTimeout(timer); drop(); } });
+  }, [refresh, toast]);
+
+  // ---------- suggestion for the current mode (a failed one stays, so it can be retried)
   const suggestion = useMemo(() => {
-    const open = data.actions.filter((a) => a.status === "proposed" && (a.mode ?? (a.type === "follow_up_email" ? "focus" : null)) === mode);
-    return open.at(-1) ?? null;
-  }, [data.actions, mode]);
+    const open = data.actions.filter((a) => isOpen(a) && !pendingSkip.has(a.id) && (a.mode ?? (a.type === "follow_up_email" ? "focus" : null)) === mode);
+    return open[0] ?? null; // the API lists newest first: the card shows what Cortex proposed last
+  }, [data.actions, mode, pendingSkip]);
 
   // ---------- mode tools (the left rail): a tap opens a sheet, asks, captures with a preset, or drafts something
   const openSheet = (id: SheetId, arg?: string) => { setSheetArg(arg); if (id === "people") setPersonFocus(null); setSheet(id); };
@@ -204,6 +218,7 @@ function Home({ user }: { user: AppUser | null }) {
             links={[
               { label: "People", onClick: () => { setPersonFocus(null); setSheet("people"); } },
               { label: "Waiting On", onClick: () => setSheet("waiting") },
+              { label: "Actions", onClick: () => setSheet("actions") },
               { label: "Receipts", onClick: () => setSheet("receipts") },
             ]}
           />
@@ -233,6 +248,7 @@ function Home({ user }: { user: AppUser | null }) {
                 action={suggestion}
                 sourceIds={ids}
                 onChanged={refresh}
+                onSkip={skipAction}
                 onDone={(a) => {
                   if (a.type !== "read_aloud") return;
                   const m = data.moments.find((x) => x.id === a.source_moment_ids[0]);
@@ -246,6 +262,7 @@ function Home({ user }: { user: AppUser | null }) {
             <div className="rise flex flex-wrap gap-2 lg:hidden" style={{ animationDelay: "470ms" }}>
               <button type="button" className="press min-h-11 rounded-pill bg-fill-soft px-4 text-[0.8125rem] font-medium text-text-2" onClick={() => { setPersonFocus(null); setSheet("people"); }}>People</button>
               <button type="button" className="press min-h-11 rounded-pill bg-fill-soft px-4 text-[0.8125rem] font-medium text-text-2" onClick={() => setSheet("waiting")}>Waiting On</button>
+              <button type="button" className="press min-h-11 rounded-pill bg-fill-soft px-4 text-[0.8125rem] font-medium text-text-2" onClick={() => setSheet("actions")}>Actions</button>
               <button type="button" className="press min-h-11 rounded-pill bg-fill-soft px-4 text-[0.8125rem] font-medium text-text-2" onClick={() => setSheet("receipts")}>Receipts</button>
             </div>
           </div>
@@ -262,6 +279,8 @@ function Home({ user }: { user: AppUser | null }) {
       <TimelineSheet open={sheet === "timeline"} onClose={() => setSheet(null)} moments={moments} people={data.people} promises={data.promises} ids={ids} selected={selected}
         onSelect={(id) => { autoFollow.current = false; setSelected(id); }} onOpen={(id) => setMomentId(id)} />
       <PeopleSheet open={sheet === "people"} onClose={() => setSheet(null)} data={data} focusId={personFocus}
+        onText={(p: Person) => run(async () => { await api.proposeText(p.id); setSheet(null); toast({ text: `Text to ${givenName(p.name)} Is Ready to Approve` }); })}
+        onPhone={(p: Person, phone) => run(async () => { await api.updatePerson(p.id, { phone }); toast({ text: phone ? `${givenName(p.name)}'s Number Saved` : "Number Removed" }); })}
         onEmail={(p: Person) => run(async () => { await api.proposeEmail(p.id); setSheet(null); changeMode("focus"); toast({ text: `Follow-Up to ${p.name.split(" ")[0]} Is Ready to Approve` }); })} />
       <WaitingOnSheet open={sheet === "waiting"} onClose={() => setSheet(null)} data={data}
         onOpenMoment={(id) => setMomentId(id)} onConfirm={(p: Promise_) => run(() => api.confirmPromise(p.id))} />
@@ -272,6 +291,10 @@ function Home({ user }: { user: AppUser | null }) {
         onPairing={() => setSheet("pairing")} onReceipts={() => setSheet("receipts")} onPeople={() => setSheet("people")}
         user={user} onSignOut={() => { void signOutAction(); }} />
       <ReceiptsSheet open={sheet === "receipts"} onClose={() => setSheet(null)} receipts={data.receipts} ids={ids}
+        onUndo={(r: Receipt) => r.action_id && run(() => api.undoAction(r.action_id!))} />
+      <ActionsSheet open={sheet === "actions"} onClose={() => setSheet(null)} ids={ids}
+        actions={data.actions.filter((a) => !pendingSkip.has(a.id))} receipts={data.receipts}
+        onOpenMoment={(id) => setMomentId(id)} onSkip={skipAction}
         onUndo={(r: Receipt) => r.action_id && run(() => api.undoAction(r.action_id!))} />
       <CallSheet open={sheet === "call"} onClose={() => setSheet(null)} call={call} moments={data.moments} />
       <CaptureSheet open={sheet === "capture"} onClose={() => setSheet(null)} privacy={privacy} preset={capturePreset}

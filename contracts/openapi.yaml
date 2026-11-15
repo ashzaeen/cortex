@@ -237,7 +237,7 @@ paths:
       tags: [ask]
       operationId: ask
       summary: Answer a question from memory with proof (D-5)
-      description: Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so.
+      description: Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so. A reply that is exactly "yes" (or "send it", "go ahead"), "save a draft", "skip", "undo" or "edit" acts on the open suggestion in the active mode (ACT-1, VOI-3) and answers with what happened; a longer sentence never approves anything.
       requestBody:
         required: true
         content:
@@ -377,6 +377,7 @@ paths:
                 role: { type: [string, "null"] }
                 notes: { type: [string, "null"] }
                 topics: { type: array, items: { type: string } }
+                phone: { type: [string, "null"], description: "E.164, for example +15555550123; null or an empty string clears it." }
             example: { company: "Acme Robotics" }
       responses:
         "200":
@@ -501,7 +502,7 @@ paths:
     get:
       tags: [actions]
       operationId: listActions
-      summary: Actions, for example proposed emails waiting for approval
+      summary: Actions, newest first, for example proposed emails waiting for approval
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [proposed, sent, draft_saved, done, undone, dismissed, failed] } }
         - { name: mode, in: query, schema: { $ref: "#/components/schemas/ModeId" } }
@@ -532,8 +533,8 @@ paths:
               type: object
               required: [type]
               properties:
-                type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud, calendar_event, notes, message] }
-                person_id: { type: [string, "null"], description: "Required for follow_up_email." }
+                type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud, calendar_event, notes, message, expense] }
+                person_id: { type: [string, "null"], description: "Required for follow_up_email. For message, the person to text: with no message given, Cortex drafts the text from what is open with them and sends it to their phone (400 no_phone if the card has none)." }
                 source_moment_ids: { type: array, items: { type: string }, description: "Required for every type except follow_up_email, which can find its own." }
                 mode: { $ref: "#/components/schemas/ModeId" }
                 title: { type: string, description: "Required for every type except follow_up_email." }
@@ -542,6 +543,7 @@ paths:
                 task: { $ref: "./schemas/action.schema.json#/properties/task" }
                 doc: { $ref: "./schemas/action.schema.json#/properties/doc" }
                 message: { $ref: "./schemas/action.schema.json#/properties/message" }
+                expense: { $ref: "./schemas/action.schema.json#/properties/expense" }
       responses:
         "201":
           description: Proposed action
@@ -586,7 +588,7 @@ paths:
     post:
       tags: [actions]
       operationId: confirmAction
-      summary: Approve and do it (email - send or save as draft; Google Calendar, Tasks or Drive; a Chert text), and write a receipt
+      summary: Approve and do it (email - send or save as draft; Google Calendar, Tasks or Drive; a Chert text), and write a receipt. A failed action can be confirmed again to retry.
       requestBody:
         required: true
         content:
@@ -603,6 +605,40 @@ paths:
                     to: { type: string }
                     subject: { type: string }
                     body: { type: string }
+                event:
+                  type: object
+                  description: Optional user edits to a calendar_event (any of title, start, end, location, description). end must be after start.
+                  properties:
+                    title: { type: string }
+                    start: { type: string, format: date-time }
+                    end: { type: string, format: date-time }
+                    location: { type: string }
+                    description: { type: string }
+                task:
+                  type: object
+                  description: Optional user edits to a reminder (title, notes, due as YYYY-MM-DD).
+                  properties:
+                    title: { type: string }
+                    notes: { type: string }
+                    due: { type: string, format: date }
+                doc:
+                  type: object
+                  description: Optional user edits to flashcards or notes (title, body).
+                  properties:
+                    title: { type: string }
+                    body: { type: string }
+                expense:
+                  type: object
+                  description: Optional user edits to an expense (label, amount in dollars).
+                  properties:
+                    label: { type: string }
+                    amount: { type: number, minimum: 0 }
+                message:
+                  type: object
+                  description: Optional user edits to a text. to must be E.164, for example +15555550123.
+                  properties:
+                    to: { type: string, pattern: '^\+[1-9][0-9]{6,14}$' }
+                    text: { type: string, maxLength: 4000 }
       responses:
         "200":
           description: Done, with receipt
@@ -612,6 +648,22 @@ paths:
               example:
                 action: *FollowUp
                 receipt: *FollowUpReceipt
+
+  /actions/{id}/dismiss:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [actions]
+      operationId: dismissAction
+      summary: Skip a proposed (or failed) action (ACT-11); nothing runs, the action becomes dismissed and a receipt records it
+      responses:
+        "200":
+          description: Dismissed, with receipt (no undo)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
 
   /actions/{id}/undo:
     parameters:
@@ -1782,6 +1834,7 @@ components:
         proposes: { type: array, items: { type: string } }
         allowed_actions: { $ref: "./schemas/mode.schema.json#/properties/allowed_actions" }
         auto_suggest: { type: boolean }
+        auto_run: { $ref: "./schemas/mode.schema.json#/properties/auto_run" }
         retention_days: { type: ["integer", "null"], minimum: 1 }
     ModeCreate:
       type: object
@@ -1795,6 +1848,7 @@ components:
         proposes: { type: array, items: { type: string } }
         allowed_actions: { $ref: "./schemas/mode.schema.json#/properties/allowed_actions" }
         auto_suggest: { type: boolean }
+        auto_run: { $ref: "./schemas/mode.schema.json#/properties/auto_run" }
         retention_days: { type: ["integer", "null"], minimum: 1 }
     RecapLine:
       type: object
@@ -1815,6 +1869,7 @@ components:
         notes: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Running notes, oldest first, one per moment." }
         decisions: { type: array, items: { $ref: "#/components/schemas/RecapLine" } }
         follow_ups: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Action items and promises from the session." }
+        auto_actions: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Actions Cortex ran without asking during the session because the mode's auto_run allows it (ACT-4); each is still undoable from Actions." }
         started_at: { type: [string, "null"], format: date-time }
         ended_at: { type: [string, "null"], format: date-time }
         moment_count: { type: integer, minimum: 0 }

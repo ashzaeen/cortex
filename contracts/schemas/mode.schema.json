@@ -16,7 +16,12 @@
     "allowed_actions": {
       "type": "array",
       "description": "Action types Cortex may suggest on its own in this mode. Actions the user asks for directly work in any mode.",
-      "items": { "type": "string", "enum": ["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message", "caregiver_summary"] }
+      "items": { "type": "string", "enum": ["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message", "caregiver_summary", "expense"] }
+    },
+    "auto_run": {
+      "type": "array",
+      "description": "Low-risk action types this mode runs without asking, on its own suggestions only (ACT-4): reminder, notes, flashcards, expense. Each shows in the recap and stays undoable. Empty (the default) means everything waits for approval. Only types also in allowed_actions take effect.",
+      "items": { "type": "string", "enum": ["reminder", "notes", "flashcards", "expense"] }
     },
     "auto_suggest": { "type": "boolean", "description": "False: Cortex proposes nothing on its own in this mode; it only answers. Default true." },
     "retention_days": { "type": ["integer", "null"], "minimum": 1, "description": "How long moments captured in this mode are kept; null keeps them until deleted. Shown in settings (MEM-12 applies it)." },

@@ -20,6 +20,7 @@ export type ActionEdits = Partial<{
   task: { title?: string; notes?: string; due?: string };
   doc: { title?: string; body?: string };
   message: { to?: string; text?: string };
+  expense: { label?: string; amount?: number };
 }>;
 export type PrivacyState = S["PrivacyState"];
 export type Call = S["Call"];
@@ -110,6 +111,8 @@ export const api = {
   confirmPromise: (id: string) => call<Promise_>("POST", `/promises/${encodeURIComponent(id)}/confirm`),
   proposeEmail: (personId: string) =>
     call<Action>("POST", "/actions/propose", { type: "follow_up_email", person_id: personId }),
+  updatePerson: (id: string, body: { phone?: string | null }) => call<Person>("PATCH", `/people/${encodeURIComponent(id)}`, body),
+  proposeText: (personId: string) => call<Action>("POST", "/actions/propose", { type: "message", person_id: personId }),
   confirmAction: (id: string, deliver: "send" | "draft" | "do", edits?: ActionEdits) =>
     call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/confirm`, { deliver, ...edits }),
   dismissAction: (id: string) => call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/dismiss`),

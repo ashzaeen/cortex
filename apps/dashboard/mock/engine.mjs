@@ -15,7 +15,7 @@ const UNDO_WINDOW_MS = 60_000;
 const STOP = new Set("a an the and or of to in on at for with me my i you your what did is are was were who whom about from by this that it do does any open where when".split(" "));
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const DAY_MS = 86_400_000;
-const ACTION_TYPES = ["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message", "caregiver_summary"];
+const ACTION_TYPES = ["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message", "caregiver_summary", "expense"];
 
 /**
  * @param {object} opts
@@ -56,16 +56,22 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
   const PRESET = {
     focus: { description: "For work: never lose a decision, promise or idea.", allowed_actions: ["follow_up_email", "calendar_event", "reminder", "notes", "message"], retention_days: null },
     student: { description: "For lectures and labs: notes, flashcards and deadlines.", allowed_actions: ["flashcards", "notes", "calendar_event"], retention_days: null },
-    life: { description: "For every day: where things are and what to do next.", allowed_actions: ["reminder", "calendar_event", "message"], retention_days: null },
+    life: { description: "For every day: where things are and what to do next.", allowed_actions: ["reminder", "calendar_event", "message", "expense"], retention_days: null },
     assist: { description: "Support for reading, finding and routines. Not a medical device.", allowed_actions: ["read_aloud", "caregiver_summary"], retention_days: 7 },
   };
   function withModeDefaults(m) {
     const p = PRESET[m.id] ?? {};
     const v1 = m.auto_suggest === undefined && PRESET[m.id]; // a pre-v2 built-in: take the preset's actions
-    return { description: p.description ?? "", auto_suggest: true, retention_days: p.retention_days ?? null, ...m,
+    return { description: p.description ?? "", auto_suggest: true, auto_run: [], retention_days: p.retention_days ?? null, ...m,
       allowed_actions: v1 ? p.allowed_actions : m.allowed_actions ?? [] };
   }
   const SLUG = /^[a-z][a-z0-9_-]{1,31}$/;
+  // ACT-4: only these low-risk types can run without asking, and only when the mode also allows them.
+  const AUTO_ELIGIBLE = ["reminder", "notes", "flashcards", "expense"];
+  const autoRuns = (kind, modeId = null) => {
+    const m = db.modes.find((x) => x.id === (modeId ?? activeMode()));
+    return !!m && AUTO_ELIGIBLE.includes(kind) && (m.auto_run ?? []).includes(kind) && allows(kind, m.id);
+  };
   const allows = (kind, modeId = null) => {
     const m = db.modes.find((x) => x.id === (modeId ?? activeMode()));
     return !m || (m.auto_suggest !== false && (m.allowed_actions ?? []).includes(kind));
@@ -375,14 +381,36 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
         source_moment_ids: [p.source_moment_id] };
       db.actions.push(a);
       emit("action.proposed", a);
+      if (autoRuns("reminder", a.mode)) { a.auto = true; confirmAction(a, "do"); }
     }
     return p;
   }
 
   // Calendar, tasks, Drive and texts (ACT-5 to ACT-9): the mock never calls Google or Chert, so these
   // behave like the backend's dry run (external: null).
-  const PAYLOAD = { calendar_event: "event", reminder: "task", flashcards: "doc", notes: "doc", message: "message" };
-  const DEFAULT_MODE = { calendar_event: "focus", reminder: "life", flashcards: "student", notes: "student", message: "life", read_aloud: "assist" };
+  const PAYLOAD = { calendar_event: "event", reminder: "task", flashcards: "doc", notes: "doc", message: "message", expense: "expense" };
+  const DEFAULT_MODE = { calendar_event: "focus", reminder: "life", flashcards: "student", notes: "student", message: "life", read_aloud: "assist", expense: "life" };
+  // ACT-9: a text to a person on a card, drafted from what is open with them; refused without a number.
+  function proposeText(body) {
+    const person = db.people.find((x) => x.id === body.person_id);
+    if (!person) return err(404, "not_found", "No such person.");
+    const first = person.name.split(/\s+/).filter((w, i, all) => i === all.length - 1 || !/^(?:dr|prof|professor|mr|mrs|ms|mx|miss|sir|coach)\.?$/i.test(w))[0];
+    if (!person.phone) return err(400, "no_phone", `I don't have a number for ${first}. Add one on their card, then try again.`);
+    const waiting = db.actions.find((a) => a.type === "message" && a.person_id === person.id && a.status === "proposed");
+    if (waiting) return ok(201, waiting);
+    const open = db.promises.find((x) => x.person_id === person.id && (x.status === "confirmed" || x.status === "proposed"));
+    const what = open?.what.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase());
+    const text = !open ? `Hi ${first}, great to meet you. Talk soon.`
+      : open.direction === "waiting_on" ? `Hi ${first}, just checking in on ${what}. Let me know when it's ready.` : `Hi ${first}, a quick note on ${what}: I'll get it to you soon.`;
+    const ids = [person.introduced_moment_id, open?.source_moment_id].filter((x, i, all) => x && all.indexOf(x) === i && db.moments.some((mo) => mo.id === x));
+    if (!ids.length) return err(400, "bad_request", "No source moments found for this person.");
+    const a = { id: id("act"), type: "message", status: "proposed", mode: activeMode(), title: `Text ${first}`, person_id: person.id,
+      summary: `To ${first}: “${text}”`, message: { to: person.phone, text }, source_moment_ids: ids };
+    db.actions.push(a);
+    emit("action.proposed", a);
+    return ok(201, a);
+  }
+
   function proposeOther(body) {
     const key = PAYLOAD[body.type];
     if (!(body.type in DEFAULT_MODE)) return err(400, "bad_request", "Unknown action type.");
@@ -395,7 +423,11 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     const a = { id: id("act"), type: body.type, status: "proposed", mode: body.mode ?? DEFAULT_MODE[body.type], title,
       person_id: body.person_id ?? null, source_moment_ids: ids };
     if (body.summary) a.summary = body.summary;
-    if (key) a[key] = payload ?? (key === "task" ? { title, notes: body.summary ?? null, due: null } : { title, body: body.summary ?? title });
+    if (body.type === "expense") {
+      const amount = payload?.amount ?? null;
+      if (amount !== null && !(typeof amount === "number" && amount >= 0)) return err(400, "bad_request", "The amount must be a number of dollars, 0 or more.");
+      a[key] = { label: String(payload?.label ?? title).trim().slice(0, 80), amount };
+    } else if (key) a[key] = payload ?? (key === "task" ? { title, notes: body.summary ?? null, due: null } : { title, body: body.summary ?? title });
     db.actions.push(a);
     emit("action.proposed", a);
     return ok(201, a);
@@ -410,6 +442,12 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     } else if (a.type === "message") {
       a.status = "draft_saved"; a.external = null;
       summary = `Saved the text to ${a.message.to} as a draft. (Dry run: texting is off.)`;
+    } else if (a.type === "expense") {
+      a.status = "done";
+      const item = { id: id("itm"), list: "expenses", text: a.expense.label, amount: a.expense.amount, done: false, source_moment_id: a.source_moment_ids[0], action_id: a.id, created_at: now() };
+      db.lists.expenses.push(item); emit("list.updated", listOut("expenses"));
+      a.external = { provider: "cortex_list", id: item.id, url: null };
+      summary = `Logged ${a.expense.amount == null ? a.expense.label : `$${a.expense.amount.toFixed(2)} for ${a.expense.label}`} to your expenses.`;
     } else {
       a.status = "done";
       if (a.type in PAYLOAD) a.external = null;
@@ -435,7 +473,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     const label = kind === "lecture" ? "lecture" : "meeting";
     if (!session.length) {
       return { kind, mode: modeId ?? null, title: `Your ${label}`, spoken: `Nothing captured yet for a ${label} recap.`, bullets: [], notes: [], decisions: [],
-        follow_ups: [], started_at: null, ended_at: null, moment_count: 0, source_moment_ids: [] };
+        follow_ups: [], auto_actions: [], started_at: null, ended_at: null, moment_count: 0, source_moment_ids: [] };
     }
     const ids = new Set(session.map((m) => m.id));
     const notes = session.filter((m) => text(m)).map(line);
@@ -444,7 +482,9 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     const said = session.filter((m) => /\b(?:action item|need to|have to|i'll|i will|will send)\b/i.test(m.transcript ?? "")).map(line);
     const follow_ups = [...new Map([...promised, ...said].map((f) => [f.moment_id, f])).values()];
     const bullets = notes.slice(-4).map((n) => n.text);
-    return { kind, mode: modeId ?? null, title: `Your ${label} recap`, bullets, notes, decisions, follow_ups, started_at: session[0].ts, ended_at: session.at(-1).ts,
+    const auto_actions = db.actions.filter((a) => a.auto && ["done", "sent", "draft_saved"].includes(a.status) && a.source_moment_ids.some((i) => ids.has(i)))
+      .map((a) => ({ text: [...db.receipts].reverse().find((r) => r.action_id === a.id)?.summary ?? a.title, moment_id: a.source_moment_ids.find((i) => ids.has(i)), at: session.at(-1).ts }));
+    return { kind, mode: modeId ?? null, title: `Your ${label} recap`, bullets, notes, decisions, follow_ups, auto_actions, started_at: session[0].ts, ended_at: session.at(-1).ts,
       spoken: `Your ${label}: ${session.length} moment${session.length === 1 ? "" : "s"}. ${decisions.length ? `${decisions.length} decision${decisions.length === 1 ? "" : "s"}. ` : ""}${follow_ups.length ? `Open: ${follow_ups[0].text}.` : ""}`.trim(),
       moment_count: session.length, source_moment_ids: session.map((m) => m.id) };
   }
@@ -658,9 +698,10 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     }
     if (p === "/actions" && m === "GET") {
       const status = q("status"); const mode = q("mode");
-      return ok(200, { items: db.actions.filter((a) => (!status || a.status === status) && (!mode || a.mode === mode)) });
+      return ok(200, { items: db.actions.filter((a) => (!status || a.status === status) && (!mode || a.mode === mode)).reverse() }); // newest first, like the backend
     }
     if (p === "/actions/propose" && m === "POST") {
+      if (body?.type === "message" && body.person_id && !body.message) return proposeText(body);
       if (body?.type && body.type !== "follow_up_email") return proposeOther(body);
       const a = body?.person_id && proposeEmail(body.person_id, body.source_moment_ids);
       return a ? ok(201, a) : err(400, "bad_request", "A known person_id is required.");
@@ -668,9 +709,25 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     if ((mm = p.match(/^\/actions\/([^/]+)\/confirm$/)) && m === "POST") {
       const a = db.actions.find((x) => x.id === decodeURIComponent(mm[1]));
       if (!a) return err(404, "not_found", "No such action.");
-      if (a.status !== "proposed") return err(409, "not_proposed", `Action is already ${a.status}.`);
+      if (a.status !== "proposed" && a.status !== "failed") return err(409, "not_proposed", `Action is already ${a.status}.`);
       if (body?.draft) a.draft = { ...a.draft, ...body.draft };
+      for (const k of ["event", "task", "doc", "message", "expense"]) {
+        if (!body?.[k] || !a[k]) continue;
+        if (k === "expense" && body.expense.amount != null && !(Number(body.expense.amount) >= 0)) return err(400, "bad_request", "The amount must be a number of dollars, 0 or more.");
+        if (k === "event" && Date.parse(body.event.end ?? a.event.end) <= Date.parse(body.event.start ?? a.event.start)) return err(400, "bad_request", "The event must end after it starts.");
+        if (k === "message" && body.message.to && !/^\+[1-9][0-9]{6,14}$/.test(body.message.to)) return err(400, "bad_request", "A text needs a phone number like +15555550123.");
+        a[k] = { ...a[k], ...Object.fromEntries(Object.entries(body[k]).filter(([, v]) => v !== "" && v != null)) };
+        if (k === "expense") a.title = a.expense.amount == null ? `Log ${a.expense.label}` : `Log $${a.expense.amount.toFixed(2)} for ${a.expense.label}`;
+        else if (k !== "message" && body[k].title) a.title = body[k].title;
+      }
       return ok(200, confirmAction(a, body?.deliver === "draft" ? "draft" : body?.deliver ?? "send"));
+    }
+    if ((mm = p.match(/^\/actions\/([^/]+)\/dismiss$/)) && m === "POST") {
+      const a = db.actions.find((x) => x.id === decodeURIComponent(mm[1]));
+      if (!a) return err(404, "not_found", "No such action.");
+      if (a.status !== "proposed" && a.status !== "failed") return err(409, "not_proposed", `Action is ${a.status}, so it can't be skipped.`);
+      a.status = "dismissed"; emit("action.updated", a);
+      return ok(200, { action: a, receipt: receipt("action", `Skipped “${a.title ?? a.type}”. Nothing was done.`, a.source_moment_ids, a.id) });
     }
     if ((mm = p.match(/^\/actions\/([^/]+)\/undo$/)) && m === "POST") {
       const a = db.actions.find((x) => x.id === decodeURIComponent(mm[1]));
@@ -678,10 +735,23 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
       const orig = [...db.receipts].reverse().find((r) => r.action_id === a.id && r.undo.available);
       if (!orig || Date.parse(orig.undo.until) < Date.now()) return err(409, "undo_expired", "The undo window has closed.");
       orig.undo = { available: false, until: orig.undo.until };
+      if (a.external?.provider === "cortex_list") { db.lists.expenses = db.lists.expenses.filter((x) => x.id !== a.external.id); emit("list.updated", listOut("expenses")); }
       a.status = "undone"; emit("action.updated", a);
       return ok(200, { action: a, receipt: receipt("action", `Undid: ${orig.summary}`, a.source_moment_ids, a.id) });
     }
     if (p === "/receipts" && m === "GET") return ok(200, { items: [...db.receipts].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)) });
+    if ((mm = p.match(/^\/people\/([^/]+)$/)) && m === "PATCH") {
+      const person = db.people.find((x) => x.id === decodeURIComponent(mm[1]));
+      if (!person) return err(404, "not_found", "No such person.");
+      if ("phone" in (body ?? {})) {
+        const phone = String(body.phone ?? "").replace(/\s/g, "");
+        if (phone && !/^\+[1-9][0-9]{6,14}$/.test(phone)) return err(400, "bad_request", "A phone number looks like +15555550123 (a plus, the country code, then the number).");
+        if (phone) person.phone = phone; else delete person.phone;
+      }
+      for (const k of ["company", "role", "notes", "topics"]) if (k in (body ?? {})) person[k] = body[k];
+      emit("person.updated", person);
+      return ok(200, person);
+    }
     if (p === "/privacy" && m === "GET") return ok(200, db.privacy);
     if (p === "/privacy/pause" && m === "POST") {
       if (!["capturing", "paused", "off_record"].includes(body?.state)) return err(400, "bad_request", "state must be capturing, paused or off_record.");
@@ -723,7 +793,9 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
       const bad = (body?.allowed_actions ?? []).filter((a) => !ACTION_TYPES.includes(a));
       if (bad.length) return err(400, "bad_request", `Unknown action type: ${bad.join(", ")}.`);
       if ("name" in (body ?? {}) && !String(body.name).trim()) return err(400, "bad_request", "name cannot be empty.");
-      for (const k of ["name", "description", "captures", "speaks", "proposes", "allowed_actions", "auto_suggest", "retention_days"]) if (k in (body ?? {})) mode[k] = body[k];
+      const notAuto = (body?.auto_run ?? []).filter((a) => !AUTO_ELIGIBLE.includes(a));
+      if (notAuto.length) return err(400, "bad_request", `${notAuto.join(", ")} always needs your yes. Only ${AUTO_ELIGIBLE.join(", ")} can run on their own.`);
+      for (const k of ["name", "description", "captures", "speaks", "proposes", "allowed_actions", "auto_suggest", "auto_run", "retention_days"]) if (k in (body ?? {})) mode[k] = body[k];
       emit("mode.changed", mode);
       return ok(200, mode);
     }

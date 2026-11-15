@@ -27,6 +27,7 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 | `api/` | `routes.py`: every contract operation plus `GET /events` (SSE); `models.py`: request bodies |
 | `memory/` | `ingest.py` (POST /moments pipeline), `search.py` (vector + freshness merge), `store.py`, `delete.py` (cascade) |
 | `skills/` | `network.py` (introductions, card edit and delete), `promises.py` (waiting-on chips), `brief.py`, `ask.py` (grounded answers), `digest.py` (MEM-9), `rewind.py` (MEM-10), `lists.py` (MEM-11) |
+| `scripts/` | `seed.py`; `actions_doctor.py` (`make actions-doctor`: which of email, Google and texts are set up, and with `--google`, `--email-to` or `--text` a real round trip that undoes itself where it can); `google_token.py` (mints `GOOGLE_REFRESH_TOKEN` into `.env` so voice and call approvals can reach Google) |
 | `actions/` | `followup.py` (propose, confirm send/draft, undo; dispatches other types), `email.py` (dry run, SMTP, Resend), `doers.py` (calendar_event, reminder, flashcards, notes, message, read_aloud), `google.py` (Calendar, Tasks, Drive with the forwarded `X-Google-Access-Token`), `chert.py` (texts from the Chert line) |
 | `core/` | config, MongoDB, Tiger Data, Gemini + mock, prompts, SSE broker, receipts, contract serializers, snapshots and short videos |
 | `scripts/seed.py` | `make seed` loader for `fixtures/*.json` |

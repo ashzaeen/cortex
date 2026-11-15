@@ -58,6 +58,11 @@ class TaskIn(BaseModel):
     due: date | None = None
 
 
+class ExpenseIn(BaseModel):
+    label: str
+    amount: float | None = Field(None, ge=0)
+
+
 class DocIn(BaseModel):
     title: str
     body: str
@@ -69,7 +74,7 @@ class MessageIn(BaseModel):
 
 
 class ActionPropose(BaseModel):
-    type: Literal["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message"]
+    type: Literal["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message", "expense"]
     person_id: str | None = None
     source_moment_ids: list[str] | None = None
     mode: ModeId | None = None
@@ -79,6 +84,7 @@ class ActionPropose(BaseModel):
     task: TaskIn | None = None
     doc: DocIn | None = None
     message: MessageIn | None = None
+    expense: ExpenseIn | None = None
 
 
 class DraftEdits(BaseModel):
@@ -87,9 +93,43 @@ class DraftEdits(BaseModel):
     body: str | None = None
 
 
+class EventEdits(BaseModel):
+    title: str | None = None
+    start: str | None = None
+    end: str | None = None
+    location: str | None = None
+    description: str | None = None
+
+
+class TaskEdits(BaseModel):
+    title: str | None = None
+    notes: str | None = None
+    due: str | None = None
+
+
+class DocEdits(BaseModel):
+    title: str | None = None
+    body: str | None = None
+
+
+class MessageEdits(BaseModel):
+    to: str | None = None
+    text: str | None = None
+
+
+class ExpenseEdits(BaseModel):
+    label: str | None = None
+    amount: float | None = None
+
+
 class ActionConfirm(BaseModel):
     deliver: Literal["send", "draft", "do"]
     draft: DraftEdits | None = None
+    event: EventEdits | None = None
+    task: TaskEdits | None = None
+    doc: DocEdits | None = None
+    message: MessageEdits | None = None
+    expense: ExpenseEdits | None = None
 
 
 class PrivacySet(BaseModel):
@@ -102,6 +142,7 @@ class PersonUpdate(BaseModel):
     role: str | None = None
     notes: str | None = None
     topics: list[str] | None = None
+    phone: str | None = None
 
 
 class ListItemCreate(BaseModel):
@@ -124,6 +165,7 @@ class ModeUpdate(BaseModel):
     proposes: list[str] | None = None
     allowed_actions: list[str] | None = None
     auto_suggest: bool | None = None
+    auto_run: list[str] | None = None
     retention_days: int | None = Field(None, ge=1)
 
 

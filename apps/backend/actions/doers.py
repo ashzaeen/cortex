@@ -19,17 +19,31 @@ from memory import store
 log = logging.getLogger(__name__)
 _timers: dict[str, threading.Timer] = {}
 
-TYPES = {"calendar_event", "reminder", "flashcards", "notes", "message", "read_aloud"}
+TYPES = {"calendar_event", "reminder", "flashcards", "notes", "message", "read_aloud", "expense"}
 GOOGLE_TYPES = {"calendar_event", "reminder", "flashcards", "notes"}
 DEFAULT_MODE = {"calendar_event": "focus", "reminder": "life", "flashcards": "student", "notes": "student",
-                "message": "life", "read_aloud": "assist"}
-PAYLOAD = {"calendar_event": "event", "reminder": "task", "flashcards": "doc", "notes": "doc", "message": "message"}
+                "message": "life", "read_aloud": "assist", "expense": "life"}
+PAYLOAD = {"calendar_event": "event", "reminder": "task", "flashcards": "doc", "notes": "doc", "message": "message",
+           "expense": "expense"}
 DONE = {"calendar_event": "Added “{t}” to your Google Calendar.", "reminder": "Added “{t}” to your Google Tasks.",
         "flashcards": "Saved the flashcards “{t}” to your Google Drive.", "notes": "Saved the notes “{t}” to your Google Drive.",
-        "read_aloud": "Reading “{t}” aloud."}
+        "read_aloud": "Reading “{t}” aloud.", "expense": "Logged {t} to your expenses."}
 UNDONE = {"calendar_event": "Removed “{t}” from your calendar.", "reminder": "Removed the task “{t}”.",
           "flashcards": "Moved the flashcards “{t}” to Drive's trash.", "notes": "Moved the notes “{t}” to Drive's trash.",
-          "read_aloud": "Stopped reading “{t}”.", "message": "Cancelled the text to {to}."}
+          "read_aloud": "Stopped reading “{t}”.", "message": "Cancelled the text to {to}.",
+          "expense": "Removed {t} from your expenses."}
+
+
+def money(amount) -> str:
+    return f"${amount:,.2f}" if isinstance(amount, (int, float)) else "an expense"
+
+
+def expense_title(e: dict) -> str:
+    return f"Log {money(e.get('amount'))} for {e['label']}" if e.get("amount") is not None else f"Log {e['label']}"
+
+
+def expense_phrase(e: dict) -> str:
+    return f"{money(e.get('amount'))} for {e['label']}" if e.get("amount") is not None else e["label"]
 
 
 def _set(action_id: str, **fields) -> dict:
@@ -60,6 +74,13 @@ def propose(body: dict) -> dict:
         raise ApiError(400, "bad_request", "event (title, start, end) is required for calendar_event.")
     if kind == "message" and not payload:
         raise ApiError(400, "bad_request", "message (to, text) is required for message.")
+    if kind == "expense":
+        payload = {"label": (payload or {}).get("label") or title, "amount": (payload or {}).get("amount")}
+        payload["label"] = str(payload["label"]).strip()[:80]
+        if payload["amount"] is not None and (not isinstance(payload["amount"], (int, float)) or payload["amount"] < 0):
+            raise ApiError(400, "bad_request", "The amount must be a number of dollars, 0 or more.")
+        if not payload["label"]:
+            raise ApiError(400, "bad_request", "expense.label is required.")
     if kind == "reminder" and not payload:
         payload = {"title": title, "notes": doc.get("summary"), "due": None}
     if kind in {"flashcards", "notes"} and not payload:
@@ -72,25 +93,27 @@ def propose(body: dict) -> dict:
     return contract.action(doc)
 
 
-def _send_later(action_id: str):
-    def fire():
-        _timers.pop(action_id, None)
-        doc = db.col("actions").find_one({"_id": action_id})
-        if not doc or doc["status"] != "sent":
-            return
-        try:
-            msg_id = chert.send(doc["message"]["to"], doc["message"]["text"], action_id)
-            db.col("actions").update_one({"_id": action_id}, {"$set": {
-                "external": {"provider": "chert", "id": msg_id, "url": None}}})
-            receipts.close_undo(action_id)
-        except Exception as exc:  # noqa: BLE001
-            log.error("text delivery failed: %s", exc)
-            _set(action_id, status="failed", error=str(exc)[:300])
-            receipts.close_undo(action_id)
-            receipts.create("action", f"Could not send the text to {doc['message']['to']}: {exc}",
-                            doc["source_moment_ids"], action_id)
+def _send(action_id: str):
+    """Text a confirmed message whose undo window has closed. delivered_at guards a second call."""
+    _timers.pop(action_id, None)
+    doc = db.col("actions").find_one({"_id": action_id})
+    if not doc or doc["status"] != "sent" or doc.get("delivered_at"):
+        return
+    try:
+        msg_id = chert.send(doc["message"]["to"], doc["message"]["text"], action_id)
+        db.col("actions").update_one({"_id": action_id}, {"$set": {
+            "delivered_at": now(), "external": {"provider": "chert", "id": msg_id, "url": None}}})
+        receipts.close_undo(action_id)
+    except Exception as exc:  # noqa: BLE001
+        log.error("text delivery failed: %s", exc)
+        _set(action_id, status="failed", error=str(exc)[:300])
+        receipts.close_undo(action_id)
+        receipts.create("action", f"Could not send the text to {doc['message']['to']}: {exc}",
+                        doc["source_moment_ids"], action_id)
 
-    t = threading.Timer(settings.undo_seconds, user.carry(fire))  # keeps the request's user
+
+def _send_later(action_id: str):
+    t = threading.Timer(settings.undo_seconds, user.carry(_send), args=(action_id,))  # keeps the request's user
     t.daemon = True
     _timers[action_id] = t
     t.start()
@@ -118,6 +141,13 @@ def confirm(doc: dict, deliver: str, google_token: str | None) -> dict:
         raise ApiError(400, "bad_request", f"{kind} is confirmed with deliver: do.")
     summary = DONE[kind].format(t=title)
     external = None
+    if kind == "expense":
+        from skills import lists
+
+        e = doc["expense"]
+        item = lists.log_expense(e["label"], e.get("amount"), doc["source_moment_ids"][0], action_id)
+        external = {"provider": "cortex_list", "id": item["id"], "url": None}
+        summary = DONE[kind].format(t=expense_phrase(e))
     if kind in GOOGLE_TYPES:
         try:
             token = google.resolve_token(google_token)
@@ -150,7 +180,14 @@ def undo(doc: dict, google_token: str | None) -> dict:
     if timer:
         timer.cancel()
     ext = doc.get("external")
-    if ext and ext["provider"].startswith("google_"):
+    if ext and ext["provider"] == "cortex_list":
+        from skills import lists
+
+        try:
+            lists.remove("expenses", ext["id"])
+        except ApiError:
+            pass  # already removed by hand: the undo still stands
+    elif ext and ext["provider"].startswith("google_"):
         token = google.resolve_token(google_token)
         if not token:
             raise ApiError(409, "not_undoable", "Sign in with Google again to undo this.")
@@ -161,7 +198,8 @@ def undo(doc: dict, google_token: str | None) -> dict:
             raise ApiError(502, "undo_failed", str(exc)) from exc
     receipts.close_undo(action_id)
     doc = _set(action_id, status="undone", undone_at=now())
-    summary = UNDONE[kind].format(t=doc.get("title", ""), to=(doc.get("message") or {}).get("to", ""))
+    what = expense_phrase(doc["expense"]) if kind == "expense" else doc.get("title", "")
+    summary = UNDONE[kind].format(t=what, to=(doc.get("message") or {}).get("to", ""))
     rcp = receipts.create("action", summary, doc["source_moment_ids"], action_id)
     return {"action": contract.action(doc), "receipt": rcp}
 

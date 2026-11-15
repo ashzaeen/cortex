@@ -271,7 +271,8 @@ const CALL_MS = 5 * 60 * 1000;
 export function CallSheet({ open, onClose, call, moments }: { open: boolean; onClose: () => void; call: { startedAt: number } | null; moments: Moment[] }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { if (!call) return; const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t); }, [call]);
-  const left = call ? Math.max(0, CALL_MS - (now - call.startedAt)) : CALL_MS;
+  // Clamp both ways: `now` is stale until the first tick, and the phone's clock can differ from the server's.
+  const left = call ? Math.min(CALL_MS, Math.max(0, CALL_MS - (now - call.startedAt))) : CALL_MS;
   const mmss = `${Math.floor(left / 60000)}:${String(Math.floor((left % 60000) / 1000)).padStart(2, "0")}`;
   const r = 34, c = 2 * Math.PI * r;
   const captions = moments.filter((m) => m.source === "call").sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts)).slice(0, 6);

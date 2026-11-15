@@ -301,6 +301,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calls/started": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The call agent reports that a FaceTime call is live (T0-10); emits call.started
+         * @description Idempotent: repeating it for the active `call_id` changes nothing and emits nothing.
+         *     If a different call is still active (one call at a time), that call is ended first and
+         *     `call.ended` is emitted for it, then `call.started` for the new one.
+         */
+        post: operations["callStarted"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/ended": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The call agent reports that the call is over (T0-10); emits call.ended
+         * @description Idempotent: repeating it for a call that already ended returns it again and emits nothing.
+         *     404 when the backend never saw `call_id` (for example after a restart); the call agent ignores that.
+         */
+        post: operations["callEnded"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calls/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The call in progress, if any, so a dashboard opened mid-call still shows "On Call" (T0-10)
+         * @description Calls cap at 5 minutes on the Chert line. A call that has no `call.ended` after 6 minutes
+         *     counts as ended, so a crashed agent cannot leave the dashboard stuck on "On Call".
+         */
+        get: operations["getCurrentCall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/modes/{id}/activate": {
         parameters: {
             query?: never;
@@ -350,6 +414,7 @@ export interface paths {
          *     moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
          *     action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended.
          *     The data payload is the affected entity (see components.schemas.Event).
+         *     For call.started and call.ended the payload is a Call (components.schemas.Call).
          *     Prism returns the example once; real streaming comes from the backend.
          */
         get: operations["streamEvents"];
@@ -418,6 +483,24 @@ export interface components {
             state: "capturing" | "paused" | "off_record";
             /** Format: date-time */
             since: string;
+        };
+        CallRef: {
+            /** @description Chert call id (the bridge participant is chert-bridge-<call id>). */
+            call_id: string;
+        };
+        /** @description One FaceTime call. This is also the `data` of the call.started and call.ended events. */
+        Call: {
+            call_id: string;
+            /** Format: date-time */
+            started_at: string;
+            /**
+             * Format: date-time
+             * @description Null while the call is live.
+             */
+            ended_at: string | null;
+        };
+        CurrentCall: {
+            call: components["schemas"]["Call"] | null;
         };
         Event: {
             /** @enum {string} */
@@ -1470,6 +1553,110 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["PrivacyState"];
+                };
+            };
+        };
+    };
+    callStarted: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "call_id": "call_1a2b3c"
+                 *     }
+                 */
+                "application/json": components["schemas"]["CallRef"];
+            };
+        };
+        responses: {
+            /** @description The active call */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "call_id": "call_1a2b3c",
+                     *       "started_at": "2026-11-15T14:10:00-06:00",
+                     *       "ended_at": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Call"];
+                };
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    callEnded: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "call_id": "call_1a2b3c"
+                 *     }
+                 */
+                "application/json": components["schemas"]["CallRef"];
+            };
+        };
+        responses: {
+            /** @description The call, with `ended_at` set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "call_id": "call_1a2b3c",
+                     *       "started_at": "2026-11-15T14:10:00-06:00",
+                     *       "ended_at": "2026-11-15T14:12:30-06:00"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["Call"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getCurrentCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The active call, or call: null */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "call": {
+                     *         "call_id": "call_1a2b3c",
+                     *         "started_at": "2026-11-15T14:10:00-06:00",
+                     *         "ended_at": null
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CurrentCall"];
                 };
             };
         };

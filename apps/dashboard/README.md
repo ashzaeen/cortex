@@ -95,4 +95,4 @@ To simulate capture by hand, open the camera button in the status pill and type 
 | Moment sheet | `DELETE /moments/{id}` (with an undo toast) | T0-9 |
 | Settings and Privacy | `POST /privacy/pause` | T0-9 |
 | Receipts sheet | `GET /receipts`, `POST /actions/{id}/undo` | T0-7 |
-| Call sheet | `call.started` and `call.ended` events, `call` moments | T0-10 |
+| Call sheet | `GET /calls/current` (and the `call.started` / `call.ended` events), `call` moments | T0-10 |

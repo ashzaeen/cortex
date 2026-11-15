@@ -14,6 +14,7 @@ export type AskAnswer = S["AskAnswer"];
 export type Brief = S["Brief"];
 export type ActionResult = S["ActionResult"];
 export type PrivacyState = S["PrivacyState"];
+export type Call = S["Call"];
 
 // Mock-only demo driver (apps/dashboard/mock); absent on the real backend.
 export type DemoStep = { i: number; beat: string; label: string; you: string; done: boolean };
@@ -52,6 +53,7 @@ export const api = {
   actions: () => call<{ items: Action[] }>("GET", "/actions"),
   receipts: () => call<{ items: Receipt[] }>("GET", "/receipts"),
   privacy: () => call<PrivacyState>("GET", "/privacy"),
+  currentCall: () => call<{ call: Call | null }>("GET", "/calls/current"),
   modes: () => call<{ items: Mode[] }>("GET", "/modes"),
   activateMode: (id: Mode["id"]) => call<Mode>("POST", `/modes/${id}/activate`),
   ask: (question: string) => call<AskAnswer>("POST", "/ask", { question, channel: "dashboard" }),

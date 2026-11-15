@@ -120,6 +120,20 @@ valid("Receipt", r.body, "deletion receipt");
 ok(!(await call("GET", "/moments")).body.items.some((m) => m.id === prm.source_moment_id), "moment deleted (T0-9)");
 ok(!(await call("GET", "/promises")).body.items.some((p) => p.id === prm.id), "derived promise deleted too");
 
+// Call lifecycle (T0-10): the call agent reports a call, the dashboard reads it.
+ok((await call("GET", "/calls/current")).body.call === null, "no call in progress at first");
+r = await call("POST", "/calls/started", { call_id: "c1" });
+ok(r.status === 200 && r.body.call_id === "c1" && r.body.ended_at === null && !Number.isNaN(Date.parse(r.body.started_at)), "call started returns the Call");
+ok((await call("POST", "/calls/started", { call_id: "c1" })).body.started_at === r.body.started_at, "starting the same call twice changes nothing");
+ok((await call("GET", "/calls/current")).body.call?.call_id === "c1", "current call is the active one");
+r = await call("POST", "/calls/started", { call_id: "c2" });
+ok((await call("GET", "/calls/current")).body.call?.call_id === "c2", "a new call replaces the active one (one call at a time)");
+r = await call("POST", "/calls/ended", { call_id: "c2" });
+ok(r.status === 200 && r.body.ended_at, "call ended returns the Call with ended_at");
+ok((await call("GET", "/calls/current")).body.call === null, "no active call after it ended");
+ok((await call("POST", "/calls/ended", { call_id: "nope" })).status === 404, "ending an unknown call is a 404");
+ok((await call("POST", "/calls/started", {})).status === 400, "starting without a call_id is a 400");
+
 // Demo driver runs end to end from a reset.
 await call("POST", "/_demo/reset");
 let d; do { d = (await call("POST", "/_demo/next")).body; } while (d.index < d.total);
@@ -129,7 +143,7 @@ ok(after.body.items.some((x) => /Sent to Ash at Acme/.test(x.summary)), "demo dr
 (await call("GET", "/moments")).body.items.forEach((x, i) => valid("Moment", x, `moment after demo ${i}`));
 
 await new Promise((r) => setTimeout(r, 100));
-for (const t of ["moment.created", "person.created", "promise.proposed", "promise.confirmed", "action.proposed", "action.updated", "receipt.created", "privacy.changed", "moment.deleted", "mode.changed"])
+for (const t of ["moment.created", "person.created", "promise.proposed", "promise.confirmed", "action.proposed", "action.updated", "receipt.created", "privacy.changed", "moment.deleted", "mode.changed", "call.started", "call.ended"])
   ok(events.includes(t), `event ${t} streamed on /events`);
 
 ctrl.abort();

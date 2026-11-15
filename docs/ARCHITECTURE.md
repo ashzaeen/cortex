@@ -1,6 +1,8 @@
 # Architecture
 
-Everything flows through one shared memory, so modes are presets over it and channels (glasses, phone, dashboard, FaceTime) are adapters to it. The interface between every box below is [contracts/openapi.yaml](../contracts/openapi.yaml). Accepted: capture path ([ADR 0003](decisions/0003-capture-path.md)) and dashboard stack ([ADR 0005](decisions/0005-dashboard-stack.md)). Still Proposed: backend stack, data store and call-agent stack (ADRs 0001, 0002, 0004).
+Everything flows through one shared memory, so modes are presets over it and channels (glasses, phone, dashboard, FaceTime) are adapters to it. The interface between every box below is [contracts/openapi.yaml](../contracts/openapi.yaml). Accepted: backend stack ([ADR 0001](decisions/0001-backend-stack.md): Python, FastAPI), data store ([ADR 0002](decisions/0002-data-store.md): MongoDB Atlas with Vector Search for memory, Tiger Data for the time index and audit log), capture path ([ADR 0003](decisions/0003-capture-path.md)) and dashboard stack ([ADR 0005](decisions/0005-dashboard-stack.md)). Still Proposed: call-agent stack ([ADR 0004](decisions/0004-sponsor-stack.md)); as built it is Node with LiveKit Agents and Gemini Live.
+
+**Where it runs:** the dashboard on Vercel, the backend on Railway (one Docker process, `apps/backend/Dockerfile`), the call agent and Chert connector on a laptop, the glasses app on an iPhone.
 
 ```
  Glasses (native iOS) ───┐
@@ -10,7 +12,7 @@ Everything flows through one shared memory, so modes are presets over it and cha
  iPhone FaceTime ─► Chert line ─► LiveKit room ◄─► apps/call-agent ──► apps/backend ◄── apps/dashboard
                                                    (same API calls)    memory + brain     (REST + GET /events)
                                                                          │
-                                                                    data store (ADR 0002)
+                                                                    Atlas + Tiger Data (ADR 0002)
                                                                     email action (draft/send)
 ```
 

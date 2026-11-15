@@ -14,7 +14,7 @@ A small native iOS app (Swift) whose only job is to get what the Ray-Ban Meta gl
 
 | Item | Version | Status |
 | --- | --- | --- |
-| Mac with Xcode | 26.4 or newer | TODO: confirm who has one |
+| Mac with Xcode | 26.4 or newer | @794KHSameer has built the app for the iOS Simulator (#36) |
 | iPhone | iOS 17.2 or newer | TODO: confirm whose (needed for the glasses and demo day) |
 | Meta AI app | V292 or newer (toolkit 1.0.1) | |
 | Glasses firmware | V128 or newer | Check with @794KHSameer |

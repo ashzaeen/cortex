@@ -15,7 +15,7 @@ or later, Node 24 or Node 26 is required.
    cp .env.example .env.local && chmod 600 .env.local
    ```
    The three LiveKit values come from one LiveKit Cloud project (Settings, API
-   keys). The OpenAI key needs Realtime access and credits. Set `AGENT_NAME` to a
+   keys). `GOOGLE_API_KEY` is a Gemini key with access to the Gemini Live models. Set `AGENT_NAME` to a
    name no other team uses.
 3. Terminal 1, your agent:
    ```sh

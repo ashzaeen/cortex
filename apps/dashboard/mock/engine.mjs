@@ -49,7 +49,11 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
   function rebase(d, anchorDay) {
     const [y, m, day] = anchorDay.split("-").map(Number);
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const delta = Math.round((today - new Date(y, m - 1, day)) / DAY_MS) * DAY_MS;
+    let delta = Math.round((today - new Date(y, m - 1, day)) / DAY_MS) * DAY_MS;
+    // Never put a moment in the future: early in the day, the anchor day's later moments would land
+    // after "now", so move the whole week back a day until the newest moment is in the past.
+    const newest = Math.max(...d.moments.map((x) => Date.parse(x.ts)).filter(Number.isFinite));
+    while (Number.isFinite(newest) && newest + delta > Date.now()) delta -= DAY_MS;
     const shift = (iso) => (iso ? new Date(Date.parse(iso) + delta).toISOString() : iso);
     const shiftDate = (s) => (s ? localDate(new Date(new Date(`${s}T12:00:00`).getTime() + delta)) : s);
     for (const x of d.moments) x.ts = shift(x.ts);

@@ -12,6 +12,10 @@ make dev          # from the repo root: stateful mock on :4010 + dashboard on :3
 
 Open http://localhost:3000. On a phone on the same wifi, open `http://<laptop IP>:3000`. The camera and mic need HTTPS on iPhone, so use the Vercel URL for those.
 
+## Deployed
+
+**https://cortex-dashboard-seven.vercel.app** (Vercel project `cortex-dashboard`, root `apps/dashboard`). Every push to `main` deploys to production. `CORTEX_API_URL` is set in the Vercel project env, never in the repo; until a hosted API exists (#42) it is unset and `/api/*` returns 502 `api_unreachable`.
+
 Other commands, from this folder:
 
 | Command | What it does |

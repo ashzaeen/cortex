@@ -25,4 +25,5 @@ Tier 0 must pass twice in a row before any Tier 1 work starts. Done-when tests: 
 | Mock API from `contracts/openapi.yaml` (`make dev`) | works | Prism on port 4010; verified locally 2026-11-14 during repo setup |
 | Stateful mock with Ash demo driver (`apps/dashboard/mock`, #37) | works | 66-check contract test passes locally 2026-11-14; runs in `make check` |
 | Brass dashboard on the mock (`make dev`) | works | Home, mode dock and all sheets over the `/api` proxy with SSE. Measured in Edge 2026-11-14: fits one screen at 1280x720 to 1440x900, no tile overflows at those sizes or 390x844. Not yet T0-8: no real-backend or iPhone test |
+| Dashboard on Vercel (#38) | works | https://cortex-dashboard-seven.vercel.app deploys on push to `main`; page returns 200 and opens in iPhone Safari (2026-11-14 @ashzaeen). No hosted API yet, so `/api/*` returns 502 until #42 |
 | Contract and fixture validation (`make check`) | works | Passes locally 2026-11-14; CI runs it on every push to main |

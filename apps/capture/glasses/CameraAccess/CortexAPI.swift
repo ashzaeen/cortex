@@ -7,6 +7,10 @@ enum CortexAPIKeyStore {
     private static let defaultsKey = "cornea.cortex-api-key"
 
     static var key: String? {
+        if let bundledKey {
+            return bundledKey
+        }
+
         if let savedValue = UserDefaults.standard.string(forKey: defaultsKey)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
            !savedValue.isEmpty {
@@ -26,7 +30,7 @@ enum CortexAPIKeyStore {
               let data = result as? Data,
               let value = String(data: data, encoding: .utf8),
               !value.isEmpty else {
-            return bundledKey
+            return nil
         }
         return value
     }

@@ -76,6 +76,7 @@ final class CameraViewModel {
   private(set) var isSavingMoment: Bool = false
   private(set) var cortexMessage: String = "Captured photos and videos upload automatically."
   var needsAPIKey: Bool = false
+  let voiceAssistant = VoiceAssistant()
 
   // MARK: - Video recording
 
@@ -174,6 +175,7 @@ final class CameraViewModel {
   @ObservationIgnored private var deviceMonitorTask: Task<Void, Never>?
   @ObservationIgnored private var appLifecycleTask: Task<Void, Never>?
   @ObservationIgnored private var foregroundResumeTask: Task<Void, Never>?
+  @ObservationIgnored private var speakNextInsight = false
   @ObservationIgnored private let sessionTokenBag = ListenerTokenBag()
   @ObservationIgnored private let streamTokenBag = ListenerTokenBag()
 
@@ -336,6 +338,54 @@ final class CameraViewModel {
     if !success {
       isCapturingPhoto = false
       showError(photoCaptureFailureMessage)
+    }
+  }
+
+  func toggleVoiceAssistant() {
+    if voiceAssistant.isListening {
+      voiceAssistant.stop()
+      return
+    }
+    guard !isRecording, !isSavingMoment else {
+      voiceAssistant.speak("Wait for the current recording or upload to finish.")
+      return
+    }
+
+    Task { [weak self] in
+      guard let self else { return }
+      await self.voiceAssistant.start { [weak self] command in
+        self?.handleVoiceCommand(command)
+      }
+    }
+  }
+
+  private func handleVoiceCommand(_ command: String) {
+    let normalized = command.lowercased()
+    let requestsCapture = [
+      "capture", "take a photo", "take a picture", "what do you see", "analyze this", "describe this",
+    ].contains { normalized.contains($0) }
+
+    if requestsCapture {
+      guard isStreaming else {
+        voiceAssistant.speak("Start the glasses preview before asking me to capture.")
+        return
+      }
+      speakNextInsight = true
+      cortexMessage = "Voice command received. Capturing and analyzing..."
+      capturePhoto()
+      return
+    }
+
+    Task {
+      do {
+        let response = try await CortexAPI.ask(question: command)
+        let spokenAnswer = response.spoken ?? response.answer
+        cortexMessage = response.grounded ? response.answer : "No grounded memory found. \(response.answer)"
+        voiceAssistant.speak(spokenAnswer)
+      } catch {
+        cortexMessage = "Voice question failed: \(error.localizedDescription)"
+        voiceAssistant.speak("I couldn't reach Cortex memory. Check the connection and try again.")
+      }
     }
   }
 
@@ -621,8 +671,16 @@ final class CameraViewModel {
     do {
       let moment = try await CortexAPI.capturePhoto(imageData: data)
       cortexMessage = moment.caption ?? "Photo insight saved to Cortex."
+      if speakNextInsight {
+        speakNextInsight = false
+        voiceAssistant.speak(moment.caption ?? "Photo captured and saved to Cortex.")
+      }
     } catch {
       cortexMessage = "Upload failed: \(error.localizedDescription)"
+      if speakNextInsight {
+        speakNextInsight = false
+        voiceAssistant.speak("The photo was captured, but the upload failed.")
+      }
       markMissingAPIKeyIfNeeded(error)
     }
   }

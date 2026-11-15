@@ -279,6 +279,13 @@ struct CameraView: View {
           captureRow
 
           if viewModel.hasSession {
+            VoiceAssistantBar(
+              state: viewModel.voiceAssistant.state,
+              transcript: viewModel.voiceAssistant.transcript,
+              isDisabled: viewModel.isRecording || viewModel.isSavingMoment,
+              action: viewModel.toggleVoiceAssistant
+            )
+
             CortexUploadStatusView(
               message: viewModel.cortexMessage,
               isUploading: viewModel.isSavingMoment
@@ -500,6 +507,77 @@ struct CameraView: View {
         await wearablesVM.openFirmwareUpdate()
         isLaunchingUpdate = false
       }
+    }
+  }
+}
+
+private struct VoiceAssistantBar: View {
+  let state: VoiceAssistantState
+  let transcript: String
+  let isDisabled: Bool
+  let action: () -> Void
+
+  private var isListening: Bool { state == .listening }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Button(action: action) {
+        HStack(spacing: 10) {
+          Image(systemName: isListening ? "waveform.circle.fill" : "mic.circle.fill")
+            .font(.title2)
+            .symbolEffect(.pulse, isActive: isListening)
+          VStack(alignment: .leading, spacing: 2) {
+            Text(buttonTitle)
+              .font(.subheadline.weight(.semibold))
+            Text(statusText)
+              .font(.caption)
+              .foregroundStyle(Color.white.opacity(0.7))
+              .lineLimit(2)
+          }
+          Spacer()
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .frame(minHeight: 54)
+        .background(Color(red: 0.05, green: 0.14, blue: 0.11).opacity(0.92))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+          RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .stroke(Color(red: 0.82, green: 0.66, blue: 0.38).opacity(isListening ? 0.9 : 0.35), lineWidth: 1)
+        }
+      }
+      .disabled(isDisabled)
+      .opacity(isDisabled ? 0.45 : 1)
+      .accessibilityIdentifier("voice_assistant_button")
+
+      if !transcript.isEmpty && (isListening || state == .processing) {
+        Text(transcript)
+          .font(.caption)
+          .foregroundStyle(Color.white.opacity(0.82))
+          .lineLimit(2)
+          .padding(.horizontal, 6)
+      }
+    }
+  }
+
+  private var buttonTitle: String {
+    switch state {
+    case .idle, .unavailable: "Ask Cornea"
+    case .requestingPermission: "Preparing voice..."
+    case .listening: "Listening..."
+    case .processing: "Thinking..."
+    case .speaking: "Speaking..."
+    }
+  }
+
+  private var statusText: String {
+    switch state {
+    case .idle: "Say “capture a photo” or ask about your memory"
+    case .requestingPermission: "Allow microphone and speech access"
+    case .listening: "Speak through your Ray-Ban microphone"
+    case .processing: "Sending your request to Cortex"
+    case .speaking: "Playing the answer through the active audio route"
+    case .unavailable(let message): message
     }
   }
 }

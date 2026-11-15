@@ -118,6 +118,17 @@ private struct MomentIngest: Encodable, Sendable {
     }
 }
 
+private struct AskRequest: Encodable {
+    let question: String
+    let channel = "voice"
+}
+
+struct CortexAskAnswer: Decodable {
+    let answer: String
+    let spoken: String?
+    let grounded: Bool
+}
+
 struct CortexMoment: Decodable {
     let id: String
     let caption: String?
@@ -181,6 +192,24 @@ enum CortexAPI {
             throw CortexError.invalidURL
         }
         _ = try await privacyState(baseURL: apiBaseURL)
+    }
+
+    static func ask(question: String) async throws -> CortexAskAnswer {
+        guard let apiBaseURL else {
+            throw CortexError.invalidURL
+        }
+        let trimmedQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuestion.isEmpty else {
+            throw CortexError.emptyQuestion
+        }
+
+        var request = URLRequest(url: apiBaseURL.appending(path: "ask"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = requestTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(AskRequest(question: trimmedQuestion))
+        let data = try await perform(request)
+        return try JSONDecoder().decode(CortexAskAnswer.self, from: data)
     }
 
     private static func captureMoment(snapshotData: Data?, videoData: Data?) async throws -> CortexMoment {
@@ -259,6 +288,7 @@ enum CortexError: LocalizedError {
     case requestTimedOut
     case network(URLError)
     case serverError(Int, String)
+    case emptyQuestion
 
     var errorDescription: String? {
         switch self {
@@ -282,6 +312,9 @@ enum CortexError: LocalizedError {
 
         case .serverError(let code, let message):
             return "Cortex API error \(code): \(message)"
+
+        case .emptyQuestion:
+            return "Ask Cornea a question first."
         }
     }
 }

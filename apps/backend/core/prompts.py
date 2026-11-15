@@ -37,7 +37,7 @@ Rules:
   reminder for something the wearer must do themselves that is not already a promise above.
   notes ONLY when a lecture, slide or whiteboard has content worth keeping (key points in body).
   Use [] when nothing qualifies. Never suggest sending messages.
-- Do not invent names, dates or promises that are not in the transcript, or in the speech you heard in an attached video."""
+- Do not invent names, dates or promises that are not in the transcript, or in the speech you heard in an attached video.{mode_rules}"""  # noqa: E501
 
 SPEAKER_RULE_WITH_PARTNER = (
     "The wearer is talking with {name}{company}. A first-person promise such as \"I'll send you the deck\" "
@@ -83,3 +83,68 @@ PROMISES:
 Return ONLY JSON: {{"subject": "...", "body": "..."}}"""
 
 TRANSCRIBE = "Transcribe this audio exactly. Return ONLY JSON: {\"transcript\": \"...\"}"
+
+
+# Per-mode perception rules (MODE-3 to MODE-6), appended to PERCEIVE's rules. Focus has none, so the
+# hero demo's prompt is unchanged. Each starts with a newline so an empty string changes nothing.
+MODE_RULES = {
+    "focus": "",
+    "student": """
+- STUDENT MODE (lectures, slides, problem sets, labs):
+  A deadline with a day but no time ("quiz Thursday", "lab report due Monday") is a calendar_event at 09:00
+  that day titled "Due: <what>", ending 09:30.
+  You may also use suggestion type "flashcards" when a slide, board or explanation teaches facts worth
+  memorizing: body holds 3 to 6 cards, one per line, as "Q: ... / A: ...". Only facts actually shown or said.""",
+    "life": """
+- LIFE MODE (everyday errands): prefer reminder for errands, plans and things to pick up.
+  In the caption, name objects and where they are placed (e.g. "keys on the hallway table"), so they can be found later.""",
+    "assist": """
+- ASSIST MODE (reading, finding, routines; support only, never medical or mobility advice):
+  In the caption, quote any printed text that is readable (signs, labels, menus) and name obstacles or doors in view.
+  Use suggestions [] unless the wearer asks for a reminder.""",
+}
+
+RECAP = """You are Cortex. Summarize this {kind} for the wearer from the moments below. Local time: {now_local}.
+MOMENTS (oldest first; each line starts with its id):
+{moments}
+OPEN PROMISES FROM IT:
+{promises}
+Return ONLY JSON:
+{{"title": "short title, e.g. Meeting with Ash or CSE 3310 lecture",
+  "spoken": "40-60 words for text-to-speech: what it was about, decisions, what is open",
+  "bullets": ["3 to 5 short key points"],
+  "decisions": [{{"text": "a decision that was made", "moment_id": "the moment id it came from"}}],
+  "follow_ups": [{{"text": "an action item or to-do", "moment_id": "the moment id it came from"}}]}}
+Use only these facts. decisions and follow_ups may be []. Every moment_id must be one of the ids above."""
+
+LOOK = """You are Cortex, worn as smart glasses. The image is what the wearer sees right now. Local time: {now_local}.
+TASK: {task}
+{detail}
+Return ONLY JSON: {{"spoken": "one or two short sentences for text-to-speech",
+"text": "the full answer for the screen", "found": true/false/null}}
+Rules: describe only what is visible; never identify anyone from their face; if text is unreadable, say so.
+This is support, not a medical or mobility device: never tell the wearer it is safe to move."""
+
+LOOK_TASKS = {
+    "describe": ("Describe the scene in front of the wearer: the main things, where they are, any people (no identities).", "found=null"),  # noqa: E501
+    "read": ("Read all printed text in view exactly as written, top to bottom. text = the text verbatim.", "found=null"),
+    "hazards": ("Point out obstacles, steps, edges, doors or other hazards. Look especially for: {target}.",
+                "found = true if {target} is visible"),
+    "find": ("Find {target} in the image and say where it is relative to the wearer (left, right, ahead, near, far).",
+             "found = true if {target} is visible"),
+    "tutor": ("The wearer is a student looking at a problem or circuit and asks: {question}. Explain how to solve it step by"
+              " step, without just giving the final answer first. text = numbered steps.", "found=null"),
+}
+
+GENERATE = """You are Cortex. Turn this moment into {what}. Local time: {now_local}.
+HEARD: \"\"\"{transcript}\"\"\"
+SAW: {caption}
+{image_note}
+Return ONLY JSON: {{"title": "short title", "body": "{body_rule}"}}
+Use only what was heard or seen; never invent facts."""
+
+GENERATE_KINDS = {
+    "flashcards": ("flashcards for studying", "3 to 6 cards, one per line, each as Q: ... / A: ..."),
+    "notes": ("structured notes (whiteboard or slide to notes)", "a heading line, then short bullet lines starting with - "),
+    "read_aloud": ("the text to read aloud", "the printed or spoken text, verbatim"),
+}

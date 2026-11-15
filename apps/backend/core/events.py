@@ -1,7 +1,8 @@
 """GET /events (Server-Sent Events). Sync route handlers publish; each SSE client has an asyncio queue.
 
 Event types (contract): moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
-action.proposed, action.updated, receipt.created, privacy.changed, call.started, call.ended.
+action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, mode.suggested, routine.due,
+call.started, call.ended.
 Message: event: <type>\\ndata: {"type", "at", "data": <entity>}"""
 import asyncio
 import json
@@ -12,6 +13,7 @@ from core.timeutil import iso, now
 TYPES = {"moment.created", "moment.deleted", "person.created", "person.updated", "person.deleted", "list.updated",
          "promise.proposed", "promise.confirmed",
          "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed",
+         "mode.suggested", "routine.due",
          "call.started", "call.ended"}
 
 # (loop, queue, user): each SSE client only hears its own user's events.

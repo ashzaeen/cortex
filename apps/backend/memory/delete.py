@@ -24,6 +24,7 @@ def delete_moment(moment_id: str) -> dict:
         db.col("moments").update_many({}, {"$pull": {"person_ids": {"$in": people}}})
         db.col("actions").delete_many({"person_id": {"$in": people}, "status": "proposed"})
 
+    db.col("state").delete_one({"_id": "mode_suggestion", "moment_id": moment_id})  # a suggestion this moment prompted
     db.col("actions").update_many({}, {"$pull": {"source_moment_ids": moment_id}})
     db.col("actions").delete_many({"source_moment_ids": {"$size": 0}})
     db.col("receipts").update_many({}, {"$pull": {"source_moment_ids": moment_id}})

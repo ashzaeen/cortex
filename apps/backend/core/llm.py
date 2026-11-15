@@ -112,7 +112,7 @@ class GeminiLLM:
         return (data.get("transcript") or "").strip()
 
     def perceive(self, *, transcript: str, image: bytes | None, video: bytes | None, mode: str,
-                 now_local: str, context: str, speaker_rule: str) -> dict:
+                 now_local: str, context: str, speaker_rule: str, mode_rules: str = "") -> dict:
         from google.genai import types
 
         parts = [types.Part.from_bytes(data=image, mime_type="image/jpeg")] if image else []
@@ -126,7 +126,32 @@ class GeminiLLM:
         prompt = prompts.PERCEIVE.format(
             now_local=now_local, mode=mode, context=context, transcript=transcript or "",
             image_note=media_note,
-            speaker_rule=speaker_rule)
+            speaker_rule=speaker_rule, mode_rules=mode_rules)
+        return self._json(prompt, parts, model=self.vision_model if parts else self.model)
+
+    def recap(self, **kw) -> dict:
+        return self._json(prompts.RECAP.format(**kw), temperature=0.2)
+
+    def look(self, *, task: str, image: bytes | None, target: str, question: str, now_local: str,
+             caption: str | None = None) -> dict:
+        from google.genai import types
+
+        what, found = prompts.LOOK_TASKS[task]
+        detail = (what + " " + found).format(target=target or "anything in the way", question=question or "how do I solve this?")
+        parts = [types.Part.from_bytes(data=image, mime_type="image/jpeg")] if image else []
+        if not image and caption:
+            detail += f"\nNo image is attached; work only from this stored caption: {caption}"
+        return self._json(prompts.LOOK.format(now_local=now_local, task=task, detail=detail), parts,
+                          model=self.vision_model if parts else self.model)
+
+    def generate(self, *, kind: str, transcript: str, caption: str, image: bytes | None, now_local: str) -> dict:
+        from google.genai import types
+
+        what, rule = prompts.GENERATE_KINDS[kind]
+        parts = [types.Part.from_bytes(data=image, mime_type="image/jpeg")] if image else []
+        note = "One image from the wearer's point of view is attached." if image else "No image."
+        prompt = prompts.GENERATE.format(what=what, now_local=now_local, transcript=transcript or "",
+                                         caption=caption or "(nothing)", image_note=note, body_rule=rule)
         return self._json(prompt, parts, model=self.vision_model if parts else self.model)
 
     def answer(self, **kw) -> dict:

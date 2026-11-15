@@ -150,6 +150,7 @@ paths:
       parameters:
         - { name: since, in: query, schema: { type: string, format: date-time } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: tag, in: query, description: "Only moments with this tag, e.g. decision (FOC-5 decision log).", schema: { type: string } }
       responses:
         "200":
           description: Moments
@@ -502,7 +503,7 @@ paths:
       summary: Actions, for example proposed emails waiting for approval
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [proposed, sent, draft_saved, done, undone, dismissed, failed] } }
-        - { name: mode, in: query, schema: { type: string, enum: [focus, student, life, assist] } }
+        - { name: mode, in: query, schema: { $ref: "#/components/schemas/ModeId" } }
       responses:
         "200":
           description: Actions
@@ -533,7 +534,7 @@ paths:
                 type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud, calendar_event, notes, message] }
                 person_id: { type: [string, "null"], description: "Required for follow_up_email." }
                 source_moment_ids: { type: array, items: { type: string }, description: "Required for every type except follow_up_email, which can find its own." }
-                mode: { type: string, enum: [focus, student, life, assist] }
+                mode: { $ref: "#/components/schemas/ModeId" }
                 title: { type: string, description: "Required for every type except follow_up_email." }
                 summary: { type: string }
                 event: { $ref: "./schemas/action.schema.json#/properties/event" }
@@ -547,6 +548,36 @@ paths:
             application/json:
               schema: { $ref: "./schemas/action.schema.json" }
               example: *FollowUp
+
+  /actions/generate:
+    post:
+      tags: [actions, modes]
+      operationId: generateAction
+      summary: Turn one stored moment into a proposed action that Cortex writes itself (STU-2 flashcards, FOC-3 whiteboard notes, AST-2 read aloud)
+      description: |
+        Cortex writes the content from the moment (flashcards as Q/A pairs, notes as key points, the text to
+        read aloud) and proposes it; nothing runs until the user confirms. Works in any mode because the user
+        asked for it. Omit moment_id to use the newest moment with a snapshot (else the newest moment).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [flashcards, notes, read_aloud] }
+                moment_id: { type: string, pattern: "^mom_" }
+                mode: { $ref: "#/components/schemas/ModeId" }
+            example: { type: flashcards, moment_id: mom_seed_005 }
+      responses:
+        "201":
+          description: Proposed action
+          content:
+            application/json:
+              schema: { $ref: "./schemas/action.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 
   /actions/{id}/confirm:
     parameters:
@@ -817,7 +848,8 @@ paths:
     post:
       tags: [modes]
       operationId: activateMode
-      summary: Make this mode the active one (the mode dock); emits mode.changed
+      summary: Make this mode the active one (the mode dock, a voice command or a confirmed suggestion); emits mode.changed
+      description: Clears any pending mode suggestion. Cortex never switches silently; clients confirm with a chime and the spoken label.
       responses:
         "200":
           description: The now-active mode
@@ -826,11 +858,49 @@ paths:
               schema: { $ref: "./schemas/mode.schema.json" }
         "404": { $ref: "#/components/responses/Error" }
 
+  /modes/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    patch:
+      tags: [modes]
+      operationId: updateMode
+      summary: Change a mode's settings (DASH-10), e.g. which actions it may suggest; emits mode.changed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModeUpdate" }
+            example: { allowed_actions: [flashcards, calendar_event], retention_days: 30 }
+      responses:
+        "200":
+          description: The updated mode
+          content:
+            application/json:
+              schema: { $ref: "./schemas/mode.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [modes]
+      operationId: deleteMode
+      summary: Delete a custom mode (MODE-7). Built-in modes cannot be deleted (409). If it was active, Focus becomes active.
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
   /modes:
     get:
       tags: [modes]
       operationId: listModes
-      summary: Mode presets; one is active
+      summary: Mode presets; one is active. Also the pending mode suggestion, if any (MODE-2 auto-suggest).
       responses:
         "200":
           description: Modes
@@ -841,6 +911,10 @@ paths:
                 required: [items]
                 properties:
                   items: { type: array, items: { $ref: "./schemas/mode.schema.json" } }
+                  suggestion:
+                    oneOf:
+                      - { $ref: "#/components/schemas/ModeSuggestion" }
+                      - { type: "null" }
               example:
                 items:
                   - id: focus
@@ -849,7 +923,205 @@ paths:
                     speaks: on request or at meeting end
                     proposes: [follow-up email]
                     allowed_actions: [follow_up_email]
+                    auto_suggest: true
+                    retention_days: null
                     active: true
+                suggestion: null
+    post:
+      tags: [modes]
+      operationId: createMode
+      summary: Create a custom mode (MODE-7, API only). It starts inactive.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModeCreate" }
+            example: { name: Lab, captures: [lab steps], speaks: on request, proposes: [notes], allowed_actions: [notes] }
+      responses:
+        "201":
+          description: Created mode
+          content:
+            application/json:
+              schema: { $ref: "./schemas/mode.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /modes/suggestion/dismiss:
+    post:
+      tags: [modes]
+      operationId: dismissModeSuggestion
+      summary: Say no to the pending mode suggestion. The same mode is not suggested again for 30 minutes.
+      responses:
+        "200":
+          description: Dismissed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dismissed]
+                properties:
+                  dismissed: { type: boolean, description: "False when nothing was pending." }
+
+  /recap:
+    get:
+      tags: [modes]
+      operationId: getRecap
+      summary: Recap of the latest session (FOC-2 meeting recap, STU-1 live lecture notes, FOC-1 action items)
+      description: |
+        A session is the newest run of moments with no gap over 30 minutes. Built only from stored moments;
+        every note, decision and follow-up links its source moment. moment_count is 0 when there is nothing.
+      parameters:
+        - { name: mode, in: query, description: "Only moments captured in this mode.", schema: { $ref: "#/components/schemas/ModeId" } }
+        - { name: kind, in: query, schema: { type: string, enum: [meeting, lecture], default: meeting } }
+      responses:
+        "200":
+          description: Recap
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recap" }
+
+  /look:
+    post:
+      tags: [modes]
+      operationId: look
+      summary: Look at the scene and answer now (AST-1 describe, AST-2 read, AST-3 hazards, AST-4 find, STU-3 tutor)
+      description: |
+        Nothing is stored: the answer is spoken and shown, and the user can save the view as a moment
+        afterwards (POST /moments). Send snapshot_base64 for what the camera sees now; otherwise moment_id,
+        or the newest moment with a snapshot from the last 10 minutes. find without a view searches memory.
+        Assist is support, not a medical or mobility device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task]
+              properties:
+                task: { type: string, enum: [describe, read, hazards, find, tutor] }
+                target: { type: string, description: "find: the object; hazards: what to look for, e.g. the door." }
+                question: { type: string, description: "tutor: what the user asked about the problem." }
+                snapshot_base64: { type: [string, "null"], description: "JPEG of what the camera sees now. Not stored." }
+                moment_id: { type: string, pattern: "^mom_" }
+            example: { task: read }
+      responses:
+        "200":
+          description: What Cortex saw
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LookResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /routines:
+    get:
+      tags: [modes]
+      operationId: listRoutines
+      summary: Routine reminders (AST-5), next first
+      responses:
+        "200":
+          description: Routines
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/routine.schema.json" } }
+    post:
+      tags: [modes]
+      operationId: createRoutine
+      summary: Add a routine reminder; emits routine.due at its time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoutineIn" }
+            example: { title: Take the evening medicine, time: "20:00", days: [] }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "./schemas/routine.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /routines/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    patch:
+      tags: [modes]
+      operationId: updateRoutine
+      summary: Change a routine reminder (pause it with active false)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoutineUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "./schemas/routine.schema.json" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [modes]
+      operationId: deleteRoutine
+      summary: Delete a routine reminder
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /caregiver:
+    get:
+      tags: [modes]
+      operationId: getCaregiver
+      summary: Caregiver sharing (AST-6, AST-7) and a preview of exactly what today's summary would send
+      responses:
+        "200":
+          description: Caregiver settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Caregiver" }
+    put:
+      tags: [modes]
+      operationId: setCaregiver
+      summary: Give or revoke consent. With consent, the summary is emailed daily at send_at (dry run unless email is set up).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaregiverIn" }
+            example: { consent: true, name: Sam, email: "sam@example.com", send_at: "20:00" }
+      responses:
+        "200":
+          description: Caregiver settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Caregiver" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /caregiver/send:
+    post:
+      tags: [modes]
+      operationId: sendCaregiverSummary
+      summary: Send today's summary now (the same as the daily send), with a receipt and an undo window
+      responses:
+        "200":
+          description: The caregiver_summary action and its receipt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+        "409": { $ref: "#/components/responses/Error" }
 
   /events:
     get:
@@ -860,7 +1132,9 @@ paths:
         Each SSE message has `event: <type>` and `data: <JSON>`. Types:
         moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed,
         promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed,
-        list.updated, call.started, call.ended. person.deleted carries {id}; list.updated carries the whole List.
+        mode.suggested, routine.due, list.updated, call.started, call.ended. person.deleted carries {id};
+        list.updated carries the whole List; mode.suggested carries a ModeSuggestion; routine.due carries the
+        Routine that is due now (clients speak its spoken line).
         The data payload is the affected entity (see components.schemas.Event).
         For call.started and call.ended the payload is a Call (components.schemas.Call).
         Prism returns the example once; real streaming comes from the backend.
@@ -901,6 +1175,118 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: not_found, message: "No such moment." } }
   schemas:
+    ModeId:
+      type: string
+      pattern: "^[a-z][a-z0-9_-]{1,31}$"
+      description: "A mode id: focus, student, life, assist, or a custom mode's slug."
+    ModeSuggestion:
+      type: object
+      description: "Cortex thinks another mode fits (MODE-2). It never switches on its own: the user confirms (activate, or say yes) or dismisses."
+      required: [mode_id, reason, moment_id, at]
+      properties:
+        mode_id: { $ref: "#/components/schemas/ModeId" }
+        reason: { type: string, description: "Short, e.g. Sounds like a lecture." }
+        moment_id: { type: [string, "null"], description: "The moment that prompted it." }
+        at: { type: string, format: date-time }
+    ModeUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        description: { type: string, maxLength: 200 }
+        captures: { type: array, items: { type: string } }
+        speaks: { type: string }
+        proposes: { type: array, items: { type: string } }
+        allowed_actions: { $ref: "./schemas/mode.schema.json#/properties/allowed_actions" }
+        auto_suggest: { type: boolean }
+        retention_days: { type: ["integer", "null"], minimum: 1 }
+    ModeCreate:
+      type: object
+      required: [name]
+      properties:
+        id: { $ref: "#/components/schemas/ModeId" }
+        name: { type: string, minLength: 1, maxLength: 40 }
+        description: { type: string, maxLength: 200 }
+        captures: { type: array, items: { type: string } }
+        speaks: { type: string }
+        proposes: { type: array, items: { type: string } }
+        allowed_actions: { $ref: "./schemas/mode.schema.json#/properties/allowed_actions" }
+        auto_suggest: { type: boolean }
+        retention_days: { type: ["integer", "null"], minimum: 1 }
+    RecapLine:
+      type: object
+      required: [text, moment_id]
+      properties:
+        text: { type: string }
+        moment_id: { type: string, pattern: "^mom_" }
+        at: { type: string, format: date-time }
+    Recap:
+      type: object
+      required: [kind, title, spoken, bullets, notes, decisions, follow_ups, started_at, ended_at, moment_count, source_moment_ids]
+      properties:
+        kind: { type: string, enum: [meeting, lecture] }
+        mode: { oneOf: [{ $ref: "#/components/schemas/ModeId" }, { type: "null" }] }
+        title: { type: string }
+        spoken: { type: string, description: "The recap to speak (about 20 seconds)." }
+        bullets: { type: array, items: { type: string } }
+        notes: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Running notes, oldest first, one per moment." }
+        decisions: { type: array, items: { $ref: "#/components/schemas/RecapLine" } }
+        follow_ups: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Action items and promises from the session." }
+        started_at: { type: [string, "null"], format: date-time }
+        ended_at: { type: [string, "null"], format: date-time }
+        moment_count: { type: integer, minimum: 0 }
+        source_moment_ids: { type: array, items: { type: string, pattern: "^mom_" } }
+    LookResult:
+      type: object
+      required: [task, spoken, text, found, moment]
+      properties:
+        task: { type: string, enum: [describe, read, hazards, find, tutor] }
+        spoken: { type: string }
+        text: { type: string, description: "The full answer (read: the text as printed; tutor: the steps)." }
+        found: { type: [boolean, "null"], description: "find and hazards: whether it was seen; null for the other tasks." }
+        moment: { oneOf: [{ $ref: "./schemas/moment.schema.json" }, { type: "null" }], description: "The stored moment used, if any (never the live view)." }
+    RoutineIn:
+      type: object
+      required: [title, time]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        time: { $ref: "./schemas/routine.schema.json#/properties/time" }
+        days: { $ref: "./schemas/routine.schema.json#/properties/days" }
+        spoken: { type: string, maxLength: 200 }
+    RoutineUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        time: { $ref: "./schemas/routine.schema.json#/properties/time" }
+        days: { $ref: "./schemas/routine.schema.json#/properties/days" }
+        spoken: { type: string, maxLength: 200 }
+        active: { type: boolean }
+    CaregiverIn:
+      type: object
+      required: [consent]
+      properties:
+        consent: { type: boolean, description: "false revokes sharing at once." }
+        name: { type: [string, "null"], maxLength: 80 }
+        email: { type: [string, "null"], format: email, description: "Required when consent is true." }
+        send_at: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", description: "Local HH:MM; default 20:00." }
+    Caregiver:
+      type: object
+      required: [consent, name, email, send_at, consented_at, last_sent_at, shares, preview]
+      properties:
+        consent: { type: boolean }
+        name: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+        send_at: { type: string }
+        consented_at: { type: [string, "null"], format: date-time }
+        last_sent_at: { type: [string, "null"], format: date-time }
+        shares: { type: array, items: { type: string }, description: "Plain list of what the summary includes and what it never includes." }
+        preview:
+          type: object
+          description: Exactly what today's email would say.
+          required: [subject, body, source_moment_ids]
+          properties:
+            subject: { type: string }
+            body: { type: string }
+            source_moment_ids: { type: array, items: { type: string, pattern: "^mom_" } }
     Error:
       type: object
       required: [error]
@@ -918,7 +1304,7 @@ components:
       properties:
         ts: { type: string, format: date-time }
         source: { type: string, enum: [glasses, phone, call, dashboard] }
-        mode: { type: string, enum: [focus, student, life, assist] }
+        mode: { $ref: "#/components/schemas/ModeId" }
         transcript: { type: [string, "null"], description: "If capture already transcribed it." }
         audio_base64: { type: [string, "null"], description: "Short audio clip if not transcribed on device." }
         snapshot_base64: { type: [string, "null"], description: "JPEG snapshot." }
@@ -1010,6 +1396,6 @@ components:
       properties:
         type:
           type: string
-          enum: [moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, list.updated, call.started, call.ended]
+          enum: [moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, mode.suggested, routine.due, list.updated, call.started, call.ended]
         at: { type: string, format: date-time }
         data: { type: object }

@@ -29,6 +29,10 @@ async def lifespan(_: FastAPI):
         from scripts.seed import seed
 
         seed()  # in-memory store starts empty in each process, so seed it here for offline runs
+    if os.getenv("SYNC_BACKGROUND", "").lower() not in {"1", "true"}:  # tests drive routines.tick() themselves
+        from skills import routines
+
+        routines.start_ticker()
     yield
 
 

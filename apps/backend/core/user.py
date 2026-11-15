@@ -72,6 +72,11 @@ def ensure_ready(user: str):
             _current.reset(token)
 
 
+def known() -> set[str]:
+    """Users this process has served (the routine and caregiver ticker visits each)."""
+    return set(_ready)
+
+
 def forget_ready():
     """Tests: drop the per-process cache after the store is reset."""
     _ready.clear()

@@ -79,7 +79,7 @@ def ping() -> bool:
 
 def reset():
     """Delete the current user's memory."""
-    for name in ("moments", "people", "promises", "actions", "receipts", "modes", "state", "drafts"):
+    for name in ("moments", "people", "promises", "actions", "receipts", "modes", "state", "drafts", "list_items"):
         own(name).delete_many({})
     from core import user
 

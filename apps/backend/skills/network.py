@@ -112,5 +112,37 @@ def create_manual(name: str, company: str | None, introduced_moment_id: str) -> 
     return contract.person(doc)
 
 
+def update(person_id: str, fields: dict) -> dict:
+    """PATCH /people/{id}: correct a card by hand. Only the fields sent change."""
+    get(person_id)
+    upd = {k: v for k, v in fields.items() if k in ("company", "role", "notes", "topics")}
+    name = (fields.get("name") or "").strip()
+    if name:
+        upd |= {"name": name, "name_lower": name.lower(), "first_lower": name.lower().split()[0],
+                "name_confidence": 1.0}
+    if upd:
+        db.col("people").update_one({"_id": person_id}, {"$set": upd})
+    doc = get(person_id)
+    events.publish("person.updated", contract.person(doc))
+    return contract.person(doc)
+
+
+def delete(person_id: str) -> dict:
+    """DELETE /people/{id}: remove the card and what was derived from it (its promises and proposed
+    actions, its links on moments). The moments themselves stay; delete them separately."""
+    from core import receipts
+
+    p = get(person_id)
+    n = db.col("promises").delete_many({"person_id": person_id}).deleted_count
+    db.col("actions").delete_many({"person_id": person_id, "status": "proposed"})
+    db.col("moments").update_many({"person_ids": person_id}, {"$pull": {"person_ids": person_id}})
+    db.col("people").delete_one({"_id": person_id})
+    events.publish("person.deleted", {"id": person_id})
+    summary = f"Deleted the contact card for {p['name']}."
+    if n:
+        summary += f" Also removed {n} promise{'s' if n != 1 else ''} with them."
+    return receipts.create("deletion", summary, [])
+
+
 def list_all() -> list[dict]:
     return [contract.person(p) for p in db.col("people").find().sort("name_lower", 1)]

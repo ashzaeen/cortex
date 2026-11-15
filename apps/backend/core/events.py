@@ -9,7 +9,8 @@ import threading
 
 from core.timeutil import iso, now
 
-TYPES = {"moment.created", "moment.deleted", "person.created", "promise.proposed", "promise.confirmed",
+TYPES = {"moment.created", "moment.deleted", "person.created", "person.updated", "person.deleted", "list.updated",
+         "promise.proposed", "promise.confirmed",
          "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed",
          "call.started", "call.ended"}
 

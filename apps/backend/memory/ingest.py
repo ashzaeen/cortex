@@ -15,7 +15,7 @@ from core.llm import get_llm
 from core.prompts import SPEAKER_RULE_DEFAULT, SPEAKER_RULE_WITH_PARTNER
 from core.timeutil import human, now, parse_dt
 from memory import store
-from skills import network, promises, suggest
+from skills import lists, network, promises, suggest
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +92,7 @@ def ingest(body: dict) -> dict:
         "person_ids": person_ids, "off_record": False, "call_id": body.get("call_id"),
         "embedding": llm.embed(embed_text or "moment"), "created_at": now(),
     }
+    lists.ensure_backfilled()  # before the insert, so the one-time scan never sees this moment
     store.insert_moment(doc)
     for x in linked:
         network.touch(x["_id"], ts, p.get("topics"))
@@ -101,6 +102,7 @@ def ingest(body: dict) -> dict:
     focus = created[0] if created else (linked[0] if linked else None)
     new_promises = promises.from_perception(p.get("promises"), doc, focus)
     suggest.from_perception(p.get("suggestions"), store.get_moment(moment_id) or doc)
+    lists.from_moment(doc)
 
     if doc["source"] == "call":
         what = caption or transcript or "the caller's camera"

@@ -91,6 +91,7 @@ tags:
   - name: receipts
   - name: privacy
   - name: modes
+  - name: lists
   - name: events
   - name: health
 paths:
@@ -196,6 +197,18 @@ paths:
   /moments/{id}:
     parameters:
       - { $ref: "#/components/parameters/Id" }
+    get:
+      tags: [moments]
+      operationId: getMoment
+      summary: One moment, for replaying it with its snapshot (MEM-10)
+      responses:
+        "200":
+          description: Moment
+          content:
+            application/json:
+              schema: { $ref: "./schemas/moment.schema.json" }
+              example: *AshPromiseMoment
+        "404": { $ref: "#/components/responses/Error" }
     delete:
       tags: [privacy]
       operationId: deleteMoment
@@ -247,6 +260,58 @@ paths:
                   - *AshPromiseMoment
                 receipt_id: rcp_ask_001
 
+  /digest:
+    get:
+      tags: [ask]
+      operationId: getDigest
+      summary: Daily digest, people met, promises, follow-ups and list items for one day (MEM-9)
+      description: Built only from that day's stored records. /ask answers "what did I do today?" with the same digest.
+      parameters:
+        - name: date
+          in: query
+          description: "YYYY-MM-DD in the user's timezone; default today."
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Digest
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Digest" }
+              example:
+                date: "2026-11-15"
+                spoken: "Today you captured 2 moments across focus mode. Met Ash from Acme. Ash promised to send the deck by Friday, Nov 20."
+                bullets: ["Met Ash from Acme", "Ash promised to send the deck by Friday, Nov 20"]
+                moment_count: 2
+                people: [*Ash]
+                promises: [*AshPromise]
+                actions: [*FollowUp]
+                source_moment_ids: [mom_live_001, mom_live_002]
+        "400": { $ref: "#/components/responses/Error" }
+
+  /rewind:
+    get:
+      tags: [ask]
+      operationId: rewind
+      summary: Replay the exact transcript line that answers a question, with its moment and snapshot (MEM-10)
+      description: The line is copied from the stored transcript, never paraphrased. found is false when nothing matches. /ask routes "rewind", "replay" and "word for word" questions here.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+          example: "Rewind what Ash promised me"
+      responses:
+        "200":
+          description: Rewind
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Rewind" }
+              example:
+                found: true
+                moment: *AshPromiseMoment
+                line: "I'll send you the deck Friday."
+                spoken: "Today at 2:02 PM, with Ash: 'I'll send you the deck Friday.'"
+
   /people:
     get:
       tags: [people]
@@ -288,6 +353,56 @@ paths:
             application/json:
               schema: { $ref: "./schemas/person.schema.json" }
               example: *Ash
+
+  /people/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    patch:
+      tags: [people]
+      operationId: updatePerson
+      summary: Edit a contact card by hand (MEM-4); only the fields sent change
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string, minLength: 1 }
+                company: { type: [string, "null"] }
+                role: { type: [string, "null"] }
+                notes: { type: [string, "null"] }
+                topics: { type: array, items: { type: string } }
+            example: { company: "Acme Robotics" }
+      responses:
+        "200":
+          description: Updated person
+          content:
+            application/json:
+              schema: { $ref: "./schemas/person.schema.json" }
+              example: *Ash
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [privacy]
+      operationId: deletePerson
+      summary: Delete a contact card, its promises and proposed actions, and its links on moments (MEM-4)
+      description: The moments stay; delete them with DELETE /moments/{id}.
+      responses:
+        "200":
+          description: Deletion receipt
+          content:
+            application/json:
+              schema: { $ref: "./schemas/receipt.schema.json" }
+              example:
+                id: rcp_del_002
+                kind: deletion
+                created_at: "2026-11-15T14:10:00-06:00"
+                summary: "Deleted the contact card for Ash. Also removed 1 promise with them."
+                action_id: null
+                source_moment_ids: []
+                undo: { available: false, until: null }
+        "404": { $ref: "#/components/responses/Error" }
 
   /people/{id}/brief:
     parameters:
@@ -480,6 +595,102 @@ paths:
               schema: { $ref: "#/components/schemas/ActionResult" }
         "409": { $ref: "#/components/responses/Error" }
 
+  /lists:
+    get:
+      tags: [lists]
+      operationId: listLists
+      summary: Shopping and expense lists (MEM-11)
+      description: Filled by voice at ingest ("add oat milk to the shopping list", "log this receipt, $12 for lunch") or by hand.
+      responses:
+        "200":
+          description: Lists
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/List" } }
+              example:
+                items:
+                  - id: shopping
+                    name: Shopping
+                    total: null
+                    items:
+                      - { id: itm_live_001, list: shopping, text: "oat milk", amount: null, done: false, source_moment_id: mom_live_002, created_at: "2026-11-15T14:02:40-06:00" }
+                  - { id: expenses, name: Expenses, total: 0, items: [] }
+
+  /lists/{id}/items:
+    parameters:
+      - { $ref: "#/components/parameters/ListId" }
+    post:
+      tags: [lists]
+      operationId: addListItem
+      summary: Add an item to a list by hand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              additionalProperties: false
+              properties:
+                text: { type: string, minLength: 1, maxLength: 200 }
+                amount: { type: [number, "null"], description: "Expenses only." }
+                source_moment_id: { type: [string, "null"] }
+            example: { text: "batteries" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "./schemas/list-item.schema.json" }
+              example: { id: itm_live_002, list: shopping, text: "batteries", amount: null, done: false, source_moment_id: null, created_at: "2026-11-15T14:03:00-06:00" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /lists/{id}/items/{item_id}:
+    parameters:
+      - { $ref: "#/components/parameters/ListId" }
+      - { $ref: "#/components/parameters/ItemId" }
+    patch:
+      tags: [lists]
+      operationId: updateListItem
+      summary: Check off or edit a list item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                text: { type: string, minLength: 1, maxLength: 200 }
+                amount: { type: [number, "null"] }
+                done: { type: boolean }
+            example: { done: true }
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema: { $ref: "./schemas/list-item.schema.json" }
+              example: { id: itm_live_002, list: shopping, text: "batteries", amount: null, done: true, source_moment_id: null, created_at: "2026-11-15T14:03:00-06:00" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [lists]
+      operationId: deleteListItem
+      summary: Remove a list item
+      responses:
+        "200":
+          description: The removed item
+          content:
+            application/json:
+              schema: { $ref: "./schemas/list-item.schema.json" }
+              example: { id: itm_live_002, list: shopping, text: "batteries", amount: null, done: true, source_moment_id: null, created_at: "2026-11-15T14:03:00-06:00" }
+        "404": { $ref: "#/components/responses/Error" }
+
   /receipts:
     get:
       tags: [receipts]
@@ -582,8 +793,9 @@ paths:
       summary: Live event stream for the dashboard (Server-Sent Events)
       description: |
         Each SSE message has `event: <type>` and `data: <JSON>`. Types:
-        moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
-        action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended.
+        moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed,
+        promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed,
+        list.updated, call.started, call.ended. person.deleted carries {id}; list.updated carries the whole List.
         The data payload is the affected entity (see components.schemas.Event).
         Prism returns the example once; real streaming comes from the backend.
       responses:
@@ -602,6 +814,16 @@ components:
   parameters:
     Id:
       name: id
+      in: path
+      required: true
+      schema: { type: string }
+    ListId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, enum: [shopping, expenses] }
+    ItemId:
+      name: item_id
       in: path
       required: true
       schema: { type: string }
@@ -655,6 +877,34 @@ components:
         bullets: { type: array, maxItems: 3, items: { type: string } }
         open_promises: { type: array, items: { $ref: "./schemas/promise.schema.json" } }
         sources: { type: array, items: { $ref: "./schemas/moment.schema.json" } }
+    Digest:
+      type: object
+      required: [date, spoken, bullets, moment_count, people, promises, actions, source_moment_ids]
+      properties:
+        date: { type: string, format: date }
+        spoken: { type: string, description: "The recap to speak." }
+        bullets: { type: array, items: { type: string } }
+        moment_count: { type: integer, minimum: 0 }
+        people: { type: array, items: { $ref: "./schemas/person.schema.json" }, description: "Met or seen that day." }
+        promises: { type: array, items: { $ref: "./schemas/promise.schema.json" }, description: "Made that day, either direction." }
+        actions: { type: array, items: { $ref: "./schemas/action.schema.json" } }
+        source_moment_ids: { type: array, items: { type: string, pattern: "^mom_" } }
+    Rewind:
+      type: object
+      required: [found, moment, line, spoken]
+      properties:
+        found: { type: boolean }
+        moment: { oneOf: [{ $ref: "./schemas/moment.schema.json" }, { type: "null" }] }
+        line: { type: [string, "null"], description: "The exact transcript sentence; null for a snapshot with no words." }
+        spoken: { type: string }
+    List:
+      type: object
+      required: [id, name, items, total]
+      properties:
+        id: { type: string, enum: [shopping, expenses] }
+        name: { type: string }
+        items: { type: array, items: { $ref: "./schemas/list-item.schema.json" }, description: "Newest first." }
+        total: { type: [number, "null"], description: "Expenses: the sum of amounts. Shopping: null." }
     ActionResult:
       type: object
       required: [action, receipt]
@@ -673,6 +923,6 @@ components:
       properties:
         type:
           type: string
-          enum: [moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended]
+          enum: [moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, list.updated, call.started, call.ended]
         at: { type: string, format: date-time }
         data: { type: object }

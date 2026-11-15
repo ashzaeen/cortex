@@ -68,8 +68,10 @@ class GeminiLLM:
 
     def __init__(self):
         from google import genai
+        from google.genai import types
 
-        self.client = genai.Client(api_key=settings.llm_api_key)
+        # v1beta: JSON mode (response_mime_type) is rejected on v1, which newer API keys default to.
+        self.client = genai.Client(api_key=settings.llm_api_key, http_options=types.HttpOptions(api_version="v1beta"))
         self.model = settings.llm_model
         self.vision_model = settings.vision_model or settings.llm_model
 

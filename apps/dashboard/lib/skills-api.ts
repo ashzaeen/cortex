@@ -2,7 +2,7 @@
 // can change independently. Types mirror the contract's components.schemas; after the Modes work lands, they can be
 // swapped for the generated ones (`npm run types`).
 import { ApiError, type Moment, type Person, type Promise_ } from "./api";
-import { demoEngine } from "./demo";
+import { apiBase, apiHeaders, demoFallbackEngine } from "./demo";
 
 export type SkillId = "network" | "waiting" | "brief" | "world" | "translate" | "immersion" | "nudge" | "coach";
 export type SkillInfo = {
@@ -30,16 +30,16 @@ export type BriefCall = { id: string; person_id: string; status: "requested" | "
 export type PersonMatch = { person: Person; matched: string[] };
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const engine = demoEngine();
+  const engine = await demoFallbackEngine();
   if (engine) {
     const out = engine.handle(method, path, body ?? null);
     const data = JSON.parse(JSON.stringify(out.body));
     if (out.status >= 400) throw new ApiError(out.status, data?.error?.code ?? "error", data?.error?.message ?? `Request failed (${out.status})`);
     return data as T;
   }
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     method,
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    headers: { ...apiHeaders(), ...(body === undefined ? {} : { "content-type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });

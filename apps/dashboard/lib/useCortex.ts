@@ -2,7 +2,7 @@
 // Loads everything the dashboard shows, and refreshes it whenever /api/events reports a change.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Action, type Call, type DemoState, type Mode, type ModeSuggestion, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
-import { demoEngine } from "./demo";
+import { demoFallbackEngine, eventsUrl } from "./demo";
 
 export type FeedItem = { id: string; at: string; type: string; text: string };
 
@@ -101,31 +101,34 @@ export function useCortex(onEvent?: (e: CortexEvent) => void) {
       refreshSoon();
     };
 
-    // /demo: events come straight from the in-tab engine instead of /api/events.
-    const engine = demoEngine();
-    if (engine) {
-      setConnected(true);
-      const off = engine.subscribe((e) => { if (EVENT_TYPES.includes(e.type)) onEvent(e.type, e as { at: string; data?: Record<string, unknown> }); });
-      return () => {
-        off();
-        if (timer.current) clearTimeout(timer.current);
-      };
-    }
-
-    const es = new EventSource("/api/events");
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
-    for (const t of EVENT_TYPES) {
-      es.addEventListener(t, (ev) => {
-        try {
-          onEvent(t, JSON.parse((ev as MessageEvent).data));
-        } catch {
-          /* ignore malformed events */
-        }
-      });
-    }
+    // /demo: the real backend through /api/demo, or (if it cannot be reached) the in-tab engine's events.
+    let cancelled = false;
+    let stop = () => {};
+    demoFallbackEngine().then((engine) => {
+      if (cancelled) return;
+      if (engine) {
+        setConnected(true);
+        const off = engine.subscribe((e) => { if (EVENT_TYPES.includes(e.type)) onEvent(e.type, e as { at: string; data?: Record<string, unknown> }); });
+        stop = off;
+        return;
+      }
+      const es = new EventSource(eventsUrl());
+      es.onopen = () => setConnected(true);
+      es.onerror = () => setConnected(false);
+      for (const t of EVENT_TYPES) {
+        es.addEventListener(t, (ev) => {
+          try {
+            onEvent(t, JSON.parse((ev as MessageEvent).data));
+          } catch {
+            /* ignore malformed events */
+          }
+        });
+      }
+      stop = () => es.close();
+    });
     return () => {
-      es.close();
+      cancelled = true;
+      stop();
       if (timer.current) clearTimeout(timer.current);
     };
   }, [refresh, refreshSoon]);

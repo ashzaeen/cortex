@@ -1,7 +1,7 @@
 // Typed client for the Cortex API, through the same-origin /api proxy.
 // Types are generated from contracts/openapi.yaml: run `npm run types` after a contract change.
 import type { components } from "./api-types";
-import { demoEngine } from "./demo";
+import { apiBase, apiHeaders, demoFallbackEngine, visitorId } from "./demo";
 
 type S = components["schemas"];
 export type Moment = S["moment.schema"];
@@ -13,6 +13,14 @@ export type Mode = S["mode.schema"];
 export type AskAnswer = S["AskAnswer"];
 export type Brief = S["Brief"];
 export type ActionResult = S["ActionResult"];
+/** The user's changes from the edit sheet; only the payload the action carries is read by the backend. */
+export type ActionEdits = Partial<{
+  draft: { to?: string; subject?: string; body?: string };
+  event: { title?: string; start?: string; end?: string; location?: string; description?: string };
+  task: { title?: string; notes?: string; due?: string };
+  doc: { title?: string; body?: string };
+  message: { to?: string; text?: string };
+}>;
 export type PrivacyState = S["PrivacyState"];
 export type Call = S["Call"];
 export type ModeSuggestion = S["ModeSuggestion"];
@@ -42,7 +50,7 @@ export class ApiError extends Error {
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const engine = demoEngine();
+  const engine = await demoFallbackEngine();
   if (engine) {
     // /demo: answer from the in-tab engine. Copy, so the UI never holds the engine's live objects.
     const out = engine.handle(method, path, body ?? null);
@@ -50,9 +58,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     if (out.status >= 400) throw new ApiError(out.status, data?.error?.code ?? "error", data?.error?.message ?? `Request failed (${out.status})`);
     return data as T;
   }
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     method,
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    headers: { ...apiHeaders(), ...(body === undefined ? {} : { "content-type": "application/json" }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
@@ -102,8 +110,9 @@ export const api = {
   confirmPromise: (id: string) => call<Promise_>("POST", `/promises/${encodeURIComponent(id)}/confirm`),
   proposeEmail: (personId: string) =>
     call<Action>("POST", "/actions/propose", { type: "follow_up_email", person_id: personId }),
-  confirmAction: (id: string, deliver: "send" | "draft" | "do") =>
-    call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/confirm`, { deliver }),
+  confirmAction: (id: string, deliver: "send" | "draft" | "do", edits?: ActionEdits) =>
+    call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/confirm`, { deliver, ...edits }),
+  dismissAction: (id: string) => call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/dismiss`),
   undoAction: (id: string) => call<ActionResult>("POST", `/actions/${encodeURIComponent(id)}/undo`),
   setPrivacy: (state: PrivacyState["state"]) => call<PrivacyState>("POST", "/privacy/pause", { state }),
   deleteMoment: (id: string) => call<Receipt>("DELETE", `/moments/${encodeURIComponent(id)}`),
@@ -120,15 +129,17 @@ export const api = {
 // /fixtures) always load through the /api proxy, which holds the API key, even when the backend
 // hands out an absolute URL: the browser never talks to the backend directly.
 const API_FILE = /^\/(snapshots|videos|fixtures)\//;
+// <img> and <video> cannot send headers, so on /demo the visitor id rides in the query string.
+const withVisitor = (path: string) => (apiBase() === "/api/demo" ? `${apiBase()}${path}${path.includes("?") ? "&" : "?"}visitor=${visitorId()}` : `${apiBase()}${path}`);
 function mediaSrc(url: string | null | undefined) {
   if (!url) return null;
   if (/^https?:/.test(url)) {
     try {
       const path = new URL(url).pathname;
-      return API_FILE.test(path) ? `/api${path}` : url;
+      return API_FILE.test(path) ? withVisitor(path) : url;
     } catch { return url; }
   }
-  return /^(data:|\/)/.test(url) ? url : `/api/${url}`;
+  return /^(data:|\/)/.test(url) ? url : withVisitor(`/${url}`);
 }
 export const snapshotSrc = mediaSrc;
 export const videoSrc = mediaSrc;

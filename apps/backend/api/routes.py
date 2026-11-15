@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from actions import doers, followup
 from api import models
-from core import db, events, receipts, snapshots, tiger
+from core import db, events, receipts, snapshots, tiger, videos
 from core.config import REPO_ROOT, settings
 from core.errors import ApiError, not_found
 from core.llm import get_llm
@@ -184,8 +184,8 @@ def get_snapshot(name: str):
 
 @router.get("/videos/{name}", include_in_schema=False)
 def get_video(name: str):
-    path = settings.video_store / name
-    if path.parent != settings.video_store or not path.is_file():
+    path = videos.cached_path(name)
+    if not path:
         raise not_found("video")
     return FileResponse(path, media_type="video/quicktime")
 

@@ -105,7 +105,7 @@ ok(live?.person_ids.includes("per_ash"), "live intro links to the seeded Ash");
 ok(events.includes("person.updated") && !events.includes("person.created"), "re-meeting emits person.updated, not person.created");
 const ashPromise = call("GET", "/promises?person_id=per_ash").body.items[0];
 ok(ashPromise?.status === "confirmed" && /deck/i.test(ashPromise.what), "Ash's deck promise is tracked");
-ok(call("GET", "/actions").body.items.some((a) => a.person_id === "per_ash" && a.status === "sent" && /Jordan/.test(a.draft.body)), "email to Ash is sent and signed by the persona");
+ok(call("GET", "/actions").body.items.some((a) => a.person_id === "per_ash" && a.status === "sent" && a.draft.body.endsWith(files.owner.name.split(" ")[0])), "email to Ash is sent and signed by the persona");
 const after = call("GET", "/people/per_ash/brief").body;
 ok(/career fair/i.test(after.spoken) && /deck/i.test(after.spoken), "brief after the demo has the first meeting and the open deck");
 const finale = call("POST", "/ask", { question: "What is open with Ash?", channel: "call" }).body;

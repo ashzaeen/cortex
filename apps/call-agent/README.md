@@ -10,7 +10,8 @@ The FaceTime call layer. A Chert line bridges an iPhone FaceTime call into a Liv
 2. Answer from memory: `POST /ask` with `channel: "call"`, and `GET /people/{id}/brief`. Built as the Gemini tools `ask_memory` and `brief_person`.
 3. Save what the caller's camera shows: `POST /moments` with `source: "call"` and `call_id`. Built as the tool `save_what_you_see`, which saves the newest camera frame **only when the caller asks** (a person may be in the picture; decided on request, not automatic, by @ashzaeen on 2026-11-15). In the demo the presenter says "save this" while holding the card up. Nothing is sent while capture is paused or off the record (the backend answers 409 and the agent tells the caller).
 4. Tell the dashboard about the call: `POST /calls/started` when the caller joins and `POST /calls/ended` on shutdown, so the Live pill shows "On Call" and the Call Cortex sheet runs its 5:00 timer. Best effort: it never blocks or ends a call.
-5. Video back to the caller (CALL-4; fallback: an iMessage attachment).
+5. Email a follow-up by voice. `draft_followup` (`POST /actions/propose`) drafts and reads back the subject and one sentence, `send_followup` (`POST /actions/{id}/confirm`, `deliver: send`) sends only with `caller_said_yes: true` and a draft made on this call, and `undo_followup` (`POST /actions/{id}/undo`) cancels it inside the 30 s window. The backend sends through Resend and every draft goes to the hardcoded recipient, so the agent never chooses an address. Needs no backend change; the hosted agent must be redeployed by hand (below). Tested against a fake API and end to end against the real backend with a local mail server; not yet tried on a real call.
+6. Video back to the caller (CALL-4; fallback: an iMessage attachment).
 
 ## Chert limits
 

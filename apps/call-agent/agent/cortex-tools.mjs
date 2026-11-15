@@ -25,6 +25,33 @@ export function cortexTools(actions) {
       },
       execute: args => actions.briefPerson(args),
     }),
+    draft_followup: llm.tool({
+      description:
+        'Draft a follow-up email to someone in memory when the caller asks you to email or follow up with them. This only drafts: nothing is sent. ' +
+        'Read the subject and one short sentence aloud, then ask "Shall I send it?".',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: "The person's name as the caller said it." } },
+        required: ['name'],
+      },
+      execute: args => actions.draftFollowUp(args),
+    }),
+    send_followup: llm.tool({
+      description:
+        'Send the follow-up email that draft_followup just drafted. Call it ONLY after the caller has clearly said yes to sending it, ' +
+        'and then set caller_said_yes to true. Never send without a yes.',
+      parameters: {
+        type: 'object',
+        properties: { caller_said_yes: { type: 'boolean', description: 'True only if the caller clearly said yes to sending this email.' } },
+        required: ['caller_said_yes'],
+      },
+      execute: args => actions.sendFollowUp(args),
+    }),
+    undo_followup: llm.tool({
+      description: 'Cancel the follow-up email that was just sent, if the caller says undo, cancel or stop it. It only works for about 30 seconds after sending.',
+      parameters: { type: 'object', properties: {} },
+      execute: () => actions.undoFollowUp(),
+    }),
     save_what_you_see: llm.tool({
       description:
         "Save the caller's current camera picture to memory, for example a business card or a whiteboard they are holding up. " +

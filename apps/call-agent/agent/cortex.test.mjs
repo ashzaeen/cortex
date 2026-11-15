@@ -302,3 +302,104 @@ describe('tool call logging', () => {
     ]);
   });
 });
+
+describe('follow-up email by voice', () => {
+  const people = { items: [{ id: 'per_ash', name: 'Ash', company: 'Acme' }, { id: 'per_sam', name: 'Sam Rivera', company: 'Globex' }] };
+  const draft = { id: 'act_1', type: 'follow_up_email', status: 'proposed', person_id: 'per_ash', draft: { to: 'inbox@example.com', subject: 'Great meeting you', body: 'Hi Ash,\n\nGreat meeting  you today.\n\nTalk soon.' } };
+  const sentBody = (seconds = 30) => ({ body: { action: { ...draft, status: 'sent' }, receipt: { undo: { available: true, until: new Date(Date.now() + seconds * 1000).toISOString() } } } });
+  const make = () => memoryActions({ client: createCortexClient({ baseUrl: base }), callId: 'c1', getLatestFrame: () => null });
+  const requests = path => seen.filter(r => r.path === path);
+
+  it('drafts for the named person, reads back a gist and sends nothing', async () => {
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: draft };
+    const out = await make().draftFollowUp({ name: 'ash' });
+    assert.deepEqual(requests('/actions/propose')[0].body, { type: 'follow_up_email', person_id: 'per_ash' });
+    assert.equal(out.drafted, true);
+    assert.equal(out.subject, 'Great meeting you');
+    assert.equal(out.gist, 'Hi Ash, Great meeting you today. Talk soon.'); // whitespace squeezed for speech
+    assert.equal(requests('/actions/act_1/confirm').length, 0);
+    assert.equal(JSON.stringify(out).includes('inbox@example.com'), false); // the address is never read aloud
+  });
+
+  it('will not send without a draft, or without the caller\'s explicit yes', async () => {
+    const act = make();
+    assert.equal((await act.sendFollowUp({ caller_said_yes: true })).reason, 'no_draft');
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: draft };
+    await act.draftFollowUp({ name: 'Ash' });
+    for (const said of [false, undefined, 'yes', 1]) assert.equal((await act.sendFollowUp({ caller_said_yes: said })).reason, 'needs_yes');
+    assert.equal(requests('/actions/act_1/confirm').length, 0);
+  });
+
+  it('sends on a yes with deliver send, and reports the undo window', async () => {
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: draft };
+    script['POST /actions/act_1/confirm'] = sentBody(30);
+    const act = make();
+    await act.draftFollowUp({ name: 'Ash' });
+    const out = await act.sendFollowUp({ caller_said_yes: true });
+    assert.deepEqual(requests('/actions/act_1/confirm')[0].body, { deliver: 'send' });
+    assert.equal(out.sent, true);
+    assert.ok(out.undo_seconds >= 28 && out.undo_seconds <= 30);
+    assert.equal((await act.sendFollowUp({ caller_said_yes: true })).reason, 'no_draft'); // one draft, one send
+    assert.equal(requests('/actions/act_1/confirm').length, 1);
+  });
+
+  it('says plainly when sending is switched off and the email was only saved as a draft', async () => {
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: draft };
+    script['POST /actions/act_1/confirm'] = { body: { action: { ...draft, status: 'draft_saved' }, receipt: { undo: { available: true } } } };
+    const act = make();
+    await act.draftFollowUp({ name: 'Ash' });
+    const out = await act.sendFollowUp({ caller_said_yes: true });
+    assert.equal(out.sent, false);
+    assert.equal(out.saved_as_draft, true);
+  });
+
+  it('undoes the email sent on this call, and says when it is too late or nothing was sent', async () => {
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: draft };
+    script['POST /actions/act_1/confirm'] = sentBody();
+    const act = make();
+    assert.equal((await act.undoFollowUp()).reason, 'nothing_to_undo');
+    await act.draftFollowUp({ name: 'Ash' });
+    await act.sendFollowUp({ caller_said_yes: true });
+    script['POST /actions/act_1/undo'] = { body: { action: { ...draft, status: 'undone' }, receipt: {} } };
+    assert.equal((await act.undoFollowUp()).undone, true);
+    assert.equal((await act.undoFollowUp()).reason, 'nothing_to_undo');
+
+    const late = make();
+    script['POST /actions/act_1/undo'] = { status: 409, body: { error: { code: 'undo_expired', message: 'closed' } } };
+    await late.draftFollowUp({ name: 'Ash' });
+    await late.sendFollowUp({ caller_said_yes: true });
+    const out = await late.undoFollowUp();
+    assert.deepEqual([out.undone, out.reason], [false, 'undo_expired']);
+  });
+
+  it('does not draft for an unknown or ambiguous name, or when there is no address, and never sends then', async () => {
+    script['GET /people'] = { body: { items: [...people.items, { id: 'per_sam2', name: 'Sam Rivera', company: 'Beta' }] } };
+    const act = make();
+    assert.equal((await act.draftFollowUp({ name: 'Zed' })).found, false);
+    assert.equal((await act.draftFollowUp({ name: 'Sam Rivera' })).ambiguous.length, 2);
+    assert.equal((await act.draftFollowUp({ name: '  ' })).error, 'No name was given.');
+    assert.equal(requests('/actions/propose').length, 0);
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: { ...draft, draft: { ...draft.draft, to: '' } } };
+    assert.equal((await act.draftFollowUp({ name: 'Ash' })).reason, 'no_address');
+    assert.equal((await act.sendFollowUp({ caller_said_yes: true })).reason, 'no_draft');
+  });
+
+  it('handles an unreachable Cortex and a send that fails without crashing the call', async () => {
+    const down = memoryActions({ client: createCortexClient({ baseUrl: 'http://127.0.0.1:1', retryDelaysMs: [1, 1] }), callId: 'c1', getLatestFrame: () => null });
+    assert.match((await down.draftFollowUp({ name: 'Ash' })).error, /not reachable/);
+    script['GET /people'] = { body: people };
+    script['POST /actions/propose'] = { status: 201, body: draft };
+    script['POST /actions/act_1/confirm'] = { status: 500, body: { error: { code: 'internal', message: 'boom' } } };
+    const act = make();
+    await act.draftFollowUp({ name: 'Ash' });
+    const out = await act.sendFollowUp({ caller_said_yes: true });
+    assert.equal(out.sent, false);
+    assert.equal((await act.undoFollowUp()).reason, 'nothing_to_undo'); // a failed send leaves nothing to undo
+  });
+});

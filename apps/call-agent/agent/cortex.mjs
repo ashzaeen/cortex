@@ -101,6 +101,11 @@ export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEF
     ask: question => request('POST', '/ask', { question, channel: 'call' }, timeoutMs, { retry: true }),
     people: () => request('GET', '/people', undefined, timeoutMs, { retry: true }),
     brief: personId => request('GET', `/people/${encodeURIComponent(personId)}/brief`, undefined, timeoutMs, { retry: true }),
+    // The follow-up email (backend sends it through Resend after the 30 s undo window). Propose is safe to repeat (the
+    // backend returns the open draft) and writes with a model, so it gets longer; confirm and undo are never retried.
+    proposeFollowUp: personId => request('POST', '/actions/propose', { type: 'follow_up_email', person_id: personId }, 25000, { retry: true }),
+    confirmAction: actionId => request('POST', `/actions/${encodeURIComponent(actionId)}/confirm`, { deliver: 'send' }),
+    undoAction: actionId => request('POST', `/actions/${encodeURIComponent(actionId)}/undo`),
     saveMoment: ({ callId, jpeg, transcript }) =>
       request('POST', '/moments', {
         ts: new Date().toISOString(),
@@ -115,8 +120,23 @@ export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEF
 // What the model hears back when Cortex cannot be reached: honest and short.
 const UNAVAILABLE = { error: 'Memory is not reachable right now. Tell the caller you cannot check memory at the moment.' };
 
+// Find one person in memory by name. Returns { person } or { out } (the result to hand back to the model).
+async function findPerson(client, name) {
+  const wanted = String(name ?? '').trim().toLowerCase();
+  if (!wanted) return { out: { error: 'No name was given.' } };
+  const list = await client.people();
+  if (!list.ok) return { out: UNAVAILABLE };
+  const people = list.data.items ?? [];
+  const exact = people.filter(p => p.name.toLowerCase() === wanted);
+  const loose = people.filter(p => p.name.toLowerCase().includes(wanted) || wanted.includes(p.name.toLowerCase()));
+  const matches = exact.length ? exact : loose;
+  if (matches.length === 0) return { out: { found: false, note: 'Nobody by that name is in memory.' } };
+  if (matches.length > 1) return { out: { found: false, ambiguous: matches.map(p => (p.company ? `${p.name} from ${p.company}` : p.name)) } };
+  return { person: matches[0] };
+}
+
 /**
- * The three things the model can do. Each returns a small plain object that is sent back to the model.
+ * The things the model can do. Each returns a small plain object that is sent back to the model.
  * @param {{ client: ReturnType<typeof createCortexClient>, callId: string, getLatestFrame: () => ({ jpeg: Buffer, at: number } | null), now?: () => number }} deps
  */
 export function memoryActions({ client, callId, getLatestFrame, now = Date.now }) {
@@ -134,6 +154,9 @@ export function memoryActions({ client, callId, getLatestFrame, now = Date.now }
     log('tool', { name, ...summarize(out), ms: Math.round(performance.now() - started) });
     return out;
   };
+
+  let pending = null; // the draft awaiting the caller's yes: { id, name }; only ever made on this call
+  let lastSent = null; // the email sent on this call, for "undo that": { id }
 
   const actions = {
     /** Answer from memory (POST /ask, channel call). */
@@ -153,19 +176,61 @@ export function memoryActions({ client, callId, getLatestFrame, now = Date.now }
 
     /** Spoken brief about one person (GET /people, then GET /people/{id}/brief). */
     async briefPerson({ name }) {
-      const wanted = String(name ?? '').trim().toLowerCase();
-      if (!wanted) return { error: 'No name was given.' };
-      const list = await client.people();
-      if (!list.ok) return UNAVAILABLE;
-      const people = list.data.items ?? [];
-      const exact = people.filter(p => p.name.toLowerCase() === wanted);
-      const loose = people.filter(p => p.name.toLowerCase().includes(wanted) || wanted.includes(p.name.toLowerCase()));
-      const matches = exact.length ? exact : loose;
-      if (matches.length === 0) return { found: false, note: 'Nobody by that name is in memory.' };
-      if (matches.length > 1) return { found: false, ambiguous: matches.map(p => (p.company ? `${p.name} from ${p.company}` : p.name)) };
-      const res = await client.brief(matches[0].id);
+      const found = await findPerson(client, name);
+      if (found.out) return found.out;
+      const res = await client.brief(found.person.id);
       if (!res.ok) return UNAVAILABLE;
       return { found: true, brief: res.data.spoken, bullets: res.data.bullets ?? [] };
+    },
+
+    /** Draft a follow-up email to someone in memory (POST /actions/propose). Nothing is sent until sendFollowUp. */
+    async draftFollowUp({ name }) {
+      const found = await findPerson(client, name);
+      if (found.out) return found.out;
+      const res = await client.proposeFollowUp(found.person.id);
+      if (!res.ok) {
+        return res.status === 0 || res.status >= 500 ? UNAVAILABLE : { drafted: false, reason: res.code, note: 'The draft could not be made. Tell the caller.' };
+      }
+      const draft = res.data.draft ?? {};
+      pending = null;
+      if (!draft.to) return { drafted: false, reason: 'no_address', note: 'There is no email address for that person, so nothing can be sent. Tell the caller.' };
+      pending = { id: res.data.id, name: found.person.name };
+      const gist = String(draft.body ?? '').replace(/\s+/g, ' ').trim().slice(0, 220);
+      return {
+        drafted: true, person: found.person.name, subject: draft.subject ?? '', gist,
+        note: 'Read the subject and one short sentence of it aloud, then ask "Shall I send it?". Do not call send_followup until the caller clearly says yes.',
+      };
+    },
+
+    /** Send the open draft (POST /actions/{id}/confirm). Only with the caller's explicit yes, and only a draft made on this call. */
+    async sendFollowUp({ caller_said_yes: callerSaidYes }) {
+      if (!pending) return { sent: false, reason: 'no_draft', note: 'There is no draft to send. Draft one first.' };
+      if (callerSaidYes !== true) {
+        return { sent: false, reason: 'needs_yes', note: 'Ask the caller whether to send it. Call this again only after they clearly say yes.' };
+      }
+      const { id, name } = pending;
+      const res = await client.confirmAction(id);
+      if (!res.ok) {
+        if (res.status === 409) pending = null; // already sent, undone or dismissed elsewhere
+        return { sent: false, reason: res.code, note: res.status === 409 ? 'That draft was already handled.' : 'It could not be sent. Tell the caller.' };
+      }
+      pending = null;
+      if (res.data?.action?.status !== 'sent') {
+        return { sent: false, saved_as_draft: true, note: 'Email sending is switched off, so it was only saved as a draft. Tell the caller it was NOT sent.' };
+      }
+      lastSent = { id };
+      const until = Date.parse(res.data?.receipt?.undo?.until ?? '');
+      const seconds = Number.isFinite(until) ? Math.max(0, Math.round((until - now()) / 1000)) : 30;
+      return { sent: true, person: name, undo_seconds: seconds, note: `It goes out in about ${seconds} seconds. Tell the caller they can say "undo that" until then.` };
+    },
+
+    /** Cancel the email sent on this call while its undo window is open (POST /actions/{id}/undo). */
+    async undoFollowUp() {
+      if (!lastSent) return { undone: false, reason: 'nothing_to_undo', note: 'Nothing was sent on this call.' };
+      const res = await client.undoAction(lastSent.id);
+      if (res.ok) { lastSent = null; return { undone: true, note: 'It will not be sent.' }; }
+      if (res.status === 409) { lastSent = null; return { undone: false, reason: res.code, note: 'It is too late to undo: the window has closed.' }; }
+      return { undone: false, reason: res.code, note: 'The undo did not go through. Tell the caller the email may still go out.' };
     },
 
     /** Save the caller's latest camera picture as a moment (POST /moments, source call). Only on request. */
@@ -187,6 +252,9 @@ export function memoryActions({ client, callId, getLatestFrame, now = Date.now }
   return {
     askMemory: traced('ask_memory', actions.askMemory, out => ({ ok: !out.error, grounded: out.grounded, sources: out.sources })),
     briefPerson: traced('brief_person', actions.briefPerson, out => ({ ok: !out.error, found: out.found })),
+    draftFollowUp: traced('draft_followup', actions.draftFollowUp, out => ({ ok: out.drafted === true, ...(out.reason ? { reason: out.reason } : {}) })),
+    sendFollowUp: traced('send_followup', actions.sendFollowUp, out => ({ ok: out.sent === true, ...(out.reason ? { reason: out.reason } : {}) })),
+    undoFollowUp: traced('undo_followup', actions.undoFollowUp, out => ({ ok: out.undone === true, ...(out.reason ? { reason: out.reason } : {}) })),
     saveWhatYouSee: traced('save_what_you_see', actions.saveWhatYouSee, out => ({ ok: out.saved === true, ...(out.reason ? { reason: out.reason } : {}) })),
   };
 }

@@ -49,6 +49,17 @@ cd apps/call-agent/connector && railway up --service chert-connector --project 0
 
 Never run the laptop's `chert dev` while the server's is up: one session holds the line. Do not run `chert login` on another computer for the same project until it is clear that signing in again does not revoke the server's credential. `make test` covers `connector.sh` and `start.sh` against a stub `chert`.
 
+## Reading the agent's logs
+
+In Railway (`call-agent` → Deployments → View logs). One JSON line per event:
+
+- `cortex="call"`: a call started; `callId` is Chert's call id.
+- `cortex="tool"`: a memory tool ran: `name` (`ask_memory`, `brief_person`, `save_what_you_see`), `ok`, `ms`, and `grounded`, `found` or `reason`. It never contains the question, the name asked about or the note.
+- `cortex="request_failed"` and `cortex="retrying"`: a Cortex API call failed; a 502/503/504 or refused connection is retried twice (after 1 s and 2 s) for lookups, never for saving a picture or for a timeout. `/calls/started` and `/calls/ended` answer 404 until the call-lifecycle endpoints are deployed.
+- `vision="frame_sent"`: the caller's camera is reaching Gemini. Idle warm rooms end every ~5 minutes with "Room disconnected while waiting for participant": Chert recycling, not a fault.
+
+A saved picture's transcript is stored as `Shown on the call: <note>`, so it is not mistaken for something the caller said.
+
 ## Test it
 
 `make test` runs the client and tool tests against a fake Cortex API (no install needed); `make lint` syntax-checks the agent. Both run inside `make check`.

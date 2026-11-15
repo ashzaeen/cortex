@@ -44,15 +44,20 @@ export function localApiWarning(apiUrl, onLiveKitWorker) {
     'Set CORTEX_API_URL to the hosted Cortex API, or every memory lookup, save and call report will fail.';
 }
 
+// A redeploy or a gateway blip answers 502/503/504 or refuses the connection while the backend restarts: the request
+// most likely never ran, so asking again a moment later is safe for requests that are safe to repeat.
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 /**
- * @param {{ baseUrl?: string, apiKey?: string, fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
+ * @param {{ baseUrl?: string, apiKey?: string, fetchImpl?: typeof fetch, timeoutMs?: number, retryDelaysMs?: number[] }} [options]
  */
-export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, apiKey = process.env.CORTEX_API_KEY, fetchImpl = fetch, timeoutMs = 12000 } = {}) {
+export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, apiKey = process.env.CORTEX_API_KEY, fetchImpl = fetch, timeoutMs = 12000, retryDelaysMs = [1000, 2000] } = {}) {
   const base = baseUrl.replace(/\/+$/, '');
   // The backend requires this key on every route but /health when CORTEX_API_KEY is set there. Never logged.
   const keyHeader = apiKey && apiKey.trim() ? { 'x-cortex-key': apiKey.trim() } : {};
 
-  async function request(method, path, body, ms = timeoutMs) {
+  async function once(method, path, body, ms) {
     try {
       const res = await fetchImpl(`${base}${path}`, {
         method,
@@ -74,13 +79,28 @@ export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEF
     }
   }
 
+  /**
+   * One request. With `retry`, a 502/503/504 or a refused connection is tried again after each delay in retryDelaysMs.
+   * Never a timeout (the request may have run) and never a 4xx (asking again cannot change the answer).
+   */
+  async function request(method, path, body, ms = timeoutMs, { retry = false } = {}) {
+    let result = await once(method, path, body, ms);
+    for (const delay of retry ? retryDelaysMs : []) {
+      if (result.ok || !(RETRYABLE_STATUS.has(result.status) || result.code === 'unreachable')) break;
+      log('retrying', { method, path, afterMs: delay });
+      await sleep(delay);
+      result = await once(method, path, body, ms);
+    }
+    return result;
+  }
+
   return {
     baseUrl: base,
     callStarted: callId => request('POST', '/calls/started', { call_id: callId }, 4000),
     callEnded: callId => request('POST', '/calls/ended', { call_id: callId }, 3000),
-    ask: question => request('POST', '/ask', { question, channel: 'call' }),
-    people: () => request('GET', '/people'),
-    brief: personId => request('GET', `/people/${encodeURIComponent(personId)}/brief`),
+    ask: question => request('POST', '/ask', { question, channel: 'call' }, timeoutMs, { retry: true }),
+    people: () => request('GET', '/people', undefined, timeoutMs, { retry: true }),
+    brief: personId => request('GET', `/people/${encodeURIComponent(personId)}/brief`, undefined, timeoutMs, { retry: true }),
     saveMoment: ({ callId, jpeg, transcript }) =>
       request('POST', '/moments', {
         ts: new Date().toISOString(),
@@ -100,7 +120,22 @@ const UNAVAILABLE = { error: 'Memory is not reachable right now. Tell the caller
  * @param {{ client: ReturnType<typeof createCortexClient>, callId: string, getLatestFrame: () => ({ jpeg: Buffer, at: number } | null), now?: () => number }} deps
  */
 export function memoryActions({ client, callId, getLatestFrame, now = Date.now }) {
-  return {
+  // One log line per tool call: its name, whether it worked and how long it took. Never the question, the name
+  // asked about or the note: those are the caller's memory.
+  const traced = (name, fn, summarize) => async args => {
+    const started = performance.now();
+    let out;
+    try {
+      out = await fn(args);
+    } catch (err) {
+      log('tool', { name, ok: false, ms: Math.round(performance.now() - started), error: 'exception' });
+      throw err;
+    }
+    log('tool', { name, ...summarize(out), ms: Math.round(performance.now() - started) });
+    return out;
+  };
+
+  const actions = {
     /** Answer from memory (POST /ask, channel call). */
     async askMemory({ question }) {
       const q = String(question ?? '').trim();
@@ -139,10 +174,19 @@ export function memoryActions({ client, callId, getLatestFrame, now = Date.now }
       if (!frame || now() - frame.at > FRESH_FRAME_MS) {
         return { saved: false, reason: 'no_picture', note: 'There is no current picture. Ask the caller to turn their camera on and hold the item still.' };
       }
-      const res = await client.saveMoment({ callId, jpeg: frame.jpeg, transcript: String(note ?? '').trim() || undefined });
+      // The note is the model's description of the picture, not words anyone said. Label it so search, drafts and the
+      // dashboard (which quotes a moment's transcript) do not take it for speech.
+      const shown = String(note ?? '').trim();
+      const res = await client.saveMoment({ callId, jpeg: frame.jpeg, transcript: shown ? `Shown on the call: ${shown}` : undefined });
       if (res.ok) return { saved: true };
       if (res.status === 409) return { saved: false, reason: res.code, note: 'Capture is paused or off the record, so nothing was saved. Tell the caller.' };
       return { saved: false, reason: res.code, note: 'It could not be saved. Tell the caller.' };
     },
+  };
+
+  return {
+    askMemory: traced('ask_memory', actions.askMemory, out => ({ ok: !out.error, grounded: out.grounded, sources: out.sources })),
+    briefPerson: traced('brief_person', actions.briefPerson, out => ({ ok: !out.error, found: out.found })),
+    saveWhatYouSee: traced('save_what_you_see', actions.saveWhatYouSee, out => ({ ok: out.saved === true, ...(out.reason ? { reason: out.reason } : {}) })),
   };
 }

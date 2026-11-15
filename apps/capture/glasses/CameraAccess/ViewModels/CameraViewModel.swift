@@ -74,6 +74,7 @@ final class CameraViewModel {
   var activePreview: CapturePreview?
   var isCapturingPhoto: Bool = false
   private(set) var isSavingMoment: Bool = false
+  private(set) var isLiveAnalysisActive: Bool = false
   private(set) var cortexMessage: String = "Captured photos and videos upload automatically."
   var needsAPIKey: Bool = false
   let voiceAssistant = VoiceAssistant()
@@ -166,6 +167,7 @@ final class CameraViewModel {
   @ObservationIgnored private var isStoppingForBackground: Bool = false
   @ObservationIgnored private var backgroundStopSuppressionTask: Task<Void, Never>?
   @ObservationIgnored private var recordingLimitTask: Task<Void, Never>?
+  @ObservationIgnored private var liveAnalysisTask: Task<Void, Never>?
 
   @ObservationIgnored private let videoRecorder = VideoRecorder()
   // Decodes compressed hvc1 frames for on-screen preview. Not required for
@@ -203,6 +205,7 @@ final class CameraViewModel {
     foregroundResumeTask?.cancel()
     backgroundStopSuppressionTask?.cancel()
     recordingLimitTask?.cancel()
+    liveAnalysisTask?.cancel()
     deviceSession?.stop()
   }
 
@@ -361,6 +364,19 @@ final class CameraViewModel {
 
   private func handleVoiceCommand(_ command: String) {
     let normalized = command.lowercased()
+    let requestsLiveAnalysis = ["live analysis", "real time", "real-time", "continuous analysis", "live feed"]
+      .contains { normalized.contains($0) }
+    let requestsStop = ["stop", "end", "cancel"].contains { normalized.contains($0) }
+
+    if requestsLiveAnalysis, requestsStop {
+      stopLiveAnalysis(announce: true)
+      return
+    }
+
+    if requestsLiveAnalysis {
+      startLiveAnalysis()
+      return
+    }
     let requestsCapture = [
       "capture", "take a photo", "take a picture", "what do you see", "analyze this", "describe this",
     ].contains { normalized.contains($0) }
@@ -387,6 +403,64 @@ final class CameraViewModel {
         voiceAssistant.speak("I couldn't reach Cortex memory. Check the connection and try again.")
       }
     }
+  }
+
+  private func startLiveAnalysis() {
+    guard isStreaming, currentVideoFrame != nil else {
+      voiceAssistant.speak("Start the glasses preview before starting live analysis.")
+      return
+    }
+    guard liveAnalysisTask == nil else {
+      voiceAssistant.speak("Live analysis is already running.")
+      return
+    }
+
+    isLiveAnalysisActive = true
+    cortexMessage = "Live analysis started. Sampling the Ray-Ban feed every 5 seconds."
+    voiceAssistant.speak("Live analysis started. I will describe what changes around you.")
+    liveAnalysisTask = Task { @MainActor [weak self] in
+      guard let self else { return }
+      defer {
+        self.liveAnalysisTask = nil
+        self.isLiveAnalysisActive = false
+      }
+
+      for _ in 0..<24 {
+        guard !Task.isCancelled, self.isStreaming else { break }
+        if let data = self.currentVideoFrame?.jpegData(compressionQuality: 0.72) {
+          do {
+            self.cortexMessage = "Analyzing live Ray-Ban frame..."
+            let moment = try await CortexAPI.capturePhoto(imageData: data)
+            let insight = moment.caption ?? "Live frame saved to Cortex."
+            self.cortexMessage = insight
+            self.voiceAssistant.speak(insight)
+          } catch {
+            self.cortexMessage = "Live analysis failed: \(error.localizedDescription)"
+            self.markMissingAPIKeyIfNeeded(error)
+            self.voiceAssistant.speak("Live analysis lost its connection, so I stopped it.")
+            break
+          }
+        }
+        try? await Task.sleep(for: .seconds(5))
+      }
+
+      if !Task.isCancelled {
+        self.cortexMessage = "Live analysis stopped after 2 minutes to protect battery."
+        self.voiceAssistant.speak("Live analysis stopped to protect your glasses battery.")
+      }
+    }
+  }
+
+  private func stopLiveAnalysis(announce: Bool) {
+    guard liveAnalysisTask != nil else {
+      if announce { voiceAssistant.speak("Live analysis is not running.") }
+      return
+    }
+    liveAnalysisTask?.cancel()
+    liveAnalysisTask = nil
+    isLiveAnalysisActive = false
+    cortexMessage = "Live analysis stopped."
+    if announce { voiceAssistant.speak("Live analysis stopped.") }
   }
 
   func toggleRecording() {
@@ -629,6 +703,7 @@ final class CameraViewModel {
 
   /// Single stream-teardown convergence point.
   private func clearStreamResources() {
+    stopLiveAnalysis(announce: false)
     streamTokenBag.clear()
     // Detach the camera (idempotent) so a subsequent addCamera() can register a new one. On the
     // user-stop and session-end paths the camera is already stopped, so this is a no-op; it is

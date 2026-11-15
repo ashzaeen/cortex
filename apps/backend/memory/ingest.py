@@ -15,7 +15,7 @@ from core.llm import get_llm
 from core.prompts import SPEAKER_RULE_DEFAULT, SPEAKER_RULE_WITH_PARTNER
 from core.timeutil import human, now, parse_dt
 from memory import store
-from skills import brief, lists, network, promises, suggest
+from skills import brief, lists, modes, network, promises, suggest
 
 log = logging.getLogger(__name__)
 
@@ -74,7 +74,13 @@ def ingest(body: dict) -> dict:
         video_url = videos.save(video)
 
     ts = parse_dt(body.get("ts")) or now()
-    mode = body.get("mode") or store.active_mode()
+    if body.get("mode") and not modes.exists(body["mode"]):
+        raise ApiError(400, "bad_request", f"Unknown mode {body['mode']}.")
+    # MODE-2: "Switch to Student mode" switches before perception, so this moment is heard in the new mode.
+    switched = modes.switch_command(transcript)
+    if switched and switched != store.active_mode():
+        modes.activate(switched)
+    mode = body.get("mode") or switched or store.active_mode()
     moment_id = new_id("mom")
 
     partner = network.active_partner(ts)
@@ -87,7 +93,7 @@ def ingest(body: dict) -> dict:
             context = f'Just before this, the wearer was with {partner["name"]}{company}: "{last["transcript"]}"'
 
     p = llm.perceive(transcript=transcript or "", image=image, video=video, mode=mode, now_local=human(now()),
-                     context=context, speaker_rule=rule) or {}
+                     context=context, speaker_rule=rule, mode_rules=modes.perception_rules(mode)) or {}
     if video and not transcript:
         # Gemini hears a video's audio. Keep what was said, or search, proof and drafts never see it.
         transcript = _heard(p.get("transcript"))
@@ -108,6 +114,9 @@ def ingest(body: dict) -> dict:
         "person_ids": person_ids, "off_record": False, "call_id": body.get("call_id"),
         "embedding": llm.embed(embed_text or "moment"), "created_at": now(),
     }
+    tags = modes.tags_for(transcript)  # FOC-5 decision log
+    if tags:
+        doc["tags"] = tags
     lists.ensure_backfilled()  # before the insert, so the one-time scan never sees this moment
     store.insert_moment(doc)
     for x in linked:
@@ -120,6 +129,8 @@ def ingest(body: dict) -> dict:
     new_promises = promises.from_perception(p.get("promises"), doc, focus)
     suggest.from_perception(p.get("suggestions"), store.get_moment(moment_id) or doc)
     lists.from_moment(doc)
+    if not switched:
+        modes.suggest_from(doc)  # MODE-2 auto-suggest: pending until the user says yes
     for pid in person_ids:
         background.run(brief.prewarm, pid)  # demo rule: the brief is warm before anyone asks
 

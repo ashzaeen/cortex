@@ -26,7 +26,7 @@ struct TipRow: View {
       Image(resource)
         .resizable()
         .renderingMode(.template)
-        .foregroundStyle(Color.black)
+        .foregroundStyle(Color.primary)
         .aspectRatio(contentMode: .fit)
         .frame(width: 24)
         .padding(.leading, 4)
@@ -36,16 +36,16 @@ struct TipRow: View {
         VStack(alignment: .leading, spacing: 6) {
           Text(title)
             .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(Color.black)
+            .foregroundStyle(Color.primary)
           Text(text)
             .font(.system(size: 15))
-            .foregroundStyle(Color.gray)
+            .foregroundStyle(Color.secondary)
             .fixedSize(horizontal: false, vertical: true)
         }
       } else {
         Text(text)
           .font(.system(size: 15))
-          .foregroundStyle(Color.black)
+          .foregroundStyle(Color.primary)
           .fixedSize(horizontal: false, vertical: true)
       }
 

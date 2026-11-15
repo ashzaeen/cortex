@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.routes import router
+from api.skills_routes import router as skills_router
 from core import db, errors, tiger, user
 from core.config import settings
 from memory import store
@@ -29,6 +30,13 @@ async def lifespan(_: FastAPI):
         from scripts.seed import seed
 
         seed()  # in-memory store starts empty in each process, so seed it here for offline runs
+    if os.getenv("SYNC_BACKGROUND", "").lower() not in {"1", "true"}:  # tests drive routines.tick() themselves
+        from skills import routines
+
+        routines.start_ticker()
+        from skills import skill_ticker
+
+        skill_ticker.start()
     yield
 
 
@@ -66,6 +74,7 @@ def create_app() -> FastAPI:
                        allow_methods=["*"], allow_headers=["*"])
     errors.register(app)
     app.include_router(router)
+    app.include_router(skills_router)
     return app
 
 

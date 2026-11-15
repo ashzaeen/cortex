@@ -151,6 +151,10 @@ def undo(action_id: str, google_token: str | None = None) -> dict:
     doc = db.col("actions").find_one({"_id": action_id})
     if not doc:
         raise not_found("action")
+    if doc["type"] == "caregiver_summary":
+        from skills import caregiver
+
+        return caregiver.undo(doc)
     if doc["type"] != "follow_up_email":
         return doers.undo(doc, google_token)
     if doc["status"] not in {"sent", "draft_saved"}:

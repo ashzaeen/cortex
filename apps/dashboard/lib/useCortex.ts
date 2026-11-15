@@ -1,8 +1,8 @@
 "use client";
 // Loads everything the dashboard shows, and refreshes it whenever /api/events reports a change.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type Action, type Call, type DemoState, type Mode, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
-import { demoEngine } from "./demo";
+import { api, type Action, type Call, type DemoState, type Mode, type ModeSuggestion, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
+import { demoFallbackEngine, eventsUrl } from "./demo";
 
 export type FeedItem = { id: string; at: string; type: string; text: string };
 
@@ -14,16 +14,18 @@ export type CortexData = {
   receipts: Receipt[];
   privacy: PrivacyState | null;
   modes: Mode[];
+  /** Cortex thinks another mode fits (MODE-2); null when nothing is pending. */
+  suggestion: ModeSuggestion | null;
   demo: DemoState | null;
   /** The call in progress. null = none; undefined = this backend has no GET /calls/current (use the event feed). */
   call: Call | null | undefined;
 };
 
-const empty: CortexData = { moments: [], people: [], promises: [], actions: [], receipts: [], privacy: null, modes: [], demo: null, call: undefined };
+const empty: CortexData = { moments: [], people: [], promises: [], actions: [], receipts: [], privacy: null, modes: [], suggestion: null, demo: null, call: undefined };
 
 const EVENT_TYPES = [
   "moment.created", "moment.deleted", "person.created", "promise.proposed", "promise.confirmed",
-  "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed", "call.started", "call.ended",
+  "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed", "mode.suggested", "routine.due", "list.updated", "call.started", "call.ended",
   "demo.step", "person.updated", // mock only (person.updated is proposed in #43)
 ];
 
@@ -39,6 +41,9 @@ function describe(type: string, d: Record<string, unknown>): string {
     case "receipt.created": return String(d.summary ?? "New receipt");
     case "privacy.changed": return `Capture is now ${String(d.state).replace("_", " ")}`;
     case "mode.changed": return `Mode is now ${d.name}`;
+    case "mode.suggested": return `Cortex suggests ${d.mode_id} mode: ${d.reason}`;
+    case "routine.due": return `Routine: ${d.title}`;
+    case "list.updated": return `${d.name ?? "List"} updated`;
     case "moment.deleted": return "Deleted a moment";
     case "call.started": return "FaceTime call started";
     case "call.ended": return "FaceTime call ended";
@@ -46,7 +51,12 @@ function describe(type: string, d: Record<string, unknown>): string {
   }
 }
 
-export function useCortex() {
+export type CortexEvent = { type: string; at: string; data: Record<string, unknown> };
+
+/** onEvent runs for every live event (speak a routine, chime a mode change) without re-subscribing. */
+export function useCortex(onEvent?: (e: CortexEvent) => void) {
+  const handler = useRef(onEvent);
+  useEffect(() => { handler.current = onEvent; });
   const [data, setData] = useState<CortexData>(empty);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [connected, setConnected] = useState(false);
@@ -63,7 +73,7 @@ export function useCortex() {
       const demo = await api.demo.state().catch(() => null); // only the mock has a demo driver
       // A page opened mid-call still shows "On Call". A backend without the endpoint leaves it undefined.
       const call = await api.currentCall().then((r) => r.call).catch(() => undefined);
-      setData({ moments: moments.items, people: people.items, promises: promises.items, actions: actions.items, receipts: receipts.items, privacy, modes: modes.items, demo, call });
+      setData({ moments: moments.items, people: people.items, promises: promises.items, actions: actions.items, receipts: receipts.items, privacy, modes: modes.items, suggestion: modes.suggestion ?? null, demo, call });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cannot load data.");
@@ -81,6 +91,7 @@ export function useCortex() {
   useEffect(() => {
     refresh();
     const onEvent = (t: string, msg: { at: string; data?: Record<string, unknown> }) => {
+      handler.current?.({ type: t, at: msg.at, data: msg.data ?? {} });
       if (t === "demo.step") {
         if (msg.data?.index === 0) setFeed([]); // demo reset
       } else {
@@ -90,31 +101,34 @@ export function useCortex() {
       refreshSoon();
     };
 
-    // /demo: events come straight from the in-tab engine instead of /api/events.
-    const engine = demoEngine();
-    if (engine) {
-      setConnected(true);
-      const off = engine.subscribe((e) => { if (EVENT_TYPES.includes(e.type)) onEvent(e.type, e as { at: string; data?: Record<string, unknown> }); });
-      return () => {
-        off();
-        if (timer.current) clearTimeout(timer.current);
-      };
-    }
-
-    const es = new EventSource("/api/events");
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
-    for (const t of EVENT_TYPES) {
-      es.addEventListener(t, (ev) => {
-        try {
-          onEvent(t, JSON.parse((ev as MessageEvent).data));
-        } catch {
-          /* ignore malformed events */
-        }
-      });
-    }
+    // /demo: the real backend through /api/demo, or (if it cannot be reached) the in-tab engine's events.
+    let cancelled = false;
+    let stop = () => {};
+    demoFallbackEngine().then((engine) => {
+      if (cancelled) return;
+      if (engine) {
+        setConnected(true);
+        const off = engine.subscribe((e) => { if (EVENT_TYPES.includes(e.type)) onEvent(e.type, e as { at: string; data?: Record<string, unknown> }); });
+        stop = off;
+        return;
+      }
+      const es = new EventSource(eventsUrl());
+      es.onopen = () => setConnected(true);
+      es.onerror = () => setConnected(false);
+      for (const t of EVENT_TYPES) {
+        es.addEventListener(t, (ev) => {
+          try {
+            onEvent(t, JSON.parse((ev as MessageEvent).data));
+          } catch {
+            /* ignore malformed events */
+          }
+        });
+      }
+      stop = () => es.close();
+    });
     return () => {
-      es.close();
+      cancelled = true;
+      stop();
       if (timer.current) clearTimeout(timer.current);
     };
   }, [refresh, refreshSoon]);

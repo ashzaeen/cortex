@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { api, type Action, type Mode, type Receipt } from "@/lib/api";
 import { receiptId, timecode, titleCase } from "@/lib/format";
-import { MODE_LABEL, SPRING_SNAPPY } from "./ModeDock";
+import { modeLabel, SPRING_SNAPPY } from "./ModeDock";
 import { Button, Label, ProgressRing } from "./primitives";
 
 const VERB: Record<Action["type"], string> = {
@@ -16,6 +16,7 @@ const VERB: Record<Action["type"], string> = {
   calendar_event: "Add to Calendar",
   notes: "Save to Drive",
   message: "Approve and Text",
+  caregiver_summary: "Approve and Send",
 };
 
 // One plain line under the summary: who or where it goes, so nothing leaves unseen.
@@ -98,7 +99,7 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
     }
   }
 
-  const label = `Suggested in ${MODE_LABEL[mode]}`;
+  const label = `Suggested in ${modeLabel(mode)}`;
   const primaryVerb = action ? (phase.kind === "failed" ? "Retry" : VERB[action.type]) : "";
 
   return (
@@ -185,7 +186,7 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
             </>
           ) : (
             <div className="flex flex-col gap-1">
-              <p className="t-headline">Nothing to Suggest in {MODE_LABEL[mode]} Yet</p>
+              <p className="t-headline">Nothing to Suggest in {modeLabel(mode)} Yet</p>
               <p className="t-footnote">Suggestions appear here as Cortex hears things worth acting on.</p>
             </div>
           )}

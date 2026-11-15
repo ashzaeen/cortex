@@ -1,4 +1,104 @@
 import Foundation
+import Security
+
+enum CortexAPIKeyStore {
+    private static let service = Bundle.main.bundleIdentifier ?? "com.cortex.cornea"
+    private static let account = "cortex-api-key"
+    private static let defaultsKey = "cornea.cortex-api-key"
+
+    static var key: String? {
+        if let bundledKey {
+            return bundledKey
+        }
+
+        if let savedValue = UserDefaults.standard.string(forKey: defaultsKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !savedValue.isEmpty {
+            return savedValue
+        }
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty else {
+            return nil
+        }
+        return value
+    }
+
+    static func save(_ value: String) throws {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            delete()
+            return
+        }
+
+        // UserDefaults is the compatibility path for devices whose signing profile does not
+        // permit Keychain access. It also makes the configured value survive view recreation.
+        UserDefaults.standard.set(trimmedValue, forKey: defaultsKey)
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [
+            kSecValueData as String: Data(trimmedValue.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+
+        let status: OSStatus
+        if SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess {
+            status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        } else {
+            status = SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil)
+        }
+        // Keychain is best effort because free-development signing profiles can reject it.
+        // The UserDefaults value above remains the reliable per-install persistence path.
+        _ = status
+    }
+
+    static func delete() {
+        UserDefaults.standard.removeObject(forKey: defaultsKey)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    private static var bundledKey: String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIKey") as? String else {
+            return nil
+        }
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty, !trimmedValue.hasPrefix("$(") else {
+            return nil
+        }
+        return trimmedValue
+    }
+}
+
+enum CortexCredentialError: LocalizedError {
+    case keychain(OSStatus)
+
+    var errorDescription: String? {
+        switch self {
+        case .keychain(let status):
+            return "Cornea could not securely save the API key (\(status))."
+        }
+    }
+}
 
 private struct PrivacyResponse: Decodable {
     let state: String
@@ -16,6 +116,17 @@ private struct MomentIngest: Encodable, Sendable {
         case snapshotBase64 = "snapshot_base64"
         case videoBase64 = "video_base64"
     }
+}
+
+private struct AskRequest: Encodable {
+    let question: String
+    let channel = "voice"
+}
+
+struct CortexAskAnswer: Decodable {
+    let answer: String
+    let spoken: String?
+    let grounded: Bool
 }
 
 struct CortexMoment: Decodable {
@@ -64,18 +175,8 @@ enum CortexAPI {
         return url
     }
 
-    /// The shared key the backend requires on every route but /health (CORTEX_API_KEY build setting).
-    /// Nil when it is empty or still the unexpanded "$(CORTEX_API_KEY)" placeholder, so a local build
-    /// against an open backend sends no header.
     private static var apiKey: String? {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIKey") as? String else {
-            return nil
-        }
-        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedValue.isEmpty || trimmedValue.hasPrefix("$(") {
-            return nil
-        }
-        return trimmedValue
+        CortexAPIKeyStore.key
     }
 
     static func capturePhoto(imageData: Data) async throws -> CortexMoment {
@@ -84,6 +185,31 @@ enum CortexAPI {
 
     static func captureVideo(videoData: Data) async throws -> CortexMoment {
         try await captureMoment(snapshotData: nil, videoData: videoData)
+    }
+
+    static func verifyConnection() async throws {
+        guard let apiBaseURL else {
+            throw CortexError.invalidURL
+        }
+        _ = try await privacyState(baseURL: apiBaseURL)
+    }
+
+    static func ask(question: String) async throws -> CortexAskAnswer {
+        guard let apiBaseURL else {
+            throw CortexError.invalidURL
+        }
+        let trimmedQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuestion.isEmpty else {
+            throw CortexError.emptyQuestion
+        }
+
+        var request = URLRequest(url: apiBaseURL.appending(path: "ask"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = requestTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(AskRequest(question: trimmedQuestion))
+        let data = try await perform(request)
+        return try JSONDecoder().decode(CortexAskAnswer.self, from: data)
     }
 
     private static func captureMoment(snapshotData: Data?, videoData: Data?) async throws -> CortexMoment {
@@ -162,6 +288,7 @@ enum CortexError: LocalizedError {
     case requestTimedOut
     case network(URLError)
     case serverError(Int, String)
+    case emptyQuestion
 
     var errorDescription: String? {
         switch self {
@@ -181,10 +308,13 @@ enum CortexError: LocalizedError {
             return "Could not reach the Cortex API: \(error.localizedDescription)"
 
         case .serverError(401, _):
-            return "Cortex rejected the app's key. Set CORTEX_API_KEY in the CameraAccess target's build settings."
+            return "Cornea needs the Cortex API key. Open Settings, choose API Connection, and save the current key."
 
         case .serverError(let code, let message):
             return "Cortex API error \(code): \(message)"
+
+        case .emptyQuestion:
+            return "Ask Cornea a question first."
         }
     }
 }

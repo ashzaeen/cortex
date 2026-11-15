@@ -98,17 +98,6 @@ def announce_met_again(people: list[dict]):
         events.publish("person.updated", contract.person(p))
 
 
-def search(terms: list[str]) -> list[dict]:
-    """NET-5: people whose company, role, topics, notes or name mention any term (whole words), best match first."""
-    terms = [t.lower() for t in terms if t]
-    scored = []
-    for p in db.col("people").find():
-        text = " ".join(filter(None, [p["name"], p.get("company"), p.get("role"), p.get("notes"),
-                                      *p.get("topics", [])])).lower()
-        hits = sum(1 for t in terms if re.search(rf"\b{re.escape(t)}\b", text))
-        if hits:
-            scored.append((hits, p))
-    return [p for _, p in sorted(scored, key=lambda x: -x[0])]
 
 
 def create_manual(name: str, company: str | None, introduced_moment_id: str) -> dict:
@@ -165,7 +154,3 @@ def delete(person_id: str) -> dict:
 
 def list_all() -> list[dict]:
     return [contract.person(p) for p in db.col("people").find().sort("name_lower", 1)]
-
-
-def list_raw() -> list[dict]:
-    return list(db.col("people").find())

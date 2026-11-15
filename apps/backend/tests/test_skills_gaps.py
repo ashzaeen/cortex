@@ -1,5 +1,6 @@
-"""Skills that were thin: contact search (NET-5), close-out by words (WAI-7), overdue on request (WAI-5),
-met-again events (#43), brief pre-warm (BRF-4) and the hardcoded follow-up recipient. Offline, contract-validated."""
+"""Gaps left after the skills on main (#50, #51): "Got the deck from Ash", met-again events (#43), brief pre-warm
+(BRF-4), the hardcoded follow-up recipient and the smtp default. Contact search is kept as a regression check.
+Offline, contract-validated."""
 import time
 
 from skills import brief
@@ -28,41 +29,13 @@ def test_contact_search_by_company_and_topic(seeded):
     assert ask(seeded, "Who did I meet who works on quantum?")["grounded"] is False
 
 
-def test_got_it_closes_the_promise(seeded):
+def test_got_the_deck_closes_the_promise_with_or_without_i(seeded):
     _, pm = meet_ash(seeded)
     pid = confirm_deck(seeded, pm)
-    assert ask(seeded, "What is open with Ash?")["grounded"]
-    done = ask(seeded, "Got the deck from Ash")
-    assert done["grounded"] and done["answer"].startswith("Marked done: Ash promised") and "deck" in done["answer"].lower()
-    items = seeded.get("/promises", params={"status": "done"}).json()["items"]
-    assert [i["id"] for i in items] == [pid]
-    # Gone from the open lists and from the brief
-    assert not seeded.get("/people/per_ash/brief").json()["open_promises"]
-    # A question that merely mentions sending is not a command
-    assert ask(seeded, "What did Ash send me?")["answer"] != done["answer"]
-
-
-def test_close_asks_which_when_unsure(seeded):
-    intro, pm = meet_ash(seeded)
-    seeded.post("/promises", json={"direction": "waiting_on", "person_id": "per_ash", "what": "Send the budget",
-                                   "source_moment_id": pm["id"], "due_text": "Monday"})
-    vague = ask(seeded, "Mark Ash's promise done")
-    assert vague["grounded"] and "2 open items" in vague["answer"]
-    assert not seeded.get("/promises", params={"status": "done"}).json()["items"]
-    one = ask(seeded, "Got the budget from Ash")
-    assert one["answer"].startswith("Marked done") and "budget" in one["answer"].lower()
-    left = [p["what"] for p in seeded.get("/promises").json()["items"] if p["person_id"] == "per_ash" and p["status"] != "done"]
-    assert len(left) == 1 and "deck" in left[0].lower()
-
-
-def test_overdue_on_request(seeded):
-    late = ask(seeded, "What is overdue?")  # seeded: Sam's internship link was due 2026-11-11
-    assert late["grounded"] and "(overdue)" in late["answer"] and "internship" in late["answer"].lower()
-    assert late["sources"] and late["spoken"].endswith(".")
-    from core import db
-
-    db.col("promises").update_many({}, {"$set": {"status": "done"}})
-    assert ask(seeded, "What is overdue?")["answer"] == "Nothing is overdue."
+    done = ask(seeded, "Got the deck from Ash")  # main's matcher used to need "I got ..."
+    assert done["grounded"] and done["answer"].startswith("Marked done") and "deck" in done["answer"].lower()
+    assert [i["id"] for i in seeded.get("/promises", params={"status": "done"}).json()["items"]] == [pid]
+    assert not seeded.get("/people/per_ash/brief").json()["open_promises"]  # and the brief stops listing it
 
 
 def test_meeting_a_known_person_again_emits_person_updated(seeded):

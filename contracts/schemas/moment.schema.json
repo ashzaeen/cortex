@@ -10,12 +10,13 @@
     "id": { "type": "string", "pattern": "^mom_[A-Za-z0-9_-]+$" },
     "ts": { "type": "string", "format": "date-time", "description": "When it happened (capture time, not storage time)." },
     "source": { "type": "string", "enum": ["glasses", "phone", "call", "dashboard", "seed"] },
-    "mode": { "type": "string", "enum": ["focus", "student", "life", "assist"] },
+    "mode": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,31}$", "description": "The mode active when it was captured: focus, student, life, assist or a custom mode's slug." },
     "transcript": { "type": ["string", "null"], "description": "What was said, as text." },
     "caption": { "type": ["string", "null"], "description": "What was seen, as a short caption." },
     "snapshot_url": { "type": ["string", "null"], "description": "URL or repo-relative path of the stored snapshot." },
     "video_url": { "type": ["string", "null"], "description": "URL of a stored video clip, capped at 10 seconds." },
     "place": { "type": ["string", "null"] },
+    "tags": { "type": "array", "items": { "type": "string" }, "description": "Labels Cortex added, e.g. decision (FOC-5). Absent when there are none." },
     "person_ids": { "type": "array", "items": { "type": "string", "pattern": "^per_" }, "description": "People linked to this moment." },
     "off_record": { "type": "boolean", "description": "True if captured while off-the-record; such moments are not stored, so stored moments are always false unless kept by explicit user choice." }
   }

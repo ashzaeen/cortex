@@ -2,7 +2,8 @@
 writes a receipt (kind answer) and returns its source moments.
 
 Order: 0) rewind ("replay what Ash said", MEM-10), the daily digest ("what did I do today?", MEM-9) and
-lists ("what's on my shopping list?", MEM-11), all built from stored records; 1) "brief me on <name>" -> the
+lists ("what's on my shopping list?", MEM-11), all built from stored records; then the mode routes
+(skills/mode_ask.py: switch mode, recap, decisions, what I owe, routines, look); 1) "brief me on <name>" -> the
 brief; 2) questions about a known person's promises ("What did Ash
 promise me?", "What is open with Ash?") -> answered straight from the promises table with their source
 moments (deterministic, demo-safe); 3) anything else -> search + Gemini, citations checked against hits."""
@@ -97,91 +98,6 @@ def _list_answer(q: str) -> dict | None:
     return _result(q, spoken, spoken, store.moments_by_ids(sources), bool(lst["items"]))
 
 
-WHO_MET_RE = re.compile(r"\bwho\b.{0,20}?\b(?:did i meet|have i met|do i know|was i introduced to)\b(.*)$", re.I)
-_FILLER = re.compile(r"\b(?:who|that|which|works?|working|worked|on|at|for|from|about|in|with|is|are|was|were|a|an|the|and|or|"
-                     r"of|today|yesterday|recently|earlier|also|does|do|did|i|me|my|met|meet|know|people|person|someone|"
-                     r"anyone|there)\b", re.I)
-
-
-def _people_answer(q: str) -> dict | None:
-    """NET-5 contact search: "Who did I meet who works on ML?" is answered from the contact cards."""
-    m = WHO_MET_RE.search(q)
-    if not m:
-        return None
-    terms = [t for t in re.findall(r"[a-z0-9+#.]+", _FILLER.sub(" ", m.group(1).lower())) if len(t) > 1]
-    found = network.search(terms) if terms else []
-    if not found:
-        return None
-    parts = [f"{p['name']} from {p['company']}" if p.get("company") else p["name"] for p in found[:3]]
-    answer = "You met " + ", ".join(parts[:-1]) + (" and " if len(parts) > 1 else "") + parts[-1] + "."
-    topics = [t for p in found[:1] for t in p.get("topics", [])[:2]]
-    if topics:
-        answer += f" {found[0]['name'].split()[0]} talked about {' and '.join(topics)}."
-    sources = store.moments_by_ids([p["introduced_moment_id"] for p in found[:3]])
-    return _result(q, answer, answer, sources, True)
-
-
-CLOSE_RE = re.compile(r"\b(got (?:it|the \w+|that)|(?:has |have )?(?:sent|delivered|gave|shared) (?:me|it|the \w+)|received|"
-                      r"(?:mark|close|check off|tick off)\b.*\b(?:done|promise|complete\w*)|done with|that(?:'s| is) done)\b",
-                      re.I)
-QUESTION_START = re.compile(
-    r"\s*(?:what|when|who|where|why|how|did|does|do|is|are|was|were|have|has|can|could|brief|replay|rewind)\b", re.I)
-
-
-_STOP = {"the", "and", "you", "your", "for", "from", "got", "with", "that", "this", "send", "sent", "have", "has", "had",
-         "mark", "done", "close", "promise", "promised", "check", "tick", "off", "gave", "shared", "received", "delivered",
-         "complete", "completed", "his", "her", "their", "its", "was", "just", "now", "one", "all"}
-
-
-def _content_words(text: str) -> set[str]:
-    return {w for w in re.findall(r"[a-z]{3,}", text.lower())} - _STOP
-
-
-def _close_answer(q: str) -> dict | None:
-    """WAI-7 close-out by words: "Got the deck from Ash" or "Mark Ash's promise done" closes that open promise."""
-    if QUESTION_START.match(q) or q.rstrip().endswith("?") or not CLOSE_RE.search(q):
-        return None
-    people = network.mentioned_in(q)
-    if len(people) != 1:
-        return None
-    person = people[0]
-    items = promises.open_for(person["_id"])
-    if not items:
-        return None
-    words = _content_words(q) - _content_words(person["name"])
-    match = [p for p in items if words & _content_words(p["what"])]
-    pick = match if len(match) == 1 else (items if len(items) == 1 else [])
-    if not pick:
-        names = "; ".join(brief_skill.promise_line(p, person) for p in items)
-        msg = f"{person['name']} has {len(items)} open items: {names}. Say which one is done."
-        return _result(q, msg, msg, store.moments_by_ids([p["source_moment_id"] for p in items]), True)
-    done = promises.close(pick[0]["_id"])
-    brief_skill.prewarm(person["_id"])
-    line = brief_skill.promise_line(done, person)
-    if line.startswith("You "):  # "You promised Ash..." reads better lowercase; a name keeps its capital
-        line = line[0].lower() + line[1:]
-    msg = f"Marked done: {line}."
-    return _result(q, msg, msg, store.moments_by_ids([done["source_moment_id"]]), True)
-
-
-OVERDUE_RE = re.compile(r"\b(overdue|past due|running late|behind on|late on)\b", re.I)
-
-
-def _overdue_answer(q: str) -> dict | None:
-    """WAI-5, pull version: "What is overdue?" lists open promises past their due date."""
-    asked = bool(QUESTION_START.match(q)) or q.rstrip().endswith("?")
-    if not OVERDUE_RE.search(q) or not asked:
-        return None
-    late = promises.overdue()
-    if not late:
-        msg = "Nothing is overdue."
-        return _result(q, msg, msg, [], True)
-    people = {p["_id"]: p for p in network.list_raw()}
-    lines = [brief_skill.promise_line(p, people[p["person_id"]]) + " (overdue)" for p in late if p["person_id"] in people]
-    spoken = lines[0] + (f", and {len(lines) - 1} more" if len(lines) > 1 else "") + "."
-    return _result(q, ". ".join(lines) + ".", spoken, store.moments_by_ids([p["source_moment_id"] for p in late]), True)
-
-
 def ask(question: str, channel: str) -> dict:
     q = question.strip()
 
@@ -192,10 +108,17 @@ def ask(question: str, channel: str) -> dict:
     listed = _list_answer(q)
     if listed:
         return listed
-    for handler in (_close_answer, _people_answer, _overdue_answer):
-        found = handler(q)
-        if found:
-            return found
+    from skills import mode_ask  # modes (#50): switch, recap, decisions, what I owe, routines, look
+
+    routed = mode_ask.route(q, channel, _result)
+    if routed:
+        return routed
+
+    from skills import skills_ask  # skills (#51): got it, contact search, world, translate, immersion, coach
+
+    skilled = skills_ask.route(q, channel, _result)
+    if skilled:
+        return skilled
 
     m = BRIEF_RE.search(q)
     if m:

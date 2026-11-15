@@ -46,7 +46,7 @@ export function startMock(port = 4010, host = "127.0.0.1", { profile = "fixtures
     const url = new URL(req.url, "http://x");
     const p = url.pathname.replace(/\/+$/, "") || "/";
     if (req.method === "OPTIONS") {
-      res.writeHead(204, { "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST,DELETE", "access-control-allow-headers": "content-type" });
+      res.writeHead(204, { "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE", "access-control-allow-headers": "content-type" });
       return res.end();
     }
     if (req.method === "GET" && p === "/events") {

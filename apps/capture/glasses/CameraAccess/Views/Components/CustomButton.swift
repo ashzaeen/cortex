@@ -35,7 +35,7 @@ struct CustomButton: View {
     var foregroundColor: Color {
       switch self {
       case .primary:
-        return .white
+        return Color(red: 0.04, green: 0.09, blue: 0.07)
       case .destructive:
         return .destructiveForeground
       }

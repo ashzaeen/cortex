@@ -36,3 +36,24 @@ def test_decisions_recap_nudges_and_auto_brief_have_material(client):
     assert any(a["type"] == "notes" and a["status"] == "proposed" for a in actions)
     theo = get(client, "/people/per_theo/brief", "/people/{id}/brief")
     assert any("backup video" in x["what"].lower() for x in theo["open_promises"])
+
+
+def test_a_user_seeded_from_older_demo_data_is_seeded_again(client):
+    """Users who first visited before the demo data grew (the approved logins too) get the new data on their next visit."""
+    from core import db, user
+    from scripts.seed import profile_version
+
+    assert len(get(client, "/actions")["items"]) >= 30
+    token = user._current.set("profile-check@demo.cortex")
+    try:
+        db.col("actions").delete_many({})
+        db.col("state").update_one({"_id": "profile"}, {"$set": {"version": "old"}})
+    finally:
+        user._current.reset(token)
+    user.forget_ready()
+    assert len(get(client, "/actions")["items"]) >= 30
+    token = user._current.set("profile-check@demo.cortex")
+    try:
+        assert db.col("state").find_one({"_id": "profile"})["version"] == profile_version()
+    finally:
+        user._current.reset(token)

@@ -57,6 +57,14 @@ def _profile_delta(moments: list[dict]) -> timedelta:
     return delta
 
 
+def profile_version() -> str:
+    """A short hash of the demo profile files. A user seeded from an older version is seeded again (core/user.py)."""
+    h = hashlib.sha256()
+    for f in sorted(PROFILE.glob("*.json")):
+        h.update(f.name.encode() + f.read_bytes())
+    return h.hexdigest()[:16]
+
+
 def seed_profile() -> dict:
     """The current user's own copy of the demo profile. Marks the database so it happens only once."""
     global _src
@@ -67,7 +75,7 @@ def seed_profile() -> dict:
     finally:
         _src = before
     db.col("state").replace_one({"_id": "profile"}, {"_id": "profile", "seeded_at": now(), "anchor_shift_days":
-                                                      delta.days}, upsert=True)
+                                                      delta.days, "version": profile_version()}, upsert=True)
     return counts
 
 

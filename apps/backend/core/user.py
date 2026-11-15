@@ -61,10 +61,12 @@ def ensure_ready(user: str):
             from memory import store
 
             db.ensure_indexes()
-            if user != DEFAULT and not db.col("state").find_one({"_id": "profile"}):
-                from scripts.seed import seed_profile
+            if user != DEFAULT:
+                from scripts.seed import profile_version, seed_profile
 
-                seed_profile()
+                marked = db.col("state").find_one({"_id": "profile"})
+                if not marked or marked.get("version") != profile_version():  # first visit, or the demo data changed since
+                    seed_profile()
             store.ensure_modes()
             store.privacy()
             _ready.add(user)

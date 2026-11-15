@@ -111,7 +111,7 @@ Record non-trivial decisions as ADRs in [docs/decisions/](docs/decisions/) with 
 
 ## Safety and trust rules
 
-- No real personal data in `fixtures/` or tests. Fake names, fake companies, placeholder snapshots.
+- No real personal data in `fixtures/` or tests. Fake names, fake companies, placeholder snapshots. The public demo profile (`apps/dashboard/demo/`) may use freely licensed stock photos, credited in `apps/dashboard/public/demo-snaps/CREDITS.md`; anyone shown appears only under a fake name (decided by @ashzaeen, #44).
 - No face recognition, ever. People enter memory only by introduction or consent.
 - Every captured moment is deletable, and deletion removes derived data too.
 - No secrets in the repo. Keys live in `.env` (gitignored); `.env.example` lists the names only. Never paste keys into issues, commits or chat.

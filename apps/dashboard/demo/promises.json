@@ -1,0 +1,9 @@
+[
+  { "id": "prm_demo_01", "direction": "i_owe", "person_id": "per_jamie", "what": "Pay back $24 for groceries", "due": { "date": "2026-11-15", "inferred": true, "text": "this weekend" }, "status": "confirmed", "source_moment_id": "mom_demo_05" },
+  { "id": "prm_demo_02", "direction": "waiting_on", "person_id": "per_maya", "what": "Post the milestone rubric", "due": { "date": "2026-11-16", "inferred": false, "text": "Monday" }, "status": "confirmed", "source_moment_id": "mom_demo_08" },
+  { "id": "prm_demo_03", "direction": "waiting_on", "person_id": "per_sam", "what": "Send the internship application link", "due": { "date": "2026-11-13", "inferred": false, "text": "by Friday" }, "status": "confirmed", "source_moment_id": "mom_demo_11" },
+  { "id": "prm_demo_04", "direction": "i_owe", "person_id": "per_dana", "what": "One-page prototype summary", "due": { "date": "2026-11-16", "inferred": false, "text": "by Monday" }, "status": "confirmed", "source_moment_id": "mom_demo_16" },
+  { "id": "prm_demo_05", "direction": "waiting_on", "person_id": "per_chris", "what": "Intro to the Hooli hiring manager", "due": { "date": "2026-11-20", "inferred": false, "text": "by Friday" }, "status": "confirmed", "source_moment_id": "mom_demo_27" },
+  { "id": "prm_demo_06", "direction": "waiting_on", "person_id": "per_theo", "what": "Push the API fix", "due": { "date": "2026-11-14", "inferred": false, "text": "tonight" }, "status": "done", "source_moment_id": "mom_demo_28" },
+  { "id": "prm_demo_07", "direction": "i_owe", "person_id": "per_theo", "what": "Pitch slides", "due": { "date": "2026-11-15", "inferred": false, "text": "tomorrow morning" }, "status": "confirmed", "source_moment_id": "mom_demo_29" }
+]

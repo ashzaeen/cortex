@@ -1,0 +1,10 @@
+[
+  { "id": "rcp_demo_01", "kind": "action", "created_at": "2026-11-09T09:50:00-06:00", "summary": "Cards added to your deck", "action_id": "act_demo_01", "source_moment_ids": ["mom_demo_02"], "undo": { "available": false, "until": "2026-11-09T09:51:00-06:00" } },
+  { "id": "rcp_demo_02", "kind": "answer", "created_at": "2026-11-09T17:30:00-06:00", "summary": "Answered \"Where did I park?\" from 1 moment(s).", "action_id": null, "source_moment_ids": ["mom_demo_03"], "undo": { "available": false, "until": null } },
+  { "id": "rcp_demo_03", "kind": "action", "created_at": "2026-11-10T08:41:00-06:00", "summary": "Reading aloud now", "action_id": "act_demo_02", "source_moment_ids": ["mom_demo_06"], "undo": { "available": false, "until": "2026-11-10T08:42:00-06:00" } },
+  { "id": "rcp_demo_04", "kind": "action", "created_at": "2026-11-11T10:40:00-06:00", "summary": "Sent to Sam Rivera at Globex", "action_id": "act_demo_03", "source_moment_ids": ["mom_demo_10", "mom_demo_11"], "undo": { "available": false, "until": "2026-11-11T10:41:00-06:00" } },
+  { "id": "rcp_demo_05", "kind": "action", "created_at": "2026-11-12T13:50:00-06:00", "summary": "Saved a draft to Dana Kim at Initech", "action_id": "act_demo_04", "source_moment_ids": ["mom_demo_15", "mom_demo_16"], "undo": { "available": false, "until": "2026-11-12T13:51:00-06:00" } },
+  { "id": "rcp_demo_06", "kind": "action", "created_at": "2026-11-12T20:32:00-06:00", "summary": "Reminder set", "action_id": "act_demo_05", "source_moment_ids": ["mom_demo_19"], "undo": { "available": false, "until": "2026-11-12T20:33:00-06:00" } },
+  { "id": "rcp_demo_07", "kind": "deletion", "created_at": "2026-11-12T21:05:00-06:00", "summary": "Deleted 1 moment and its transcript, snapshot.", "action_id": null, "source_moment_ids": [], "undo": { "available": false, "until": null } },
+  { "id": "rcp_demo_08", "kind": "answer", "created_at": "2026-11-14T09:41:00-06:00", "summary": "Answered \"When is judging?\" from 1 moment(s).", "action_id": null, "source_moment_ids": ["mom_demo_25"], "undo": { "available": false, "until": null } }
+]

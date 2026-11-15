@@ -2,6 +2,7 @@
 // Loads everything the dashboard shows, and refreshes it whenever /api/events reports a change.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Action, type DemoState, type Mode, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "./api";
+import { demoEngine } from "./demo";
 
 export type FeedItem = { id: string; at: string; type: string; text: string };
 
@@ -21,13 +22,14 @@ const empty: CortexData = { moments: [], people: [], promises: [], actions: [], 
 const EVENT_TYPES = [
   "moment.created", "moment.deleted", "person.created", "promise.proposed", "promise.confirmed",
   "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed", "call.started", "call.ended",
-  "demo.step", // mock only
+  "demo.step", "person.updated", // mock only (person.updated is proposed in #43)
 ];
 
 function describe(type: string, d: Record<string, unknown>): string {
   switch (type) {
     case "moment.created": return `Heard (${d.source}): "${d.transcript ?? d.caption ?? "snapshot"}"`;
     case "person.created": return `New contact: ${d.name}${d.company ? ` from ${d.company}` : ""}`;
+    case "person.updated": return `Met again: ${d.name}${d.company ? ` from ${d.company}` : ""}`;
     case "promise.proposed": return `Promise detected: ${d.what}. Confirm it below.`;
     case "promise.confirmed": return `Added to Waiting on: ${d.what}`;
     case "action.proposed": return `Suggested: ${d.title ?? "an action"}`;
@@ -71,24 +73,37 @@ export function useCortex() {
 
   useEffect(() => {
     refresh();
+    const onEvent = (t: string, msg: { at: string; data?: Record<string, unknown> }) => {
+      if (t === "demo.step") {
+        if (msg.data?.index === 0) setFeed([]); // demo reset
+      } else {
+        const item = { id: `e${seq.current++}`, at: msg.at, type: t, text: describe(t, msg.data ?? {}) };
+        setFeed((f) => [item, ...f].slice(0, 50));
+      }
+      refreshSoon();
+    };
+
+    // /demo: events come straight from the in-tab engine instead of /api/events.
+    const engine = demoEngine();
+    if (engine) {
+      setConnected(true);
+      const off = engine.subscribe((e) => { if (EVENT_TYPES.includes(e.type)) onEvent(e.type, e as { at: string; data?: Record<string, unknown> }); });
+      return () => {
+        off();
+        if (timer.current) clearTimeout(timer.current);
+      };
+    }
+
     const es = new EventSource("/api/events");
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false);
     for (const t of EVENT_TYPES) {
       es.addEventListener(t, (ev) => {
-        if (t === "demo.step") {
-          const d = JSON.parse((ev as MessageEvent).data)?.data;
-          if (d?.index === 0) setFeed([]); // demo reset
-        } else {
-          try {
-            const msg = JSON.parse((ev as MessageEvent).data);
-            const item = { id: `e${seq.current++}`, at: msg.at, type: t, text: describe(t, msg.data ?? {}) };
-            setFeed((f) => [item, ...f].slice(0, 50));
-          } catch {
-            /* ignore malformed events */
-          }
+        try {
+          onEvent(t, JSON.parse((ev as MessageEvent).data));
+        } catch {
+          /* ignore malformed events */
         }
-        refreshSoon();
       });
     }
     return () => {

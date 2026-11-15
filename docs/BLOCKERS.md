@@ -51,7 +51,10 @@ Per AGENTS.md, no Tier 1, Should or Cut work starts while any Tier 0 item is not
 
 | Gap | Blocks | Area |
 | --- | --- | --- |
-| Call agent answers from its own prompt: no `POST /ask` (channel `call`), no `GET /people/{id}/brief`, no `POST /moments` (source `call`) for the caller's camera | T0-10 | call (#22) |
+| Call agent: `ask_memory`, `brief_person` and `save_what_you_see` (on request) are written, tested offline and against a key-protected local backend on branch `claude/practical-babbage-ogm16t` (not on `main` until merged, #48). Never run on a real call; still needs a laptop for `chert dev` ([ADR 0006](decisions/0006-call-agent-hosting.md), Proposed) | T0-10 | call (#22) |
+| The hosted backend answers 401 without `X-Cortex-Key` (#47): the call agent (`CORTEX_API_KEY`) and the iOS app (`CORTEX_API_KEY` build setting) now send it on this branch; the key itself must be given to each, privately | T0-1, T0-10 | call, capture |
+| Voice on the glasses: the iOS app only posts photos and videos and plays nothing back. The phone's Safari dashboard now has tap-to-talk and reads answers aloud (Web Speech, glasses audio over Bluetooth); a native voice loop in the app is not built | T0-5, T0-6 | dashboard (done, untested on a phone), capture |
+| Spoken words in videos were dropped (`transcript: null`); the perception prompt now returns them and ingest stores them. Offline tests only: not yet seen with real Gemini | T0-1 | backend (#13) |
 | Re-meeting seeded Ash: the backend must link the moment to the existing card and emit `person.updated` (the mock already does) | T0-3, T0-11 (#29) | backend, contracts (#43) |
 | Ash's earlier career-fair meeting is not seeded, because it waits on #43 | T0-6 brief, T0-11 | demo (#29) |
 | The iOS app has no pause or off-the-record controls of its own; it only checks `GET /privacy` before posting | T0-9 on the glasses | capture (#36) |

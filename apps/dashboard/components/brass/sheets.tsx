@@ -1,12 +1,13 @@
 "use client";
 // Sheets (design.md 10.1): Ask, Moment detail, People and brief, Waiting on, Settings and privacy,
 // Receipts history, Call Cortex. Reading surfaces are matte; floating ones are glass.
-import { ChevronRight, Glasses, Send } from "lucide-react";
+import { ChevronRight, Glasses, Mic, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, snapshotSrc, videoSrc, type Brief, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "@/lib/api";
 import { isDemo } from "@/lib/demo";
 import { clock, curly, dayLabel, dueChip, receiptId, timecode } from "@/lib/format";
 import type { CortexData } from "@/lib/useCortex";
+import { unlockSpeech, useListen, voiceSupported } from "@/lib/voice";
 import { sourceLabel } from "./AskPanel";
 import { Button, Chip, Frame, Label, Tag } from "./primitives";
 import { Sheet } from "./Sheet";
@@ -25,14 +26,26 @@ const SUGGESTED_DEMO = ["What did Ash promise me?", "Where did I park?", "What d
 
 export function AskSheet({ open, onClose, onAsk, recent }: { open: boolean; onClose: () => void; onAsk: (q: string) => void; recent: string[] }) {
   const [q, setQ] = useState("");
-  useEffect(() => { if (open) setQ(""); }, [open]);
+  const [canTalk, setCanTalk] = useState(false); // known only in the browser, so set after mount
+  // Tap to talk: the words fill the box as they are heard, then the question is asked and the answer spoken back.
+  const voice = useListen({ onInterim: setQ, onFinal: (text) => { onAsk(text); onClose(); } });
+  useEffect(() => { setCanTalk(voiceSupported()); }, []);
+  useEffect(() => { if (open) setQ(""); else voice.cancel(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const listening = voice.state === "listening";
   const chips = [...new Set([...recent, ...(isDemo() ? SUGGESTED_DEMO : SUGGESTED)])].slice(0, 6);
   return (
     <Sheet open={open} onClose={onClose} label="Ask Your Memory" title="Ask Your Memory" detent="half">
       <form
         className="flex flex-col gap-5"
-        onSubmit={(e) => { e.preventDefault(); if (q.trim()) { onAsk(q.trim()); onClose(); } }}
+        onSubmit={(e) => { e.preventDefault(); if (q.trim()) { voice.cancel(); unlockSpeech(); onAsk(q.trim()); onClose(); } }}
       >
+        {canTalk && (
+          <div>
+            <Button variant="primary" onClick={listening ? voice.stop : voice.start} aria-pressed={listening}>
+              <Mic size={18} strokeWidth={1.5} /> {listening ? "Listening. Tap to Send" : "Tap to Talk"}
+            </Button>
+          </div>
+        )}
         <label htmlFor="ask-input" className="sr-only">Your question</label>
         <textarea
           id="ask-input"
@@ -45,9 +58,14 @@ export function AskSheet({ open, onClose, onAsk, recent }: { open: boolean; onCl
           style={{ fontSize: "max(16px, 1.625rem)" }}
           enterKeyHint="search"
         />
-        <p className="t-footnote">Tap the microphone on the keyboard to ask by voice.</p>
+        <p className="t-footnote" role="status">
+          {voice.state === "denied" ? "Microphone access is blocked. Allow it in Settings, or type your question."
+            : voice.state === "error" ? "Voice didn't work this time. Try again, or type your question."
+            : canTalk ? "Say your question. It is asked when you stop talking, and the answer is read aloud."
+            : "Tap the microphone on the keyboard to ask by voice."}
+        </p>
         <div className="flex flex-wrap gap-2">
-          {chips.map((c) => <Chip key={c} onClick={() => { onAsk(c); onClose(); }}>{c}</Chip>)}
+          {chips.map((c) => <Chip key={c} onClick={() => { voice.cancel(); unlockSpeech(); onAsk(c); onClose(); }}>{c}</Chip>)}
         </div>
         <div><Button variant="primary" type="submit"><Send size={18} strokeWidth={1.5} /> Ask</Button></div>
       </form>

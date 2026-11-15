@@ -1,13 +1,555 @@
 [
-  { "id": "act_demo_01", "type": "flashcards", "status": "done", "mode": "student", "person_id": null, "title": "Make flashcards for requirements engineering", "summary": "Eight cards from the Week 12 slide: elicitation, functional and non-functional requirements, testable requirements.", "source_moment_ids": ["mom_demo_02"] },
-  { "id": "act_demo_02", "type": "read_aloud", "status": "done", "mode": "assist", "person_id": null, "title": "Read the menu board aloud", "summary": "Reads the Campus Coffee menu with prices, top to bottom.", "source_moment_ids": ["mom_demo_06"] },
-  { "id": "act_demo_03", "type": "follow_up_email", "status": "sent", "mode": "focus", "person_id": "per_sam", "title": "Draft a follow-up to Sam", "summary": "Thanks for the chat at the career fair. Sam said the application link comes by Friday; Cortex will watch for it.", "draft": { "to": "sam.rivera@globex.example", "subject": "Thanks for the chat at the career fair", "body": "Hi Sam,\n\nThanks for telling me about the Globex internship program today. Looking forward to the application link on Friday.\n\nBest,\nAshzaeen" }, "source_moment_ids": ["mom_demo_10", "mom_demo_11"] },
-  { "id": "act_demo_04", "type": "follow_up_email", "status": "draft_saved", "mode": "focus", "person_id": "per_dana", "title": "Draft a follow-up to Dana", "summary": "Thanks for the Initech visit. The one-page prototype summary follows by Monday.", "draft": { "to": "dana.kim@initech.example", "subject": "Prototype summary coming Monday", "body": "Hi Dana,\n\nThanks for walking me through the edge devices today. I'll send the one-page prototype summary by Monday, with a section on battery life.\n\nBest,\nAshzaeen" }, "source_moment_ids": ["mom_demo_15", "mom_demo_16"] },
-  { "id": "act_demo_05", "type": "reminder", "status": "done", "mode": "life", "person_id": null, "title": "Remind me the library books are due", "summary": "A reminder Monday evening that the library books are due Tuesday.", "source_moment_ids": ["mom_demo_19"] },
-  { "id": "act_demo_06", "type": "flashcards", "status": "proposed", "mode": "student", "person_id": null, "title": "Turn the Exam 2 slide into flashcards", "summary": "Cards for chapters 5 to 8: use cases, UML class diagrams and sequence diagrams, plus the checkout flow from study group.", "source_moment_ids": ["mom_demo_21", "mom_demo_22"] },
-  { "id": "act_demo_07", "type": "reminder", "status": "proposed", "mode": "life", "person_id": "per_jamie", "title": "Remind me to pay Jamie back", "summary": "You told Jamie you would pay back $24 for groceries this weekend. A reminder Sunday at 10 AM.", "source_moment_ids": ["mom_demo_05"] },
-  { "id": "act_demo_08", "type": "read_aloud", "status": "proposed", "mode": "assist", "person_id": null, "title": "Read the hackathon schedule aloud", "summary": "Reads the weekend schedule in order: hacking ends Sunday at 11, judging at 1 PM, awards at 4.", "source_moment_ids": ["mom_demo_25"] },
-  { "id": "act_demo_09", "type": "follow_up_email", "status": "proposed", "mode": "focus", "person_id": "per_chris", "title": "Draft a follow-up to Chris", "summary": "Thanks for mentoring today. Chris offered an intro to the Hooli hiring manager by Friday; Cortex will watch for it.", "draft": { "to": "chris.tan@hooli.example", "subject": "Thanks for the mentoring today", "body": "Hi Chris,\n\nThanks for the help on the hardware track today. I'd love that intro to your hiring manager whenever it suits you.\n\nBest,\nAshzaeen" }, "source_moment_ids": ["mom_demo_26", "mom_demo_27"] },
-  {"id": "act_demo_10", "type": "calendar_event", "status": "done", "mode": "focus", "person_id": "per_dana", "title": "Demo with Dana", "summary": "Adds Demo with Dana to your calendar on Mon Nov 16 at 10:00 AM.", "source_moment_ids": ["mom_demo_16"], "event": {"title": "Demo with Dana", "start": "2026-11-16T10:00:00-06:00", "end": "2026-11-16T10:30:00-06:00", "location": "Initech office", "description": null}},
-  {"id": "act_demo_11", "type": "notes", "status": "proposed", "mode": "student", "person_id": null, "title": "Study group notes", "summary": "Save these notes to your Google Drive.", "source_moment_ids": ["mom_demo_36", "mom_demo_37", "mom_demo_38"], "doc": {"title": "Study group notes", "body": "Study group notes\n- Write the login sequence diagram first: it is the easiest to check.\n- Include versus extend in a use case: be ready to explain the difference.\n- Lab report due Monday at 9. Exam two on Thursday."}}
+  {
+    "id": "act_demo_01",
+    "type": "flashcards",
+    "status": "done",
+    "mode": "student",
+    "person_id": null,
+    "title": "Make flashcards for requirements engineering",
+    "summary": "Eight cards from the Week 12 slide: elicitation, functional and non-functional requirements, testable requirements.",
+    "source_moment_ids": [
+      "mom_demo_02"
+    ],
+    "doc": {
+      "title": "Requirements engineering",
+      "body": "Q: What is requirements elicitation?\nA: Gathering what stakeholders need through interviews, surveys and observation.\n\nQ: Functional versus non-functional requirement?\nA: Functional says what the system does. Non-functional says how well, like speed or security.\n\nQ: What makes a requirement testable?\nA: It is specific and measurable, so you can write a pass or fail check.\n\nQ: Name one risk of vague requirements.\nA: Scope creep, and a build nobody agrees is finished."
+    }
+  },
+  {
+    "id": "act_demo_02",
+    "type": "read_aloud",
+    "status": "done",
+    "mode": "assist",
+    "person_id": null,
+    "title": "Read the menu board aloud",
+    "summary": "Reads the Campus Coffee menu with prices, top to bottom.",
+    "source_moment_ids": [
+      "mom_demo_06"
+    ]
+  },
+  {
+    "id": "act_demo_03",
+    "type": "follow_up_email",
+    "status": "sent",
+    "mode": "focus",
+    "person_id": "per_sam",
+    "title": "Draft a follow-up to Sam",
+    "summary": "Thanks for the chat at the career fair. Sam said the application link comes by Friday; Cortex will watch for it.",
+    "draft": {
+      "to": "sam.rivera@globex.example",
+      "subject": "Thanks for the chat at the career fair",
+      "body": "Hi Sam,\n\nThanks for telling me about the Globex internship program today. Looking forward to the application link on Friday.\n\nBest,\nAshzaeen"
+    },
+    "source_moment_ids": [
+      "mom_demo_10",
+      "mom_demo_11"
+    ]
+  },
+  {
+    "id": "act_demo_04",
+    "type": "follow_up_email",
+    "status": "draft_saved",
+    "mode": "focus",
+    "person_id": "per_dana",
+    "title": "Draft a follow-up to Dana",
+    "summary": "Thanks for the Initech visit. The one-page prototype summary follows by Monday.",
+    "draft": {
+      "to": "dana.kim@initech.example",
+      "subject": "Prototype summary coming Monday",
+      "body": "Hi Dana,\n\nThanks for walking me through the edge devices today. I'll send the one-page prototype summary by Monday, with a section on battery life.\n\nBest,\nAshzaeen"
+    },
+    "source_moment_ids": [
+      "mom_demo_15",
+      "mom_demo_16"
+    ]
+  },
+  {
+    "id": "act_demo_05",
+    "type": "reminder",
+    "status": "done",
+    "mode": "life",
+    "person_id": null,
+    "title": "Remind me the library books are due",
+    "summary": "A reminder Monday evening that the library books are due Tuesday.",
+    "source_moment_ids": [
+      "mom_demo_19"
+    ]
+  },
+  {
+    "id": "act_demo_06",
+    "type": "flashcards",
+    "status": "proposed",
+    "mode": "student",
+    "person_id": null,
+    "title": "Turn the Exam 2 slide into flashcards",
+    "summary": "Cards for chapters 5 to 8: use cases, UML class diagrams and sequence diagrams, plus the checkout flow from study group.",
+    "source_moment_ids": [
+      "mom_demo_21",
+      "mom_demo_22"
+    ],
+    "doc": {
+      "title": "Exam 2 review: chapters 5 to 8",
+      "body": "Q: What does a use case diagram show?\nA: Actors and the goals they achieve with the system.\n\nQ: Include versus extend?\nA: Include is always part of the base case. Extend is optional and conditional.\n\nQ: What does a UML class diagram show?\nA: Classes, their attributes and operations, and the relationships between them.\n\nQ: When do you use a sequence diagram?\nA: To show how objects exchange messages over time in one scenario.\n\nQ: Which flow did our group take?\nA: The checkout flow."
+    }
+  },
+  {
+    "id": "act_demo_07",
+    "type": "reminder",
+    "status": "proposed",
+    "mode": "life",
+    "person_id": "per_jamie",
+    "title": "Remind me to pay Jamie back",
+    "summary": "You told Jamie you would pay back $24 for groceries this weekend. A reminder Sunday at 10 AM.",
+    "source_moment_ids": [
+      "mom_demo_05"
+    ]
+  },
+  {
+    "id": "act_demo_08",
+    "type": "read_aloud",
+    "status": "proposed",
+    "mode": "assist",
+    "person_id": null,
+    "title": "Read the hackathon schedule aloud",
+    "summary": "Reads the weekend schedule in order: hacking ends Sunday at 11, judging at 1 PM, awards at 4.",
+    "source_moment_ids": [
+      "mom_demo_25"
+    ]
+  },
+  {
+    "id": "act_demo_09",
+    "type": "follow_up_email",
+    "status": "proposed",
+    "mode": "focus",
+    "person_id": "per_chris",
+    "title": "Draft a follow-up to Chris",
+    "summary": "Thanks for mentoring today. Chris offered an intro to the Hooli hiring manager by Friday; Cortex will watch for it.",
+    "draft": {
+      "to": "chris.tan@hooli.example",
+      "subject": "Thanks for the mentoring today",
+      "body": "Hi Chris,\n\nThanks for the help on the hardware track today. I'd love that intro to your hiring manager whenever it suits you.\n\nBest,\nAshzaeen"
+    },
+    "source_moment_ids": [
+      "mom_demo_26",
+      "mom_demo_27"
+    ]
+  },
+  {
+    "id": "act_demo_10",
+    "type": "calendar_event",
+    "status": "done",
+    "mode": "focus",
+    "person_id": "per_dana",
+    "title": "Demo with Dana",
+    "summary": "Adds Demo with Dana to your calendar on Mon Nov 16 at 10:00 AM.",
+    "source_moment_ids": [
+      "mom_demo_16"
+    ],
+    "event": {
+      "title": "Demo with Dana",
+      "start": "2026-11-16T10:00:00-06:00",
+      "end": "2026-11-16T10:30:00-06:00",
+      "location": "Initech office",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_11",
+    "type": "notes",
+    "status": "proposed",
+    "mode": "student",
+    "person_id": null,
+    "title": "Study group notes",
+    "summary": "Save these notes to your Google Drive.",
+    "source_moment_ids": [
+      "mom_demo_36",
+      "mom_demo_37",
+      "mom_demo_38"
+    ],
+    "doc": {
+      "title": "Study group notes",
+      "body": "Study group notes\n- Write the login sequence diagram first: it is the easiest to check.\n- Include versus extend in a use case: be ready to explain the difference.\n- Lab report due Monday at 9. Exam two on Thursday."
+    }
+  },
+  {
+    "id": "act_demo_12",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Due: Quiz 4",
+    "summary": "Adds Due: Quiz 4 (Observer and Factory) to your calendar on Wed Nov 18.",
+    "source_moment_ids": [
+      "mom_demo_44"
+    ],
+    "event": {
+      "title": "Due: Quiz 4",
+      "start": "2026-11-18T09:00:00-06:00",
+      "end": "2026-11-18T09:30:00-06:00",
+      "location": "Canvas",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_13",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "done",
+    "mode": "student",
+    "title": "Due: Milestone 2",
+    "summary": "Milestone 2 is due Friday. Added to your calendar.",
+    "source_moment_ids": [
+      "mom_demo_02"
+    ],
+    "event": {
+      "title": "Due: Milestone 2",
+      "start": "2026-11-20T23:00:00-06:00",
+      "end": "2026-11-20T23:30:00-06:00",
+      "location": "Canvas",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_14",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Due: Lab report",
+    "summary": "The lab report is due Monday at 9 AM.",
+    "source_moment_ids": [
+      "mom_demo_38"
+    ],
+    "event": {
+      "title": "Due: Lab report",
+      "start": "2026-11-16T09:00:00-06:00",
+      "end": "2026-11-16T09:30:00-06:00",
+      "location": "Engineering 208",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_15",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Due: Exam 2",
+    "summary": "Exam two covers chapters 5 to 8, on Thursday.",
+    "source_moment_ids": [
+      "mom_demo_21"
+    ],
+    "event": {
+      "title": "Due: Exam 2",
+      "start": "2026-11-19T09:30:00-06:00",
+      "end": "2026-11-19T10:45:00-06:00",
+      "location": "Lecture hall",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_16",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Due: Project demo",
+    "summary": "Project demos moved to next Thursday.",
+    "source_moment_ids": [
+      "mom_demo_20"
+    ],
+    "event": {
+      "title": "Due: Project demo",
+      "start": "2026-11-19T14:00:00-06:00",
+      "end": "2026-11-19T15:00:00-06:00",
+      "location": "Engineering 210",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_17",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Study for Quiz 4",
+    "summary": "Block an hour at 6:00 PM the evening before to study for Quiz 4.",
+    "source_moment_ids": [
+      "mom_demo_44"
+    ],
+    "event": {
+      "title": "Study for Quiz 4",
+      "start": "2026-11-17T18:00:00-06:00",
+      "end": "2026-11-17T19:00:00-06:00",
+      "location": null,
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_18",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Study for Exam 2",
+    "summary": "Block an hour and a half at 6:00 PM the evening before to study for Exam 2.",
+    "source_moment_ids": [
+      "mom_demo_21"
+    ],
+    "event": {
+      "title": "Study for Exam 2",
+      "start": "2026-11-18T18:00:00-06:00",
+      "end": "2026-11-18T19:30:00-06:00",
+      "location": "Library, 3rd floor",
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_19",
+    "person_id": null,
+    "type": "calendar_event",
+    "status": "done",
+    "mode": "student",
+    "title": "Study for Lab report",
+    "summary": "A study block tonight at 7 PM for the lab report.",
+    "source_moment_ids": [
+      "mom_demo_38"
+    ],
+    "event": {
+      "title": "Study for Lab report",
+      "start": "2026-11-15T19:00:00-06:00",
+      "end": "2026-11-15T20:00:00-06:00",
+      "location": null,
+      "description": null
+    }
+  },
+  {
+    "id": "act_demo_20",
+    "person_id": null,
+    "type": "reminder",
+    "status": "proposed",
+    "mode": "life",
+    "title": "Charge the glasses tonight",
+    "summary": "A reminder at 9 PM to put the glasses on the charger.",
+    "source_moment_ids": [
+      "mom_demo_30"
+    ],
+    "task": {
+      "title": "Charge the glasses tonight",
+      "notes": "Charger is in the black backpack, front pocket.",
+      "due": "2026-11-15"
+    }
+  },
+  {
+    "id": "act_demo_21",
+    "person_id": null,
+    "type": "reminder",
+    "status": "proposed",
+    "mode": "life",
+    "title": "Pick up dish soap and coffee filters",
+    "summary": "A reminder tomorrow at 5 PM when you pass the store.",
+    "source_moment_ids": [
+      "mom_demo_09"
+    ],
+    "task": {
+      "title": "Pick up dish soap and coffee filters",
+      "notes": null,
+      "due": "2026-11-16"
+    }
+  },
+  {
+    "id": "act_demo_22",
+    "person_id": null,
+    "type": "reminder",
+    "status": "proposed",
+    "mode": "life",
+    "title": "Move the car before 5 PM",
+    "summary": "Level 3, pillar 3C. A reminder 30 minutes before the garage closes.",
+    "source_moment_ids": [
+      "mom_demo_03"
+    ],
+    "task": {
+      "title": "Move the car before 5 PM",
+      "notes": "West garage, level 3, pillar 3C.",
+      "due": "2026-11-16"
+    }
+  },
+  {
+    "id": "act_demo_23",
+    "person_id": null,
+    "type": "reminder",
+    "status": "done",
+    "mode": "life",
+    "title": "Return library books",
+    "summary": "A reminder Monday evening that the library books are due Tuesday.",
+    "source_moment_ids": [
+      "mom_demo_19"
+    ],
+    "task": {
+      "title": "Return library books",
+      "notes": null,
+      "due": "2026-11-16"
+    }
+  },
+  {
+    "id": "act_demo_24",
+    "person_id": "per_jamie",
+    "type": "message",
+    "status": "proposed",
+    "mode": "life",
+    "title": "Text Jamie",
+    "summary": "To Jamie: “Paying you back the $24 tonight. Venmo ok?”",
+    "source_moment_ids": [
+      "mom_demo_05"
+    ],
+    "message": {
+      "to": "+15555550142",
+      "text": "Paying you back the $24 tonight. Venmo ok?"
+    }
+  },
+  {
+    "id": "act_demo_25",
+    "person_id": "per_maya",
+    "type": "message",
+    "status": "proposed",
+    "mode": "life",
+    "title": "Text Maya",
+    "summary": "To Maya: “Thanks for the office hours. Did the milestone rubric go up?”",
+    "source_moment_ids": [
+      "mom_demo_08"
+    ],
+    "message": {
+      "to": "+15555550177",
+      "text": "Thanks for the office hours. Did the milestone rubric go up?"
+    }
+  },
+  {
+    "id": "act_demo_26",
+    "person_id": "per_theo",
+    "type": "message",
+    "status": "draft_saved",
+    "mode": "life",
+    "title": "Text Theo",
+    "summary": "Saved the text to +15555550163 as a draft. (Dry run: texting is off.)",
+    "source_moment_ids": [
+      "mom_demo_28"
+    ],
+    "message": {
+      "to": "+15555550163",
+      "text": "API fix is pushed. Tests are green, pitch slides coming in the morning."
+    }
+  },
+  {
+    "id": "act_demo_27",
+    "person_id": null,
+    "type": "expense",
+    "status": "done",
+    "mode": "life",
+    "title": "Coffee and a muffin",
+    "summary": "Logged $6.25 for coffee and a muffin.",
+    "source_moment_ids": [
+      "mom_demo_45"
+    ],
+    "expense": {
+      "label": "coffee and a muffin",
+      "amount": 6.25
+    }
+  },
+  {
+    "id": "act_demo_28",
+    "person_id": null,
+    "type": "expense",
+    "status": "done",
+    "mode": "life",
+    "title": "Pharmacy",
+    "summary": "Logged $31.40 for cold medicine and tissues.",
+    "source_moment_ids": [
+      "mom_demo_46"
+    ],
+    "expense": {
+      "label": "pharmacy, cold medicine and tissues",
+      "amount": 31.4
+    }
+  },
+  {
+    "id": "act_demo_29",
+    "person_id": null,
+    "type": "expense",
+    "status": "proposed",
+    "mode": "life",
+    "title": "Groceries with Jamie",
+    "summary": "Log your $24.00 half of the Fresh Mart groceries.",
+    "source_moment_ids": [
+      "mom_demo_05"
+    ],
+    "expense": {
+      "label": "groceries, my half",
+      "amount": 24
+    }
+  },
+  {
+    "id": "act_demo_30",
+    "person_id": null,
+    "type": "flashcards",
+    "status": "proposed",
+    "mode": "student",
+    "title": "Design patterns flashcards",
+    "summary": "Five cards on Observer, Factory and Strategy from Thursday's lecture.",
+    "source_moment_ids": [
+      "mom_demo_42",
+      "mom_demo_43"
+    ],
+    "doc": {
+      "title": "Design patterns",
+      "body": "Q: What is the Observer pattern?\nA: One subject notifies many observers when its state changes.\n\nQ: Where do you see Observer in real code?\nA: Event listeners and subscriptions.\n\nQ: What does the Factory pattern hide?\nA: Which concrete class gets created.\n\nQ: Who calls a factory method?\nA: The caller, asking for a type and getting an object back.\n\nQ: Which pattern is on the exam only?\nA: Strategy."
+    }
+  },
+  {
+    "id": "act_demo_31",
+    "person_id": null,
+    "type": "notes",
+    "status": "proposed",
+    "mode": "focus",
+    "title": "Whiteboard to notes: launch plan",
+    "summary": "Notes from the launch sync, ready to save to Drive.",
+    "source_moment_ids": [
+      "mom_demo_51",
+      "mom_demo_52",
+      "mom_demo_53"
+    ],
+    "doc": {
+      "title": "Launch sync: plan",
+      "body": "Launch sync\n- Q4 launch ships on the 24th.\n- Decision: keep the pricing page as is, revisit in December.\n- Action: send the intern job description by Monday.\n- Open: confirm booth space for demo day."
+    }
+  },
+  {
+    "id": "act_demo_32",
+    "person_id": null,
+    "type": "notes",
+    "status": "done",
+    "mode": "student",
+    "title": "Design patterns: lecture notes",
+    "summary": "Saved the notes “Design patterns: lecture notes”.",
+    "source_moment_ids": [
+      "mom_demo_41",
+      "mom_demo_42",
+      "mom_demo_43"
+    ],
+    "doc": {
+      "title": "Design patterns: lecture notes",
+      "body": "CSE 3310 Week 13\n- Observer: a subject notifies many observers. Like event listeners.\n- Factory: hides which concrete class is created.\n- Strategy: exam only.\n- Quiz 4 due Wednesday, covers Observer and Factory."
+    }
+  },
+  {
+    "id": "act_demo_33",
+    "person_id": null,
+    "type": "read_aloud",
+    "status": "proposed",
+    "mode": "assist",
+    "title": "Read the pill bottle aloud",
+    "summary": "Reads the label: Vitamin D, one tablet daily with food.",
+    "source_moment_ids": [
+      "mom_demo_50"
+    ]
+  }
 ]

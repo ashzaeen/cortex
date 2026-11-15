@@ -492,7 +492,7 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
   function look(b) {
     if (!["describe", "read", "hazards", "find", "tutor"].includes(b?.task)) return err(400, "bad_request", "task must be describe, read, hazards, find or tutor.");
     if (b.task === "find" && !(b.target ?? "").trim()) return err(400, "bad_request", "target is required for find.");
-    let src = b.moment_id ? db.moments.find((m) => m.id === b.moment_id) : [...db.moments].sort(byTime).reverse().find((m) => m.snapshot_url && Date.now() - Date.parse(m.ts) < 10 * 60_000);
+    let src = b.moment_id ? db.moments.find((m) => m.id === b.moment_id) : [...db.moments].sort(byTime).reverse().find((m) => m.snapshot_url && m.mode !== "focus" && (b.task === "read" ? /menu|sign|label|schedule|slide|text/i.test(`${m.caption} ${m.transcript}`) : b.task === "hazards" ? /wet|step|floor|curb/i.test(m.caption ?? "") : true));
     if (b.moment_id && !src) return err(404, "not_found", "No such moment.");
     if (!src && !b.snapshot_base64) {
       if (b.task !== "find") return err(409, "no_view", "Cortex has no recent view. Point the camera and try again.");
@@ -502,8 +502,8 @@ export function createEngine({ load, anchor = null, suggestions = false, owner =
     }
     const seen = src ? text(src) : "the scene in front of you";
     const out = {
-      describe: [`In front of you: ${seen}.`, null], read: [`The text reads: ${seen}`, null],
-      hazards: [`Nothing risky stands out near ${b.target || "you"}. The mock cannot really see.`, false],
+      describe: [`In front of you: ${seen.replace(/\.$/, "")}.`, null], read: [`The text reads: ${seen}`, null],
+      hazards: [/wet|step|stairs|curb|traffic|bus/i.test(seen) ? `Watch out: ${seen} Slow down and mind your footing.` : `Nothing risky stands out in this view: ${seen}`, false],
       find: [`I can't see ${b.target} right now (the mock does not look at pictures).`, false],
       tutor: [`Let's go step by step. ${b.question ? `On "${b.question}": ` : ""}First, name what is being asked.`, null],
     }[b.task];

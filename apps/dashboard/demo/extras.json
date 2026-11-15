@@ -29,6 +29,28 @@
       ],
       "spoken": "It's Sunday. Call your sister tonight.",
       "active": true
+    },
+    {
+      "id": "rtn_demo_4",
+      "title": "Take Vitamin D with breakfast",
+      "time": "08:00",
+      "days": [],
+      "spoken": "Good morning. Time for your Vitamin D with breakfast.",
+      "active": true
+    },
+    {
+      "id": "rtn_demo_5",
+      "title": "Stretch and drink water",
+      "time": "15:00",
+      "days": [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri"
+      ],
+      "spoken": "Time for a short stretch and a glass of water.",
+      "active": true
     }
   ],
   "caregiver": {
@@ -154,6 +176,22 @@
       {
         "text": "coffee filters",
         "source_moment_id": "mom_demo_09"
+      },
+      {
+        "text": "granola bars",
+        "source_moment_id": "mom_demo_47"
+      },
+      {
+        "text": "bananas",
+        "source_moment_id": "mom_demo_47"
+      },
+      {
+        "text": "laundry detergent",
+        "source_moment_id": "mom_demo_09"
+      },
+      {
+        "text": "printer paper",
+        "source_moment_id": "mom_demo_09"
       }
     ],
     "expenses": [
@@ -161,6 +199,31 @@
         "text": "lunch at the food court",
         "amount": 18.4,
         "source_moment_id": "mom_demo_39"
+      },
+      {
+        "text": "coffee and a muffin",
+        "amount": 6.25,
+        "source_moment_id": "mom_demo_45"
+      },
+      {
+        "text": "pharmacy, cold medicine and tissues",
+        "amount": 31.4,
+        "source_moment_id": "mom_demo_46"
+      },
+      {
+        "text": "parking meter, career fair",
+        "amount": 4,
+        "source_moment_id": "mom_demo_48"
+      },
+      {
+        "text": "Fresh Mart groceries, my half",
+        "amount": 24,
+        "source_moment_id": "mom_demo_05"
+      },
+      {
+        "text": "oat latte",
+        "amount": 5.25,
+        "source_moment_id": "mom_demo_06"
       }
     ]
   },

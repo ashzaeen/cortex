@@ -125,7 +125,7 @@ ok(get("/routines").items.length === files.extras.routines.length, "routines are
 const cg = get("/caregiver");
 ok(cg.consent === false && cg.name === files.extras.caregiver.name && /Routine:/.test(cg.preview.body), "caregiver is set up, never consented, and previews");
 ok(get("/lists").items.find((l) => l.id === "shopping").items.length >= 4, "the shopping list has items");
-ok(get("/lists").items.find((l) => l.id === "expenses").total === 18.4, "the expenses list has the lunch");
+ok(get("/lists").items.find((l) => l.id === "expenses").total === 89.3, "the expenses list has the lunch");
 ok(get("/skills/immersion/vocab").items.length === files.extras.vocab.length, "immersion words are seeded");
 ok(get("/skills/coach").items.some((c) => c.status === "done"), "a finished coach session is seeded");
 ok(get("/moments?tag=decision&limit=50").items.length >= 2, "decision-tagged moments exist");

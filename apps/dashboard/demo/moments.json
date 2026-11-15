@@ -1,42 +1,705 @@
 [
-  { "id": "mom_demo_01", "ts": "2026-11-09T08:50:00-06:00", "source": "glasses", "mode": "student", "transcript": "Prof. Lee said it's fine to record lectures for my notes.", "caption": "A lecture hall from the back row, chalkboards at the front.", "snapshot_url": "/demo-snaps/lecture-hall.jpg", "place": "Lecture hall", "person_ids": ["per_lee"], "off_record": false },
-  { "id": "mom_demo_02", "ts": "2026-11-09T09:05:00-06:00", "source": "glasses", "mode": "student", "transcript": "Today is requirements engineering, and milestone two is due Friday.", "caption": "Lecture slide: CSE 3310 Week 12, Requirements Engineering. Milestone 2 due Friday.", "snapshot_url": "/demo-snaps/slide-week12.svg", "place": "Lecture hall", "person_ids": ["per_lee"], "off_record": false },
-  { "id": "mom_demo_03", "ts": "2026-11-09T12:30:00-06:00", "source": "glasses", "mode": "life", "transcript": "Remember where I park: level 3 of the West garage, by pillar 3C.", "caption": "Parking garage level with green pillars marked 3C and 3D.", "snapshot_url": "/demo-snaps/parking-level-3.jpg", "place": "West garage", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_04", "ts": "2026-11-09T19:05:00-06:00", "source": "glasses", "mode": "life", "transcript": "This is Jamie Ortiz, my roommate.", "caption": "Our apartment kitchen, groceries still on the counter.", "snapshot_url": "/demo-snaps/kitchen.jpg", "place": "Home", "person_ids": ["per_jamie"], "off_record": false },
-  { "id": "mom_demo_05", "ts": "2026-11-09T19:12:00-06:00", "source": "glasses", "mode": "life", "transcript": "I owe Jamie twenty-four dollars for groceries. I'll pay it back this weekend.", "caption": "Fresh Mart receipt: total 48.00, split two ways 24.00, paid by Jamie.", "snapshot_url": "/demo-snaps/grocery-receipt.svg", "place": "Home", "person_ids": ["per_jamie"], "off_record": false },
-  { "id": "mom_demo_06", "ts": "2026-11-10T08:40:00-06:00", "source": "glasses", "mode": "assist", "transcript": "Read this to me.", "caption": "Coffee menu board: oat latte 5.25, cold brew 4.50, drip coffee 2.75, chai 4.75, breakfast taco 3.75, blueberry muffin 3.25.", "snapshot_url": "/demo-snaps/menu-board.svg", "place": "Campus Coffee", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_07", "ts": "2026-11-10T15:30:00-06:00", "source": "glasses", "mode": "student", "transcript": "This is Maya Patel, the TA for CSE 3310.", "caption": "Office hours sign: CSE 3310 TA office hours, Maya Patel, Tuesday 3 to 5 PM, Room 208.", "snapshot_url": "/demo-snaps/office-hours-sign.svg", "place": "Engineering, room 208", "person_ids": ["per_maya"], "off_record": false },
-  { "id": "mom_demo_08", "ts": "2026-11-10T15:44:00-06:00", "source": "glasses", "mode": "student", "transcript": "I'll post the milestone rubric Monday.", "caption": "A laptop on the office hours desk with the course page open.", "snapshot_url": "/demo-snaps/laptop-course-page.jpg", "place": "Engineering, room 208", "person_ids": ["per_maya"], "off_record": false },
-  { "id": "mom_demo_09", "ts": "2026-11-10T21:15:00-06:00", "source": "glasses", "mode": "life", "transcript": "Add dish soap and coffee filters to the shopping list.", "caption": "A sink full of dishes, the soap bottle nearly empty.", "snapshot_url": "/demo-snaps/sink.jpg", "place": "Home", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_10", "ts": "2026-11-11T10:15:00-06:00", "source": "glasses", "mode": "focus", "transcript": "This is Sam Rivera from Globex, I run their internship program.", "caption": "The career fair hall, rows of company booths.", "snapshot_url": "/demo-snaps/career-fair-hall.jpg", "place": "Career fair", "person_ids": ["per_sam"], "off_record": false },
-  { "id": "mom_demo_11", "ts": "2026-11-11T10:18:00-06:00", "source": "glasses", "mode": "focus", "transcript": "I'll send you the application link by Friday.", "caption": "A busy booth table with flyers and sign-up sheets.", "snapshot_url": "/demo-snaps/career-fair-table.jpg", "place": "Career fair", "person_ids": ["per_sam"], "off_record": false },
-  { "id": "mom_demo_12", "ts": "2026-11-11T11:05:00-06:00", "source": "glasses", "mode": "focus", "transcript": "This is Ash from Acme, I lead product for our Q4 launch.", "caption": "The Acme booth: a lounge with a demo screen.", "snapshot_url": "/demo-snaps/acme-booth.jpg", "place": "Career fair", "person_ids": ["per_ash"], "off_record": false },
-  { "id": "mom_demo_13", "ts": "2026-11-11T11:09:00-06:00", "source": "glasses", "mode": "focus", "transcript": "We're hiring a design intern for the launch team. Come find us at the hackathon this weekend.", "caption": "The Acme booth, a laptop running the launch demo.", "snapshot_url": "/demo-snaps/acme-booth.jpg", "place": "Career fair", "person_ids": ["per_ash"], "off_record": false },
-  { "id": "mom_demo_14", "ts": "2026-11-11T18:40:00-06:00", "source": "glasses", "mode": "life", "transcript": "Remember this, I left my keys on the shelf by the door.", "caption": "A key ring and a padlock on the wooden shelf by the door.", "snapshot_url": "/demo-snaps/keys.jpg", "place": "Home", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_15", "ts": "2026-11-12T13:05:00-06:00", "source": "glasses", "mode": "focus", "transcript": "This is Dana Kim from Initech, we build edge devices.", "caption": "A bright meeting room at Initech.", "snapshot_url": "/demo-snaps/meeting-room.jpg", "place": "Initech office", "person_ids": ["per_dana"], "off_record": false },
-  { "id": "mom_demo_16", "ts": "2026-11-12T13:20:00-06:00", "source": "glasses", "mode": "focus", "transcript": "I owe Dana a one-page summary of our prototype by Monday.", "caption": "Whiteboard: sensor to edge box to cloud, solar and battery.", "snapshot_url": "/demo-snaps/whiteboard-prototype.svg", "place": "Initech office", "person_ids": ["per_dana"], "off_record": false },
-  { "id": "mom_demo_17", "ts": "2026-11-12T13:34:00-06:00", "source": "glasses", "mode": "focus", "transcript": "Our devices sit in remote warehouses on solar power, so battery life is everything.", "caption": "Whiteboard note in red: Battery life is everything!", "snapshot_url": "/demo-snaps/whiteboard-prototype.svg", "place": "Initech office", "person_ids": ["per_dana"], "off_record": false },
-  { "id": "mom_demo_18", "ts": "2026-11-12T16:50:00-06:00", "source": "glasses", "mode": "assist", "transcript": "Read this to me.", "caption": "Bus stop sign: Route 7 to campus, every 15 minutes, last bus 11:40 PM.", "snapshot_url": "/demo-snaps/bus-stop.svg", "place": "Bus stop", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_19", "ts": "2026-11-12T20:30:00-06:00", "source": "glasses", "mode": "life", "transcript": "Remember, my library books are due next Tuesday.", "caption": "A stack of library books on my desk.", "snapshot_url": "/demo-snaps/library-books.jpg", "place": "Home", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_20", "ts": "2026-11-13T09:30:00-06:00", "source": "glasses", "mode": "student", "transcript": "Project demos for CSE 3310 move to next Thursday.", "caption": "Lecture slide: Project schedule. Demos move to next Thursday; sign up for a slot by Tuesday.", "snapshot_url": "/demo-snaps/slide-schedule.svg", "place": "Lecture hall", "person_ids": ["per_lee"], "off_record": false },
-  { "id": "mom_demo_21", "ts": "2026-11-13T09:42:00-06:00", "source": "glasses", "mode": "student", "transcript": "Exam two covers chapters 5 to 8: use cases, UML class diagrams and sequence diagrams.", "caption": "Lecture slide: Exam 2, what to study.", "snapshot_url": "/demo-snaps/slide-exam2.svg", "place": "Lecture hall", "person_ids": ["per_lee"], "off_record": false },
-  { "id": "mom_demo_22", "ts": "2026-11-13T14:00:00-06:00", "source": "glasses", "mode": "student", "transcript": "Study group: we split the use case diagrams, and I take the checkout flow.", "caption": "Whiteboard: a shopper use case diagram with browse items, checkout and pay.", "snapshot_url": "/demo-snaps/whiteboard-usecase.svg", "place": "Library study room 3", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_23", "ts": "2026-11-13T17:45:00-06:00", "source": "glasses", "mode": "life", "transcript": "Add oat milk and batteries to the shopping list.", "caption": "Open fridge: juice, eggs, and no oat milk on the door shelf.", "snapshot_url": "/demo-snaps/fridge.jpg", "place": "Home", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_24", "ts": "2026-11-14T09:15:00-06:00", "source": "glasses", "mode": "focus", "transcript": "This is Theo Nguyen from our hackathon team, I'll take the backend.", "caption": "Hackathon tables covered in laptops and chargers.", "snapshot_url": "/demo-snaps/hackathon-table.jpg", "place": "Hackathon, main hall", "person_ids": ["per_theo"], "off_record": false },
-  { "id": "mom_demo_25", "ts": "2026-11-14T09:40:00-06:00", "source": "glasses", "mode": "assist", "transcript": "Read this to me.", "caption": "Hackathon schedule poster: check-in 9:00, opening 10:00, lunch 12:30, hacking ends Sunday 11:00, judging Sunday 1 PM, awards 4 PM.", "snapshot_url": "/demo-snaps/hackathon-schedule.svg", "place": "Hackathon, main hall", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_26", "ts": "2026-11-14T11:30:00-06:00", "source": "glasses", "mode": "focus", "transcript": "This is Chris Tan from Hooli, I'm mentoring the hardware track.", "caption": "The mentor table, laptops open and coffee cups everywhere.", "snapshot_url": "/demo-snaps/hackathon-mentor.jpg", "place": "Hackathon, mentor table", "person_ids": ["per_chris"], "off_record": false },
-  { "id": "mom_demo_27", "ts": "2026-11-14T11:41:00-06:00", "source": "glasses", "mode": "focus", "transcript": "I'll intro you to our hiring manager by Friday.", "caption": "The mentor table, Chris pointing at a laptop.", "snapshot_url": "/demo-snaps/hackathon-mentor.jpg", "place": "Hackathon, mentor table", "person_ids": ["per_chris"], "off_record": false },
-  { "id": "mom_demo_28", "ts": "2026-11-14T14:20:00-06:00", "source": "glasses", "mode": "focus", "transcript": "I'll push the API fix tonight.", "caption": "Theo's laptop with a terminal open.", "snapshot_url": "/demo-snaps/hackathon-table.jpg", "place": "Hackathon, main hall", "person_ids": ["per_theo"], "off_record": false },
-  { "id": "mom_demo_29", "ts": "2026-11-14T14:26:00-06:00", "source": "glasses", "mode": "focus", "transcript": "I owe Theo the pitch slides by tomorrow morning.", "caption": "Whiteboard: demo flow, meet, promise, ask, brief, email, FaceTime.", "snapshot_url": "/demo-snaps/whiteboard-demo-flow.svg", "place": "Hackathon, main hall", "person_ids": ["per_theo"], "off_record": false },
-  { "id": "mom_demo_30", "ts": "2026-11-14T19:00:00-06:00", "source": "glasses", "mode": "life", "transcript": "Remember this, my charger is in the black backpack, front pocket.", "caption": "A black backpack, front pocket zipped.", "snapshot_url": "/demo-snaps/backpack.jpg", "place": "Hackathon, main hall", "person_ids": [], "off_record": false },
-  { "id": "mom_demo_31", "ts": "2026-11-14T23:30:00-06:00", "source": "glasses", "mode": "focus", "transcript": "Midnight snack is here, and the API tests are finally green.", "caption": "The hackathon hall at night, teams still coding.", "snapshot_url": "/demo-snaps/hackathon-night.jpg", "place": "Hackathon, main hall", "person_ids": [], "off_record": false },
-  {"id": "mom_demo_32", "ts": "2026-11-14T23:02:00-06:00", "source": "glasses", "mode": "focus", "transcript": "Quick team sync at the hackathon. Theo, Maya and I are checking where we are.", "caption": "Three teammates around a laptop at a hackathon table, late at night.", "snapshot_url": "/demo-snaps/hackathon-table.jpg", "place": "Hackathon, main hall", "person_ids": ["per_theo", "per_maya"], "off_record": false},
-  {"id": "mom_demo_33", "ts": "2026-11-14T23:10:00-06:00", "source": "glasses", "mode": "focus", "transcript": "We decided to demo the call feature first, then the memory search.", "caption": "The team's laptop screen at the hackathon table.", "snapshot_url": "/demo-snaps/hackathon-table.jpg", "place": "Hackathon, main hall", "person_ids": ["per_theo"], "off_record": false, "tags": ["decision"]},
-  {"id": "mom_demo_34", "ts": "2026-11-14T23:17:00-06:00", "source": "glasses", "mode": "focus", "transcript": "Let's cut the calendar integration, it's not stable. Agreed.", "caption": "The team's laptop screen at the hackathon table.", "snapshot_url": "/demo-snaps/hackathon-table.jpg", "place": "Hackathon, main hall", "person_ids": ["per_theo", "per_maya"], "off_record": false, "tags": ["decision"]},
-  {"id": "mom_demo_35", "ts": "2026-11-14T23:24:00-06:00", "source": "glasses", "mode": "focus", "transcript": "Theo will push the API fix tonight. I'll record the backup video before nine tomorrow morning.", "caption": "A laptop and cables on the hackathon table.", "snapshot_url": "/demo-snaps/hackathon-table.jpg", "place": "Hackathon, main hall", "person_ids": ["per_theo"], "off_record": false},
-  {"id": "mom_demo_36", "ts": "2026-11-13T14:08:00-06:00", "source": "glasses", "mode": "student", "transcript": "Tip from the group: write the sequence diagram for login first, it is the easiest one to check.", "caption": "Whiteboard: shopper use case diagram.", "snapshot_url": "/demo-snaps/whiteboard-usecase.svg", "place": "Library study room 3", "person_ids": [], "off_record": false},
-  {"id": "mom_demo_37", "ts": "2026-11-13T14:15:00-06:00", "source": "glasses", "mode": "student", "transcript": "Quiz question for later: what is the difference between include and extend in a use case?", "caption": "Whiteboard: shopper use case diagram.", "snapshot_url": "/demo-snaps/whiteboard-usecase.svg", "place": "Library study room 3", "person_ids": [], "off_record": false},
-  {"id": "mom_demo_38", "ts": "2026-11-13T14:21:00-06:00", "source": "glasses", "mode": "student", "transcript": "The lab report is due Monday at nine, and exam two is Thursday.", "caption": "A stack of library books on the desk.", "snapshot_url": "/demo-snaps/library-books.jpg", "place": "Library study room 3", "person_ids": [], "off_record": false},
-  {"id": "mom_demo_39", "ts": "2026-11-14T12:40:00-06:00", "source": "glasses", "mode": "life", "transcript": "I spent $18.40 on lunch at the food court.", "caption": "A food court tray with a rice bowl and a drink.", "snapshot_url": "/demo-snaps/kitchen.jpg", "place": "Student union", "person_ids": [], "off_record": false},
-  {"id": "mom_demo_40", "ts": "2026-11-14T09:52:00-06:00", "source": "glasses", "mode": "assist", "transcript": "The sign says room 214 is closed today, use room 216.", "caption": "A door sign: Room 214 closed today. Please use Room 216.", "snapshot_url": "/demo-snaps/office-hours-sign.svg", "place": "Engineering building", "person_ids": [], "off_record": false}
+  {
+    "id": "mom_demo_01",
+    "ts": "2026-11-09T08:50:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Prof. Lee said it's fine to record lectures for my notes.",
+    "caption": "A lecture hall from the back row, chalkboards at the front.",
+    "snapshot_url": "/demo-snaps/lecture-hall.jpg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_02",
+    "ts": "2026-11-09T09:05:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Today is requirements engineering, and milestone two is due Friday.",
+    "caption": "Lecture slide: CSE 3310 Week 12, Requirements Engineering. Milestone 2 due Friday.",
+    "snapshot_url": "/demo-snaps/slide-week12.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_03",
+    "ts": "2026-11-09T12:30:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Remember where I park: level 3 of the West garage, by pillar 3C.",
+    "caption": "Parking garage level with green pillars marked 3C and 3D.",
+    "snapshot_url": "/demo-snaps/parking-level-3.jpg",
+    "place": "West garage",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_04",
+    "ts": "2026-11-09T19:05:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "This is Jamie Ortiz, my roommate.",
+    "caption": "Our apartment kitchen, groceries still on the counter.",
+    "snapshot_url": "/demo-snaps/kitchen.jpg",
+    "place": "Home",
+    "person_ids": [
+      "per_jamie"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_05",
+    "ts": "2026-11-09T19:12:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "I owe Jamie twenty-four dollars for groceries. I'll pay it back this weekend.",
+    "caption": "Fresh Mart receipt: total 48.00, split two ways 24.00, paid by Jamie.",
+    "snapshot_url": "/demo-snaps/grocery-receipt.svg",
+    "place": "Home",
+    "person_ids": [
+      "per_jamie"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_06",
+    "ts": "2026-11-10T08:40:00-06:00",
+    "source": "glasses",
+    "mode": "assist",
+    "transcript": "Read this to me.",
+    "caption": "Coffee menu board: oat latte 5.25, cold brew 4.50, drip coffee 2.75, chai 4.75, breakfast taco 3.75, blueberry muffin 3.25.",
+    "snapshot_url": "/demo-snaps/menu-board.svg",
+    "place": "Campus Coffee",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_07",
+    "ts": "2026-11-10T15:30:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "This is Maya Patel, the TA for CSE 3310.",
+    "caption": "Office hours sign: CSE 3310 TA office hours, Maya Patel, Tuesday 3 to 5 PM, Room 208.",
+    "snapshot_url": "/demo-snaps/office-hours-sign.svg",
+    "place": "Engineering, room 208",
+    "person_ids": [
+      "per_maya"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_08",
+    "ts": "2026-11-10T15:44:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "I'll post the milestone rubric Monday.",
+    "caption": "A laptop on the office hours desk with the course page open.",
+    "snapshot_url": "/demo-snaps/laptop-course-page.jpg",
+    "place": "Engineering, room 208",
+    "person_ids": [
+      "per_maya"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_09",
+    "ts": "2026-11-10T21:15:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Add dish soap and coffee filters to the shopping list.",
+    "caption": "A sink full of dishes, the soap bottle nearly empty.",
+    "snapshot_url": "/demo-snaps/sink.jpg",
+    "place": "Home",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_10",
+    "ts": "2026-11-11T10:15:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "This is Sam Rivera from Globex, I run their internship program.",
+    "caption": "The career fair hall, rows of company booths.",
+    "snapshot_url": "/demo-snaps/career-fair-hall.jpg",
+    "place": "Career fair",
+    "person_ids": [
+      "per_sam"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_11",
+    "ts": "2026-11-11T10:18:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "I'll send you the application link by Friday.",
+    "caption": "A busy booth table with flyers and sign-up sheets.",
+    "snapshot_url": "/demo-snaps/career-fair-table.jpg",
+    "place": "Career fair",
+    "person_ids": [
+      "per_sam"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_12",
+    "ts": "2026-11-11T11:05:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "This is Ash from Acme, I lead product for our Q4 launch.",
+    "caption": "The Acme booth: a lounge with a demo screen.",
+    "snapshot_url": "/demo-snaps/acme-booth.jpg",
+    "place": "Career fair",
+    "person_ids": [
+      "per_ash"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_13",
+    "ts": "2026-11-11T11:09:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "We're hiring a design intern for the launch team. Come find us at the hackathon this weekend.",
+    "caption": "The Acme booth, a laptop running the launch demo.",
+    "snapshot_url": "/demo-snaps/acme-booth.jpg",
+    "place": "Career fair",
+    "person_ids": [
+      "per_ash"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_14",
+    "ts": "2026-11-11T18:40:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Remember this, I left my keys on the shelf by the door.",
+    "caption": "A key ring and a padlock on the wooden shelf by the door.",
+    "snapshot_url": "/demo-snaps/keys.jpg",
+    "place": "Home",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_15",
+    "ts": "2026-11-12T13:05:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "This is Dana Kim from Initech, we build edge devices.",
+    "caption": "A bright meeting room at Initech.",
+    "snapshot_url": "/demo-snaps/meeting-room.jpg",
+    "place": "Initech office",
+    "person_ids": [
+      "per_dana"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_16",
+    "ts": "2026-11-12T13:20:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "I owe Dana a one-page summary of our prototype by Monday.",
+    "caption": "Whiteboard: sensor to edge box to cloud, solar and battery.",
+    "snapshot_url": "/demo-snaps/whiteboard-prototype.svg",
+    "place": "Initech office",
+    "person_ids": [
+      "per_dana"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_17",
+    "ts": "2026-11-12T13:34:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Our devices sit in remote warehouses on solar power, so battery life is everything.",
+    "caption": "Whiteboard note in red: Battery life is everything!",
+    "snapshot_url": "/demo-snaps/whiteboard-prototype.svg",
+    "place": "Initech office",
+    "person_ids": [
+      "per_dana"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_18",
+    "ts": "2026-11-12T16:50:00-06:00",
+    "source": "glasses",
+    "mode": "assist",
+    "transcript": "Read this to me.",
+    "caption": "Bus stop sign: Route 7 to campus, every 15 minutes, last bus 11:40 PM.",
+    "snapshot_url": "/demo-snaps/bus-stop.svg",
+    "place": "Bus stop",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_19",
+    "ts": "2026-11-12T20:30:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Remember, my library books are due next Tuesday.",
+    "caption": "A stack of library books on my desk.",
+    "snapshot_url": "/demo-snaps/library-books.jpg",
+    "place": "Home",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_20",
+    "ts": "2026-11-13T09:30:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Project demos for CSE 3310 move to next Thursday.",
+    "caption": "Lecture slide: Project schedule. Demos move to next Thursday; sign up for a slot by Tuesday.",
+    "snapshot_url": "/demo-snaps/slide-schedule.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_21",
+    "ts": "2026-11-13T09:42:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Exam two covers chapters 5 to 8: use cases, UML class diagrams and sequence diagrams.",
+    "caption": "Lecture slide: Exam 2, what to study.",
+    "snapshot_url": "/demo-snaps/slide-exam2.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_22",
+    "ts": "2026-11-13T14:00:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Study group: we split the use case diagrams, and I take the checkout flow.",
+    "caption": "Whiteboard: a shopper use case diagram with browse items, checkout and pay.",
+    "snapshot_url": "/demo-snaps/whiteboard-usecase.svg",
+    "place": "Library study room 3",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_23",
+    "ts": "2026-11-13T17:45:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Add oat milk and batteries to the shopping list.",
+    "caption": "Open fridge: juice, eggs, and no oat milk on the door shelf.",
+    "snapshot_url": "/demo-snaps/fridge.jpg",
+    "place": "Home",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_24",
+    "ts": "2026-11-14T09:15:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "This is Theo Nguyen from our hackathon team, I'll take the backend.",
+    "caption": "Hackathon tables covered in laptops and chargers.",
+    "snapshot_url": "/demo-snaps/hackathon-table.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_25",
+    "ts": "2026-11-14T09:40:00-06:00",
+    "source": "glasses",
+    "mode": "assist",
+    "transcript": "Read this to me.",
+    "caption": "Hackathon schedule poster: check-in 9:00, opening 10:00, lunch 12:30, hacking ends Sunday 11:00, judging Sunday 1 PM, awards 4 PM.",
+    "snapshot_url": "/demo-snaps/hackathon-schedule.svg",
+    "place": "Hackathon, main hall",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_26",
+    "ts": "2026-11-14T11:30:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "This is Chris Tan from Hooli, I'm mentoring the hardware track.",
+    "caption": "The mentor table, laptops open and coffee cups everywhere.",
+    "snapshot_url": "/demo-snaps/hackathon-mentor.jpg",
+    "place": "Hackathon, mentor table",
+    "person_ids": [
+      "per_chris"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_27",
+    "ts": "2026-11-14T11:41:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "I'll intro you to our hiring manager by Friday.",
+    "caption": "The mentor table, Chris pointing at a laptop.",
+    "snapshot_url": "/demo-snaps/hackathon-mentor.jpg",
+    "place": "Hackathon, mentor table",
+    "person_ids": [
+      "per_chris"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_28",
+    "ts": "2026-11-14T14:20:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "I'll push the API fix tonight.",
+    "caption": "Theo's laptop with a terminal open.",
+    "snapshot_url": "/demo-snaps/hackathon-table.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_29",
+    "ts": "2026-11-14T14:26:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "I owe Theo the pitch slides by tomorrow morning.",
+    "caption": "Whiteboard: demo flow, meet, promise, ask, brief, email, FaceTime.",
+    "snapshot_url": "/demo-snaps/whiteboard-demo-flow.svg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_30",
+    "ts": "2026-11-14T19:00:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Remember this, my charger is in the black backpack, front pocket.",
+    "caption": "A black backpack, front pocket zipped.",
+    "snapshot_url": "/demo-snaps/backpack.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_31",
+    "ts": "2026-11-14T23:30:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Midnight snack is here, and the API tests are finally green.",
+    "caption": "The hackathon hall at night, teams still coding.",
+    "snapshot_url": "/demo-snaps/hackathon-night.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_32",
+    "ts": "2026-11-14T23:02:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Quick team sync at the hackathon. Theo, Maya and I are checking where we are.",
+    "caption": "Three teammates around a laptop at a hackathon table, late at night.",
+    "snapshot_url": "/demo-snaps/hackathon-table.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo",
+      "per_maya"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_33",
+    "ts": "2026-11-14T23:10:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "We decided to demo the call feature first, then the memory search.",
+    "caption": "The team's laptop screen at the hackathon table.",
+    "snapshot_url": "/demo-snaps/hackathon-table.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo"
+    ],
+    "off_record": false,
+    "tags": [
+      "decision"
+    ]
+  },
+  {
+    "id": "mom_demo_34",
+    "ts": "2026-11-14T23:17:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Let's cut the calendar integration, it's not stable. Agreed.",
+    "caption": "The team's laptop screen at the hackathon table.",
+    "snapshot_url": "/demo-snaps/hackathon-table.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo",
+      "per_maya"
+    ],
+    "off_record": false,
+    "tags": [
+      "decision"
+    ]
+  },
+  {
+    "id": "mom_demo_35",
+    "ts": "2026-11-14T23:24:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Theo will push the API fix tonight. I'll record the backup video before nine tomorrow morning.",
+    "caption": "A laptop and cables on the hackathon table.",
+    "snapshot_url": "/demo-snaps/hackathon-table.jpg",
+    "place": "Hackathon, main hall",
+    "person_ids": [
+      "per_theo"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_36",
+    "ts": "2026-11-13T14:08:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Tip from the group: write the sequence diagram for login first, it is the easiest one to check.",
+    "caption": "Whiteboard: shopper use case diagram.",
+    "snapshot_url": "/demo-snaps/whiteboard-usecase.svg",
+    "place": "Library study room 3",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_37",
+    "ts": "2026-11-13T14:15:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Quiz question for later: what is the difference between include and extend in a use case?",
+    "caption": "Whiteboard: shopper use case diagram.",
+    "snapshot_url": "/demo-snaps/whiteboard-usecase.svg",
+    "place": "Library study room 3",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_38",
+    "ts": "2026-11-13T14:21:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "The lab report is due Monday at nine, and exam two is Thursday.",
+    "caption": "A stack of library books on the desk.",
+    "snapshot_url": "/demo-snaps/library-books.jpg",
+    "place": "Library study room 3",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_39",
+    "ts": "2026-11-14T12:40:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "I spent $18.40 on lunch at the food court.",
+    "caption": "A food court tray with a rice bowl and a drink.",
+    "snapshot_url": "/demo-snaps/kitchen.jpg",
+    "place": "Student union",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_40",
+    "ts": "2026-11-14T09:52:00-06:00",
+    "source": "glasses",
+    "mode": "assist",
+    "transcript": "The sign says room 214 is closed today, use room 216.",
+    "caption": "A door sign: Room 214 closed today. Please use Room 216.",
+    "snapshot_url": "/demo-snaps/office-hours-sign.svg",
+    "place": "Engineering building",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_41",
+    "ts": "2026-11-14T10:00:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Today is design patterns. Observer, factory and strategy are the three that matter for the test.",
+    "caption": "Lecture slide: CSE 3310 Week 13, Design Patterns. Observer, Factory, Strategy.",
+    "snapshot_url": "/demo-snaps/slide-week12.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_42",
+    "ts": "2026-11-14T10:08:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Observer pattern: one subject notifies many observers when its state changes. Think event listeners.",
+    "caption": "Whiteboard: Subject box with arrows to three Observer boxes, labeled notify().",
+    "snapshot_url": "/demo-snaps/whiteboard-usecase.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_43",
+    "ts": "2026-11-14T10:17:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Factory pattern hides which concrete class gets created. The caller asks for a type and gets an object back.",
+    "caption": "Lecture slide: Factory method, Creator and Product classes in UML.",
+    "snapshot_url": "/demo-snaps/slide-exam2.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_44",
+    "ts": "2026-11-14T10:26:00-06:00",
+    "source": "glasses",
+    "mode": "student",
+    "transcript": "Quiz four is due Wednesday, and it covers observer and factory. I need to finish the observer exercise before then.",
+    "caption": "Lecture slide: Quiz 4 due Wednesday, covers Observer and Factory.",
+    "snapshot_url": "/demo-snaps/slide-schedule.svg",
+    "place": "Lecture hall",
+    "person_ids": [
+      "per_lee"
+    ],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_45",
+    "ts": "2026-11-14T08:20:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Coffee and a muffin, six twenty-five.",
+    "caption": "Campus Coffee counter, a receipt reading total 6.25.",
+    "snapshot_url": "/demo-snaps/menu-board.svg",
+    "place": "Campus Coffee",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_46",
+    "ts": "2026-11-13T16:10:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Pharmacy run, thirty-one forty for cold medicine and tissues.",
+    "caption": "Pharmacy receipt: cold medicine and tissues, total 31.40.",
+    "snapshot_url": "/demo-snaps/grocery-receipt.svg",
+    "place": "Pharmacy",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_47",
+    "ts": "2026-11-12T18:05:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Add granola bars and bananas to the shopping list.",
+    "caption": "Open pantry shelf with an empty granola box.",
+    "snapshot_url": "/demo-snaps/fridge.jpg",
+    "place": "Home",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_48",
+    "ts": "2026-11-11T12:30:00-06:00",
+    "source": "glasses",
+    "mode": "life",
+    "transcript": "Four dollars at the pay station for the career fair.",
+    "caption": "Pay station display showing 4.00 paid.",
+    "snapshot_url": "/demo-snaps/parking-level-3.jpg",
+    "place": "Visitor lot",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_49",
+    "ts": "2026-11-14T08:05:00-06:00",
+    "source": "glasses",
+    "mode": "assist",
+    "transcript": "Careful, the floor is wet by the entrance.",
+    "caption": "A yellow wet floor sign next to a glossy tiled entrance, two steps down to the lobby.",
+    "snapshot_url": "/demo-snaps/library-books.jpg",
+    "place": "Engineering lobby",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_50",
+    "ts": "2026-11-13T08:10:00-06:00",
+    "source": "glasses",
+    "mode": "assist",
+    "transcript": "Read the pill bottle to me.",
+    "caption": "Pill bottle label: Vitamin D 1000 IU, take one tablet daily with food.",
+    "snapshot_url": "/demo-snaps/office-hours-sign.svg",
+    "place": "Home",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_51",
+    "ts": "2026-11-13T11:00:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Product sync with the launch team. We are shipping the Q4 launch on the twenty-fourth.",
+    "caption": "Meeting room with a laptop, a notebook and a launch checklist on screen.",
+    "snapshot_url": "/demo-snaps/meeting-room.jpg",
+    "place": "Studio",
+    "person_ids": [],
+    "off_record": false
+  },
+  {
+    "id": "mom_demo_52",
+    "ts": "2026-11-13T11:09:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "We decided to keep the pricing page as is for launch and revisit it in December.",
+    "caption": "Meeting room, notebook open to a pricing table.",
+    "snapshot_url": "/demo-snaps/meeting-room.jpg",
+    "place": "Acme booth",
+    "person_ids": [],
+    "off_record": false,
+    "tags": [
+      "decision"
+    ]
+  },
+  {
+    "id": "mom_demo_53",
+    "ts": "2026-11-13T11:16:00-06:00",
+    "source": "glasses",
+    "mode": "focus",
+    "transcript": "Action item: I will send the intern job description to the launch team by Monday.",
+    "caption": "Notebook page with an action list, first line circled.",
+    "snapshot_url": "/demo-snaps/meeting-room.jpg",
+    "place": "Acme booth",
+    "person_ids": [],
+    "off_record": false
+  }
 ]

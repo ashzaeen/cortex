@@ -59,7 +59,7 @@ The call agent will use the same backend as the glasses and the app. By tab:
 
 ## 5. Proposed backend contract (a draft for the team to agree, not decided)
 
-> **Update, 2026-11-15:** the real contract is [contracts/openapi.yaml](../contracts/openapi.yaml), and the table below was only a first sketch. The differences: the source is `call` (not `facetime`), `POST /ask` takes `{question, channel: "call"}` and returns `{answer, spoken, grounded, sources, receipt_id}`, and a brief is `GET /people/{id}/brief`. The call agent now uses these (`apps/call-agent/agent/cortex.mjs`). `call_started` and `call_ended` became `POST /calls/started` and `POST /calls/ended`, plus `GET /calls/current`; those three are proposed in a contract-change issue and implemented in the backend and the stateful mock (not yet on the hosted backend). There is no `GET /mode` for the agent to read; it is not wired.
+> **Update, 2026-11-15:** the real contract is [contracts/openapi.yaml](../contracts/openapi.yaml), and the table below was only a first sketch. The differences: the source is `call` (not `facetime`), `POST /ask` takes `{question, channel: "call"}` and returns `{answer, spoken, grounded, sources, receipt_id}`, and a brief is `GET /people/{id}/brief`. The call agent now uses these (`apps/call-agent/agent/cortex.mjs`). `call_started` and `call_ended` became `POST /calls/started` and `POST /calls/ended`, plus `GET /calls/current`; those three are proposed in a contract-change issue and implemented in the backend and the stateful mock, and deployed to the hosted backend on 2026-11-15. There is no `GET /mode` for the agent to read; it is not wired.
 
 The plan names four functions the call agent will use. Suggested shapes:
 

@@ -2,7 +2,7 @@
 
 The FaceTime call layer. A Chert line bridges an iPhone FaceTime call into a LiveKit room on **our own** LiveKit project. This agent joins the room, talks to the caller, reads the caller's camera, and calls the Cortex API. The agent is in [agent/](agent/README.md): Node with LiveKit Agents and Gemini Live (`gemini-2.5-flash-native-audio-preview-12-2025`); [ADR 0004](../../docs/decisions/0004-sponsor-stack.md) is still Proposed. Handoff: [docs/CHERT_CALL_LAYER_HANDOFF.md](../../docs/CHERT_CALL_LAYER_HANDOFF.md).
 
-**State (T0-10):** step 1 and the caller's camera to Gemini work on real calls. Steps 2 and 3 and the call lifecycle are written and tested offline against the real backend (`agent/cortex.mjs`), but **not yet run on a real FaceTime call**. The call lifecycle endpoints are in the contract, the backend and the stateful mock, and the dashboard's "On Call" state follows them (browser test against the mock). The hosted backend needs a redeploy before they exist there (until then the agent just logs a 404 and carries on).
+**State (T0-10):** step 1 and the caller's camera to Gemini work on real calls. Steps 2 and 3 and the call lifecycle are written and tested offline against the real backend (`agent/cortex.mjs`), but **not yet run on a real FaceTime call**. The call lifecycle endpoints are in the contract, the backend and the stateful mock, and the dashboard's "On Call" state follows them (browser test against the mock). They are live on the hosted backend (redeployed 2026-11-15). On a hosted agent, set `CORTEX_API_URL` to the hosted backend: the default points at the local mock.
 
 ## What it must do (T0-10)
 

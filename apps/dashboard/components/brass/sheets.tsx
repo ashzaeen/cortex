@@ -186,6 +186,7 @@ type SettingsProps = {
   open: boolean; onClose: () => void; privacy: PrivacyState["state"]; onPrivacy: (s: PrivacyState["state"]) => void;
   solid: boolean; onSolid: (v: boolean) => void; demo: boolean; onDemo: (v: boolean) => void;
   onPairing: () => void; onReceipts: () => void; onPeople: () => void;
+  user?: { name: string | null; email: string | null } | null; onSignOut?: () => void;
 };
 export function SettingsSheet(p: SettingsProps) {
   const states: { id: PrivacyState["state"]; label: string; hint: string }[] = [
@@ -225,6 +226,15 @@ export function SettingsSheet(p: SettingsProps) {
           <Label as="h3">Connections</Label>
           <Row label="Pair Glasses" hint="Ray-Ban Meta through the Cortex iOS app." onClick={p.onPairing} right={<Glasses size={18} strokeWidth={1.5} className="text-text-3" />} />
         </section>
+        {p.user && (
+          <section className="flex flex-col gap-1" aria-label="Account">
+            <Label as="h3">Account</Label>
+            <div className="flex items-center gap-3 px-4 py-2">
+              <span className="min-w-0 flex-1"><span className="block truncate text-[0.9375rem] font-semibold">{p.user.name ?? "Signed In"}</span><span className="t-data block truncate text-text-3">{p.user.email}</span></span>
+              <Button variant="secondary" onClick={p.onSignOut}>Sign Out</Button>
+            </div>
+          </section>
+        )}
         <section className="flex flex-col gap-1" aria-label="Appearance">
           <Label as="h3">Appearance</Label>
           <Row label="Reduce Transparency" hint="Solid panels instead of glass." onClick={() => p.onSolid(!p.solid)} right={<Toggle on={p.solid} />} />

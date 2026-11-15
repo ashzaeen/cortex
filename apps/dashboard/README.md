@@ -4,6 +4,15 @@ Companion web app in the **Brass** design system ([design.md](../../design.md)).
 
 **Stack ([ADR 0005](../../docs/decisions/0005-dashboard-stack.md), Accepted):** Next.js 16 with TypeScript, Tailwind CSS 4 reading the Brass tokens in `app/globals.css`, Motion for springs and gestures, Lucide icons, three.js (lazy, pairing only), fonts self-hosted with `next/font`, a same-origin `/api` proxy to `CORTEX_API_URL`, a stateful mock in `mock/`, Vercel hosting (#38). Every component and state renders at `/styleguide`.
 
+## Routes
+
+| Path | What |
+| --- | --- |
+| `/` | Landing page: 3D glasses, a live reel of the Ash flow, modes, privacy. Continue with Google, or Try the Demo |
+| `/app` | The app. Requires Google sign-in when `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are set (see `auth.ts` and `.env.example`); open otherwise |
+| `/demo` | The app on the sample week, in the browser, no account |
+| `/styleguide` | Every component in every state |
+
 ## Run it
 
 ```sh
@@ -14,7 +23,7 @@ Open http://localhost:3000. On a phone on the same wifi, open `http://<laptop IP
 
 ## Deployed
 
-**https://cortex-dashboard-seven.vercel.app** (Vercel project `cortex-dashboard`, root `apps/dashboard`). Every push to `main` deploys to production. `CORTEX_API_URL` is set in the Vercel project env, never in the repo; until a hosted API exists (#42) it is unset and `/api/*` returns 502 `api_unreachable`.
+**https://cortex-dashboard-seven.vercel.app** (Vercel project `cortex-dashboard`, root `apps/dashboard`). Every push to `main` deploys to production. `CORTEX_API_URL` is set in the Vercel project env (Production and Preview), never in the repo, and points `/api/*` at the hosted backend on Railway (#42).
 
 ## Public demo (`/demo`)
 

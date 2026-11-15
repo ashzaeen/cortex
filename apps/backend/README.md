@@ -14,6 +14,8 @@ make -C apps/backend dev        # http://localhost:8000  (docs at /docs)
 CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real backend
 ```
 
+**Hosted (#42):** https://api-production-47227cba.up.railway.app, Railway project `cortex-api`, service `api`. It builds `apps/backend/Dockerfile` from the repo root (it needs `contracts/` and `fixtures/`; Railway has `RAILWAY_DOCKERFILE_PATH=apps/backend/Dockerfile` set) and runs **one** uvicorn worker, because the SSE broker and undo timers live in process memory (`railway.json`: `/health` check, one replica). Keys live only in Railway variables; email runs with `EMAIL_DRY_RUN=true`. **Pushing to `main` does not redeploy:** run `railway up --ci --service api` from the repo root, then check `/health`. Its database holds the demo seed, so run tests that write against a separate database.
+
 **Offline (no keys, no network):** leave `DATABASE_URL` and `LLM_API_KEY` empty, or set `USE_MONGOMOCK=true LLM_MOCK=true`. Memory is in-process and lost on restart, so the server loads `fixtures/` itself at startup (`SEED_ON_START=false` to skip).
 
 **Tests:** `make test` (root) or `make -C apps/backend test`. Offline: mongomock + a rule-based mock LLM. Every response is validated against `contracts/`.

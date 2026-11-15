@@ -37,15 +37,15 @@ If code and a document disagree, fix the document in the same commit.
 
 | Area | Path | Label | Owner |
 | --- | --- | --- | --- |
-| Contracts | `contracts/` | `area:contracts` | @ClosetCoderSad (backend lead) |
-| Backend: memory API and agent brain | `apps/backend/` | `area:backend` | @ClosetCoderSad (backend lead) |
+| Contracts | `contracts/` | `area:contracts` | @ashzaeen |
+| Backend: memory API and agent brain | `apps/backend/` | `area:backend` | @ashzaeen |
 | Dashboard | `apps/dashboard/` | `area:dashboard` | @ashzaeen |
 | Capture: glasses and phone | `apps/capture/` | `area:capture` | @794KHSameer (hardware and Meta glasses lead); iOS app (`apps/capture/glasses/`, everything iOS): @ahnafzabir-utd |
-| Call agent: Chert and LiveKit | `apps/call-agent/` | `area:call` | @ahnafzabir-utd (Chert lead) |
+| Call agent: Chert and LiveKit | `apps/call-agent/` | `area:call` | @ashzaeen |
 | Demo: fixtures, script, rehearsal | `fixtures/`, `docs/DEMO_SCRIPT.md` | `area:demo` | @ashzaeen |
 | Infra: tooling, CI, scripts | `Makefile`, `scripts/`, `.github/` | `area:infra` | @ashzaeen |
 
-Owners are also in [.github/CODEOWNERS](.github/CODEOWNERS). Each area has its own `README.md` and `AGENTS.md`; read the one for the area you touch.
+Since 2026-11-15 @ashzaeen leads every feature except capture (CAP); capture stays with @794KHSameer and the iOS app with @ahnafzabir-utd. Owners are also in [.github/CODEOWNERS](.github/CODEOWNERS). Each area has its own `README.md` and `AGENTS.md`; read the one for the area you touch.
 
 **Stay in your area.** Change files only in the area your issue is labeled for, unless the issue says otherwise. If you need a change elsewhere, open an issue with that area's label and describe what you need. Do not edit another area silently.
 
@@ -101,7 +101,7 @@ Before you push any change to `contracts/`, open or use an issue labeled `contra
 
 ## Decisions
 
-Record non-trivial decisions as ADRs in [docs/decisions/](docs/decisions/) with status Proposed, Accepted or Superseded. The backend stack (ADR 0001) and data store (ADR 0002) are the backend lead's call; agents may add options and evidence but never mark them Accepted.
+Record non-trivial decisions as ADRs in [docs/decisions/](docs/decisions/) with status Proposed, Accepted or Superseded. The backend stack (ADR 0001) and data store (ADR 0002) are @ashzaeen's call; agents may add options and evidence but never mark them Accepted.
 
 ## Session end ritual
 

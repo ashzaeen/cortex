@@ -14,7 +14,7 @@ from core.llm import get_llm
 from core.timeutil import parse_dt
 from memory import delete, ingest, search, store
 from skills import ask as ask_skill
-from skills import brief, network, promises
+from skills import brief, digest, lists, network, promises, rewind
 
 router = APIRouter()
 
@@ -44,6 +44,16 @@ def search_moments(q: str = Query(min_length=1), limit: int = Query(5, ge=1, le=
     return {"results": [{"moment": contract.moment(d), "score": round(s, 4)} for d, s in search.search(q, limit)]}
 
 
+@router.get("/moments/{id}", tags=["moments"])
+def get_moment(id: str):  # noqa: A002
+    from core import contract
+
+    doc = store.get_moment(id)
+    if not doc:
+        raise not_found("moment")
+    return contract.moment(doc)
+
+
 @router.delete("/moments/{id}", tags=["privacy"])
 def delete_moment(id: str):  # noqa: A002
     return delete.delete_moment(id)
@@ -55,6 +65,16 @@ def ask(body: models.AskBody):
     return ask_skill.ask(body.question, body.channel)
 
 
+@router.get("/digest", tags=["ask"])
+def get_digest(date: str | None = None):
+    return digest.digest(digest.parse_day(date))
+
+
+@router.get("/rewind", tags=["ask"])
+def get_rewind(q: str = Query(min_length=1)):
+    return rewind.rewind(q)
+
+
 # ---------- people ----------
 @router.get("/people", tags=["people"])
 def list_people():
@@ -64,6 +84,16 @@ def list_people():
 @router.post("/people", status_code=201, tags=["people"])
 def create_person(body: models.PersonCreate):
     return network.create_manual(body.name, body.company, body.introduced_moment_id)
+
+
+@router.patch("/people/{id}", tags=["people"])
+def update_person(id: str, body: models.PersonUpdate):  # noqa: A002
+    return network.update(id, body.model_dump(exclude_unset=True))
+
+
+@router.delete("/people/{id}", tags=["privacy"])
+def delete_person(id: str):  # noqa: A002
+    return network.delete(id)
 
 
 @router.get("/people/{id}/brief", tags=["people"])
@@ -116,6 +146,27 @@ def confirm_action(id: str, body: models.ActionConfirm, google_token: str | None
 @router.post("/actions/{id}/undo", tags=["actions"])
 def undo_action(id: str, google_token: str | None = GoogleToken):  # noqa: A002
     return followup.undo(id, google_token)
+
+
+# ---------- lists ----------
+@router.get("/lists", tags=["lists"])
+def list_lists():
+    return {"items": lists.list_all()}
+
+
+@router.post("/lists/{id}/items", status_code=201, tags=["lists"])
+def add_list_item(id: str, body: models.ListItemCreate):  # noqa: A002
+    return lists.add(id, body.text, body.amount, body.source_moment_id)
+
+
+@router.patch("/lists/{id}/items/{item_id}", tags=["lists"])
+def update_list_item(id: str, item_id: str, body: models.ListItemUpdate):  # noqa: A002
+    return lists.update(id, item_id, body.model_dump(exclude_unset=True))
+
+
+@router.delete("/lists/{id}/items/{item_id}", tags=["lists"])
+def delete_list_item(id: str, item_id: str):  # noqa: A002
+    return lists.remove(id, item_id)
 
 
 # ---------- receipts ----------

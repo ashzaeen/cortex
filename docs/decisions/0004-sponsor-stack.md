@@ -1,7 +1,7 @@
 # 0004: Sponsor stack (call agent, speech, models)
 
 - **Status:** Proposed (not decided)
-- **Decider:** call owner (@ahnafzabir-utd) with the backend lead (@ClosetCoderSad)
+- **Decider:** @ashzaeen (owns call and backend since 2026-11-15)
 - **Issue:** #5, #6, #7, #11
 - **Date:** 2026-11-14
 

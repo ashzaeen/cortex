@@ -26,7 +26,7 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 | --- | --- |
 | `api/` | `routes.py`: every contract operation plus `GET /events` (SSE); `models.py`: request bodies |
 | `memory/` | `ingest.py` (POST /moments pipeline), `search.py` (vector + freshness merge), `store.py`, `delete.py` (cascade) |
-| `skills/` | `network.py` (introductions), `promises.py` (waiting-on chips), `brief.py`, `ask.py` (grounded answers) |
+| `skills/` | `network.py` (introductions, card edit and delete), `promises.py` (waiting-on chips), `brief.py`, `ask.py` (grounded answers), `digest.py` (MEM-9), `rewind.py` (MEM-10), `lists.py` (MEM-11) |
 | `actions/` | `followup.py` (propose, confirm send/draft, undo; dispatches other types), `email.py` (dry run, SMTP, Resend), `doers.py` (calendar_event, reminder, flashcards, notes, message, read_aloud), `google.py` (Calendar, Tasks, Drive with the forwarded `X-Google-Access-Token`), `chert.py` (texts from the Chert line) |
 | `core/` | config, MongoDB, Tiger Data, Gemini + mock, prompts, SSE broker, receipts, contract serializers, snapshots and short videos |
 | `scripts/seed.py` | `make seed` loader for `fixtures/*.json` |
@@ -44,6 +44,10 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 | D-6 | `GET /people/{id}/brief`: Gemini writes it from stored data; a template from the same data is the fallback; cached until the person's data changes. `POST /ask` "Brief me on Ash" returns it too | `skills/brief.py` |
 | D-7 | Confirming a promise auto-proposes the follow-up email (`action.proposed`). Confirm `send` holds delivery until the undo window (30 s) closes; undo cancels it. `EMAIL_DRY_RUN=true` saves a draft instead | `actions/followup.py` |
 | D-9 | `POST /privacy/pause` (paused, off_record) blocks ingest with 409; `DELETE /moments/{id}` removes the moment, embedding, snapshot, derived promises, people it introduced, its Tiger row, and returns a deletion receipt | `memory/store.py`, `memory/delete.py` |
+| MEM-4 | `PATCH /people/{id}` edits a card; `DELETE /people/{id}` removes it, its promises, proposed actions and moment links (moments stay), with a deletion receipt | `skills/network.py` |
+| MEM-9 | `GET /digest?date=` recaps one day from stored records (people met, promises, follow-ups, list items) with a fixed template; `POST /ask` "What did I do today?" returns it | `skills/digest.py` |
+| MEM-10 | `GET /rewind?q=` quotes the exact transcript line with its moment and snapshot; `GET /moments/{id}` loads one moment; `POST /ask` routes "rewind", "replay", "word for word" | `skills/rewind.py` |
+| MEM-11 | `GET /lists`, `POST /lists/{id}/items`, `PATCH`/`DELETE /lists/{id}/items/{item_id}` for `shopping` and `expenses`. Ingest adds items from "add X to my shopping list" and "log this receipt / I spent $12 on lunch"; deleting the moment deletes its items. "What's on my shopping list?" works through `/ask` | `skills/lists.py` |
 
 ## Notes for other areas
 

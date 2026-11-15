@@ -1,7 +1,9 @@
 """Ask with proof (D-5). Answers ONLY from retrieved moments; otherwise grounded=false. Every answer
 writes a receipt (kind answer) and returns its source moments.
 
-Order: 1) "brief me on <name>" -> the brief; 2) questions about a known person's promises ("What did Ash
+Order: 0) rewind ("replay what Ash said", MEM-10), the daily digest ("what did I do today?", MEM-9) and
+lists ("what's on my shopping list?", MEM-11), all built from stored records; 1) "brief me on <name>" -> the
+brief; 2) questions about a known person's promises ("What did Ash
 promise me?", "What is open with Ash?") -> answered straight from the promises table with their source
 moments (deterministic, demo-safe); 3) anything else -> search + Gemini, citations checked against hits."""
 import re
@@ -11,7 +13,10 @@ from core.llm import get_llm
 from core.timeutil import human, now
 from memory import search, store
 from skills import brief as brief_skill
+from skills import digest as digest_skill
+from skills import lists as lists_skill
 from skills import network, promises
+from skills import rewind as rewind_skill
 
 NO_ANSWER = "I don't have that in memory."
 PROMISE_WORDS = re.compile(r"\b(promis\w*|owe\w*|open|waiting|pending|send|sending|deliver|follow[- ]?up)\b", re.I)
@@ -61,8 +66,47 @@ def _promise_answer(question: str) -> dict | None:
     return _result(question, answer, spoken, sources, True)
 
 
+LIST_RE = re.compile(r"\b(?:what(?:'s| is)|read|tell me)\b.*\b(shopping|grocery|groceries|expense|expenses|spent|spending)\b",
+                     re.I)
+
+
+def _digest_answer(q: str) -> dict:
+    d = digest_skill.digest(digest_skill.day_for(q))
+    if not d["moment_count"]:
+        return _result(q, d["spoken"], d["spoken"], [], False)
+    answer = "; ".join(d["bullets"]) + "." if d["bullets"] else d["spoken"]
+    return _result(q, answer, d["spoken"], store.moments_by_ids(d["source_moment_ids"]), True)
+
+
+def _rewind_answer(q: str) -> dict:
+    r = rewind_skill.rewind(q)
+    if not r["found"]:
+        return _result(q, NO_ANSWER, NO_ANSWER, [], False)
+    return _result(q, r["spoken"], r["spoken"], store.moments_by_ids([r["moment"]["id"]]), True)
+
+
+def _list_answer(q: str) -> dict | None:
+    m = LIST_RE.search(q)
+    if not m:
+        return None
+    list_id = "shopping" if m.group(1).lower().startswith(("shop", "groc")) else "expenses"
+    lst = next(x for x in lists_skill.list_all() if x["id"] == list_id)
+    sources = [i["source_moment_id"] for i in lst["items"] if i["source_moment_id"]]
+    spoken = lists_skill.spoken(list_id)
+    # Items added by hand have no source moment; the list itself is the record.
+    return _result(q, spoken, spoken, store.moments_by_ids(sources), bool(lst["items"]))
+
+
 def ask(question: str, channel: str) -> dict:
     q = question.strip()
+
+    if rewind_skill.wants_rewind(q):
+        return _rewind_answer(q)
+    if digest_skill.wants_digest(q):
+        return _digest_answer(q)
+    listed = _list_answer(q)
+    if listed:
+        return listed
 
     m = BRIEF_RE.search(q)
     if m:

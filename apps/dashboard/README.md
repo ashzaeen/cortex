@@ -84,7 +84,7 @@ To simulate capture by hand, open the camera button in the status pill and type 
 
 ## The mock is not the backend
 
-`mock/engine.mjs` fakes the skills with simple text rules ("This is X from Y", "I'll send you X Friday", keyword search). It exists so the dashboard can be built, rehearsed and demoed without a backend. It must never grow into the real backend, which is @ClosetCoderSad's call (ADR 0001). Mock-only extras that the real backend will not have: `/_demo/*`, the `demo.step` and `person.updated` events (the second is proposed in #43), and static files under `/fixtures/`.
+`mock/engine.mjs` fakes the skills with simple text rules ("This is X from Y", "I'll send you X Friday", keyword search). It exists so the dashboard can be built, rehearsed and demoed without a backend. It must never grow into the real backend, which follows ADR 0001. Mock-only extras that the real backend will not have: `/_demo/*`, the `demo.step` and `person.updated` events (the second is proposed in #43), and static files under `/fixtures/`.
 
 | Surface | Endpoints | Demo checklist |
 | --- | --- | --- |

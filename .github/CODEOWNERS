@@ -1,13 +1,13 @@
 # Area owners (see the area map in AGENTS.md). Later lines win.
 * @ashzaeen
 
-/contracts/          @ClosetCoderSad
-/apps/backend/       @ClosetCoderSad
+/contracts/          @ashzaeen
+/apps/backend/       @ashzaeen
 /apps/capture/       @794KHSameer
 /apps/capture/glasses/ @ahnafzabir-utd
-/apps/call-agent/    @ahnafzabir-utd
+/apps/call-agent/    @ashzaeen
 /apps/dashboard/     @ashzaeen
 /fixtures/           @ashzaeen
 /docs/DEMO_SCRIPT.md @ashzaeen
-/docs/decisions/0001-backend-stack.md @ClosetCoderSad
-/docs/decisions/0002-data-store.md    @ClosetCoderSad
+/docs/decisions/0001-backend-stack.md @ashzaeen
+/docs/decisions/0002-data-store.md    @ashzaeen

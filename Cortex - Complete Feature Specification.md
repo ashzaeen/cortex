@@ -609,7 +609,7 @@ Chert bridges a FaceTime call into a LiveKit room that our own agent joins, so t
 
 ### CALL-1 Inbound call answered from memory
 
-**Priority:** T0 (D-10) · **Area:** call (@ahnafzabir-utd)
+**Priority:** T0 (D-10) · **Area:** call (@ashzaeen)
 
 A FaceTime call from an iPhone reaches Cortex, which greets in time and answers from memory.
 
@@ -858,7 +858,7 @@ The shared foundation every area builds on. The contract folder is the single so
 
 ### PLAT-1 API contracts
 
-**Priority:** T0 · **Area:** contracts (@ClosetCoderSad)
+**Priority:** T0 · **Area:** contracts (@ashzaeen)
 
 `contracts/openapi.yaml` plus JSON Schemas for Moment, Person, Promise, Action, Receipt and Mode. Changes need an issue labeled `contract-change` that lists affected areas; prefer additive changes; fixtures and examples are updated in the same push.
 
@@ -876,7 +876,7 @@ The shared foundation every area builds on. The contract folder is the single so
 
 ### PLAT-2 Backend service
 
-**Priority:** T0 · **Area:** backend (@ClosetCoderSad)
+**Priority:** T0 · **Area:** backend (@ashzaeen)
 
 A backend that implements every contract operation with the same paths, bodies and response shapes.
 
@@ -918,7 +918,7 @@ A single cloud backend, pre-warmed before demo day; the dashboard on Vercel for 
 
 **Priority:** T0 · **Area:** infra
 
-CODEOWNERS and area labels: contracts and backend (@ClosetCoderSad), dashboard, demo and infra (@ashzaeen), capture (@794KHSameer, iOS app @ahnafzabir-utd), call agent (@ahnafzabir-utd). Each area stays in its own folder and requests changes elsewhere through issues.
+CODEOWNERS and area labels: since 2026-11-15 @ashzaeen leads contracts, backend, call agent, dashboard, demo and infra; capture stays with @794KHSameer (iOS app @ahnafzabir-utd). Each area stays in its own folder and requests changes elsewhere through issues.
 
 ## 11. Demo readiness and reliability
 

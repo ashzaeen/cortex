@@ -90,3 +90,23 @@ class ActionConfirm(BaseModel):
 
 class PrivacySet(BaseModel):
     state: Literal["capturing", "paused", "off_record"]
+
+
+class PersonUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1)
+    company: str | None = None
+    role: str | None = None
+    notes: str | None = None
+    topics: list[str] | None = None
+
+
+class ListItemCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=200)
+    amount: float | None = None
+    source_moment_id: str | None = None
+
+
+class ListItemUpdate(BaseModel):
+    text: str | None = Field(None, min_length=1, max_length=200)
+    amount: float | None = None
+    done: bool | None = None

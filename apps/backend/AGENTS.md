@@ -1,6 +1,6 @@
 # apps/backend: agent notes
 
-- **Owns:** memory API, skills (Network, waiting-on, brief, ask), action loop, privacy and the event stream. Label `area:backend`. Owner: @ClosetCoderSad (backend lead).
+- **Owns:** memory API, skills (Network, waiting-on, brief, ask), action loop, privacy and the event stream. Label `area:backend`. Owner: @ashzaeen.
 - **Stack:** Python 3.11+ with FastAPI ([ADR 0001](../../docs/decisions/0001-backend-stack.md)); MongoDB Atlas for memory plus Tiger Data for the time index ([ADR 0002](../../docs/decisions/0002-data-store.md)); Gemini for models. Do not switch stacks without a new ADR.
 - **Run alone:** `make -C apps/backend dev` (port 8000) after `make seed`. Offline: leave `DATABASE_URL` and `LLM_API_KEY` empty (in-memory store, mock model).
 - **Contract:** [contracts/openapi.yaml](../../contracts/openapi.yaml). `tests/` validates every response against `contracts/` and fails if the app's operations differ from the contract. Answers come only from retrieved moments; otherwise `grounded: false`.

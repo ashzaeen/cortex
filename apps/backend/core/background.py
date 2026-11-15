@@ -17,5 +17,7 @@ def run(fn, *args, **kwargs):
         except Exception:  # noqa: BLE001
             log.exception("background task failed")
 
-    threading.Thread(target=target, daemon=True).start()
+    from core import user
+
+    threading.Thread(target=user.carry(target), daemon=True).start()  # same user as the request
     return None

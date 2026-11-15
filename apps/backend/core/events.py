@@ -13,13 +13,16 @@ TYPES = {"moment.created", "moment.deleted", "person.created", "promise.proposed
          "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed",
          "call.started", "call.ended"}
 
-_subs: list[tuple[asyncio.AbstractEventLoop, asyncio.Queue]] = []
+# (loop, queue, user): each SSE client only hears its own user's events.
+_subs: list[tuple[asyncio.AbstractEventLoop, asyncio.Queue, str]] = []
 _lock = threading.Lock()
 history: list[dict] = []  # last few events, for tests and debugging
 
 
-def subscribe() -> tuple[asyncio.AbstractEventLoop, asyncio.Queue]:
-    sub = (asyncio.get_running_loop(), asyncio.Queue(maxsize=500))
+def subscribe():
+    from core import user
+
+    sub = (asyncio.get_running_loop(), asyncio.Queue(maxsize=500), user.current())
     with _lock:
         _subs.append(sub)
     return sub
@@ -34,11 +37,14 @@ def unsubscribe(sub):
 def publish(type_: str, data: dict):
     if type_ not in TYPES:
         raise ValueError(f"unknown event type {type_}")
+    from core import user
+
     msg = {"type": type_, "at": iso(now()), "data": data}
     history.append(msg)
     del history[:-200]
+    me = user.current()
     with _lock:
-        subs = list(_subs)
+        subs = [(loop, q) for loop, q, who in _subs if who == me]
     for loop, q in subs:
         try:
             loop.call_soon_threadsafe(q.put_nowait, msg)

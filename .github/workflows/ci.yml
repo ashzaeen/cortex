@@ -59,7 +59,7 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           elif [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$base" "${{ github.sha }}" | grep -qE '^(apps/backend/|contracts/|fixtures/|railway\.json|\.dockerignore)'; then
+          elif git diff --name-only "$base" "${{ github.sha }}" | grep -qE '^(apps/backend/|apps/dashboard/demo/|contracts/|fixtures/|railway\.json|\.dockerignore)'; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "No backend changes in this push; skipping the deploy."

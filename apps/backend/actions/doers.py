@@ -9,7 +9,7 @@ import threading
 from datetime import timedelta
 
 from actions import chert, google
-from core import contract, db, events, receipts, tiger
+from core import contract, db, events, receipts, tiger, user
 from core.config import settings
 from core.errors import ApiError, not_found
 from core.ids import new_id
@@ -35,7 +35,7 @@ UNDONE = {"calendar_event": "Removed “{t}” from your calendar.", "reminder":
 def _set(action_id: str, **fields) -> dict:
     db.col("actions").update_one({"_id": action_id}, {"$set": fields})
     doc = db.col("actions").find_one({"_id": action_id})
-    tiger.log_action(tiger.USER, now(), action_id, fields.get("status", "updated"), "user")
+    tiger.log_action(tiger.user(), now(), action_id, fields.get("status", "updated"), "user")
     events.publish("action.updated", contract.action(doc))
     return doc
 
@@ -67,7 +67,7 @@ def propose(body: dict) -> dict:
     if key:
         doc[key] = payload
     db.col("actions").insert_one(doc)
-    tiger.log_action(tiger.USER, now(), doc["_id"], "proposed", "cortex", {"type": kind})
+    tiger.log_action(tiger.user(), now(), doc["_id"], "proposed", "cortex", {"type": kind})
     events.publish("action.proposed", contract.action(doc))
     return contract.action(doc)
 
@@ -90,7 +90,7 @@ def _send_later(action_id: str):
             receipts.create("action", f"Could not send the text to {doc['message']['to']}: {exc}",
                             doc["source_moment_ids"], action_id)
 
-    t = threading.Timer(settings.undo_seconds, fire)
+    t = threading.Timer(settings.undo_seconds, user.carry(fire))  # keeps the request's user
     t.daemon = True
     _timers[action_id] = t
     t.start()

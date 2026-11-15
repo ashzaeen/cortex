@@ -20,7 +20,7 @@ def create(kind: str, summary: str, source_moment_ids: list[str], action_id: str
     db.col("receipts").insert_one(doc)
     out = contract.receipt(doc)
     events.publish("receipt.created", out)
-    tiger.log_action(tiger.USER, doc["created_at"], action_id, f"receipt.{kind}", "cortex", {"summary": summary})
+    tiger.log_action(tiger.user(), doc["created_at"], action_id, f"receipt.{kind}", "cortex", {"summary": summary})
     return out
 
 

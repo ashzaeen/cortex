@@ -12,7 +12,11 @@ from core.tiger_schema import STATEMENTS
 log = logging.getLogger(__name__)
 
 _pool = None
-USER = "demo"  # single-user hackathon build; column kept for later
+def user() -> str:
+    """The current request's user (core/user.py); every row carries it."""
+    from core import user as _user
+
+    return _user.current()
 
 
 def init():
@@ -85,7 +89,7 @@ def log_timeline(moment: dict):
                                  has_snapshot, person_count, commitment_count, action_count)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (
-            moment["ts"], USER, moment["_id"], moment.get("mode"), moment.get("source"),
+            moment["ts"], user(), moment["_id"], moment.get("mode"), moment.get("source"),
             moment.get("place"), bool(moment.get("snapshot_url")),
             len(moment.get("person_ids", [])), int(moment.get("promise_count", 0)), 0,
         ),
@@ -120,7 +124,8 @@ def log_metric(user_id: str, ts: datetime, kind: str, latency_ms: int | None = N
 @_safe
 def delete_timeline(moment_ids: list[str]):
     if moment_ids:
-        execute("DELETE FROM timeline WHERE moment_id = ANY(%s)", (moment_ids,))
+        # Users' copies of the demo profile share moment ids, so always scope deletes to this user.
+        execute("DELETE FROM timeline WHERE user_id = %s AND moment_id = ANY(%s)", (user(), moment_ids))
 
 
 # ---------- reads ----------

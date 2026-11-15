@@ -1,8 +1,13 @@
 """Load fixtures/*.json into the backend store (upsert by id, ids kept). Called by `make seed`.
   python -m scripts.seed           upsert fixtures
-  python -m scripts.seed --reset   delete all backend data first (moments, people, promises, actions, receipts)"""
+  python -m scripts.seed --reset   delete all backend data first (moments, people, promises, actions, receipts)
+
+seed_profile() gives a signed-in user their own copy of the demo profile (apps/dashboard/demo), with every
+date moved so the profile's last day is today, as the /demo page does (core/user.py calls it)."""
+import hashlib
 import json
 import sys
+from datetime import date, timedelta
 
 from core import db, tiger
 from core.config import REPO_ROOT
@@ -11,31 +16,75 @@ from core.timeutil import now, parse_dt
 from memory import store
 
 FIX = REPO_ROOT / "fixtures"
+PROFILE = REPO_ROOT / "apps" / "dashboard" / "demo"
+PROFILE_ANCHOR = date(2026, 11, 15)  # the profile's "today" (apps/dashboard/mock/profile.mjs ANCHOR)
+
+_src = FIX
 
 
 def load(name: str) -> list[dict]:
-    return json.loads((FIX / f"{name}.json").read_text(encoding="utf-8"))
+    return json.loads((_src / f"{name}.json").read_text(encoding="utf-8"))
+
+
+def _embed(llm, text: str) -> list[float]:
+    """Embeddings for seed text are cached across users, so each new user costs no model calls."""
+    key = hashlib.sha256(f"{getattr(llm, 'is_mock', False)}|{text}".encode()).hexdigest()
+    cache = db.shared("embed_cache")
+    hit = cache.find_one({"_id": key})
+    if hit:
+        return hit["v"]
+    vec = llm.embed(text)
+    cache.replace_one({"_id": key}, {"_id": key, "v": vec}, upsert=True)
+    return vec
 
 
 def upsert(coll: str, doc: dict):
     db.col(coll).replace_one({"_id": doc["_id"]}, doc, upsert=True)
 
 
-def seed(reset: bool = False) -> dict:
-    db.init()
-    tiger.init()
+def _profile_delta(moments: list[dict]) -> timedelta:
+    """Whole days that move PROFILE_ANCHOR to today, stepped back so no moment lands in the future."""
+    delta = timedelta(days=(now().date() - PROFILE_ANCHOR).days)
+    newest = max(parse_dt(m["ts"]) for m in moments)
+    while newest + delta > now():
+        delta -= timedelta(days=1)
+    return delta
+
+
+def seed_profile() -> dict:
+    """The current user's own copy of the demo profile. Marks the database so it happens only once."""
+    global _src
+    _src, before = PROFILE, _src
+    try:
+        delta = _profile_delta(load("moments"))
+        counts = seed(shift=delta)
+    finally:
+        _src = before
+    db.col("state").replace_one({"_id": "profile"}, {"_id": "profile", "seeded_at": now(), "anchor_shift_days":
+                                                      delta.days}, upsert=True)
+    return counts
+
+
+def seed(reset: bool = False, shift: timedelta | None = None) -> dict:
+    if db._db is None:  # inside a running server the store is already up; re-init would drop it
+        db.init()
+        tiger.init()
     if reset:
         db.reset()
     llm = get_llm()
     people = {p["id"]: p for p in load("people")}
     counts = {}
+    move = (lambda dt: dt + shift) if shift else (lambda dt: dt)
+
+    def move_date(d: str | None) -> str | None:
+        return (date.fromisoformat(d) + shift).isoformat() if d and shift else d
 
     for m in load("moments"):
         names = " ".join(people[p]["name"] + " " + (people[p].get("company") or "") for p in m["person_ids"]
                          if p in people)
-        doc = {**{k: v for k, v in m.items() if k != "id"}, "_id": m["id"], "ts": parse_dt(m["ts"]),
-               "embedding": llm.embed(" ".join(filter(None, [m.get("transcript"), m.get("caption"), m.get("place"),
-                                                              names]))),
+        doc = {**{k: v for k, v in m.items() if k != "id"}, "_id": m["id"], "ts": move(parse_dt(m["ts"])),
+               "embedding": _embed(llm, " ".join(filter(None, [m.get("transcript"), m.get("caption"),
+                                                                m.get("place"), names]))),
                "created_at": now()}
         upsert("moments", doc)
         tiger.delete_timeline([m["id"]])
@@ -51,13 +100,17 @@ def seed(reset: bool = False) -> dict:
     for name, coll in (("promises", "promises"), ("actions", "actions")):
         items = load(name)
         for it in items:
-            upsert(coll, {**{k: v for k, v in it.items() if k != "id"}, "_id": it["id"], "created_at": now()})
+            doc = {**{k: v for k, v in it.items() if k != "id"}, "_id": it["id"], "created_at": now()}
+            if coll == "promises" and isinstance(doc.get("due"), dict):
+                doc["due"] = {**doc["due"], "date": move_date(doc["due"].get("date"))}
+            upsert(coll, doc)
         counts[coll] = len(items)
 
     for r in load("receipts"):
+        until = parse_dt(r["undo"]["until"])
         upsert("receipts", {**{k: v for k, v in r.items() if k != "id"}, "_id": r["id"],
-                            "created_at": parse_dt(r["created_at"]),
-                            "undo": {**r["undo"], "until": parse_dt(r["undo"]["until"])}})
+                            "created_at": move(parse_dt(r["created_at"])),
+                            "undo": {**r["undo"], "until": move(until) if until else None}})
     counts["receipts"] = len(load("receipts"))
 
     db.col("modes").delete_many({})

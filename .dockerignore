@@ -4,7 +4,9 @@
 **/.pytest_cache
 **/.env
 .git
-apps/dashboard
+apps/dashboard/*
+# The backend seeds each user's memory from the demo profile (core/user.py).
+!apps/dashboard/demo
 apps/capture
 apps/call-agent
 *.zip

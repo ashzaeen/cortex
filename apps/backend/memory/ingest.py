@@ -107,7 +107,7 @@ def ingest(body: dict) -> dict:
         receipts.create("capture", f"Saved from the call: {what[:120]}", [moment_id])
 
     latency = int((time.perf_counter() - t0) * 1000)
-    tiger.log_metric(tiger.USER, now(), "moment", latency, len(image or b"") + len(video or b""))
+    tiger.log_metric(tiger.user(), now(), "moment", latency, len(image or b"") + len(video or b""))
     log.info("moment %s stored in %d ms (%d people, %d promises)", moment_id, latency, len(person_ids),
              len(new_promises))
     return contract.moment(store.get_moment(moment_id))

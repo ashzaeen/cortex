@@ -8,7 +8,7 @@ import re
 import threading
 from datetime import timedelta
 
-from core import contract, db, events, receipts, tiger
+from core import contract, db, events, receipts, tiger, user
 from core.config import settings
 from core.errors import ApiError, not_found
 from core.ids import new_id
@@ -35,7 +35,7 @@ def _publish(doc: dict):
 def _set(action_id: str, **fields) -> dict:
     db.col("actions").update_one({"_id": action_id}, {"$set": fields})
     doc = db.col("actions").find_one({"_id": action_id})
-    tiger.log_action(tiger.USER, now(), action_id, fields.get("status", "updated"), "user")
+    tiger.log_action(tiger.user(), now(), action_id, fields.get("status", "updated"), "user")
     return doc
 
 
@@ -75,7 +75,7 @@ def propose(person_id: str, source_moment_ids: list[str] | None = None) -> dict:
            "title": f"Draft a follow-up to {first}", "person_id": person_id, "draft": draft,
            "source_moment_ids": ids, "created_at": now()}
     db.col("actions").insert_one(doc)
-    tiger.log_action(tiger.USER, now(), doc["_id"], "proposed", "cortex", {"type": "follow_up_email"})
+    tiger.log_action(tiger.user(), now(), doc["_id"], "proposed", "cortex", {"type": "follow_up_email"})
     events.publish("action.proposed", contract.action(doc))
     return contract.action(doc)
 
@@ -104,7 +104,7 @@ def _deliver_later(action_id: str):
             _publish(_set(action_id, status="failed", error=str(exc)[:300]))
             receipts.create("action", f"Could not send the follow-up email: {exc}", doc["source_moment_ids"], action_id)
 
-    t = threading.Timer(settings.undo_seconds, fire)
+    t = threading.Timer(settings.undo_seconds, user.carry(fire))  # keeps the request's user
     t.daemon = True
     _timers[action_id] = t
     t.start()

@@ -89,6 +89,11 @@ def confirm_promise(id: str):  # noqa: A002
 
 
 # ---------- actions ----------
+@router.get("/actions", tags=["actions"])
+def list_actions(status: str | None = Query(None, pattern="^(proposed|sent|draft_saved|undone|dismissed|failed)$")):
+    return {"items": followup.list_actions(status)}
+
+
 @router.post("/actions/propose", status_code=201, tags=["actions"])
 def propose_action(body: models.ActionPropose):
     return followup.propose(body.person_id, body.source_moment_ids)

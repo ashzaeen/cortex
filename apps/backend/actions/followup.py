@@ -39,6 +39,12 @@ def _set(action_id: str, **fields) -> dict:
     return doc
 
 
+def list_actions(status: str | None = None, limit: int = 100) -> list[dict]:
+    """GET /actions (#40): newest first, optionally filtered by status."""
+    query = {"status": status} if status else {}
+    return [contract.action(d) for d in db.col("actions").find(query).sort("created_at", -1).limit(limit)]
+
+
 def propose(person_id: str, source_moment_ids: list[str] | None = None) -> dict:
     person = network.get(person_id)
     existing = db.col("actions").find_one({"person_id": person_id, "status": "proposed"})

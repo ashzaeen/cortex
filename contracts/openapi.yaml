@@ -81,6 +81,7 @@ tags:
   - name: receipts
   - name: privacy
   - name: modes
+  - name: calls
   - name: events
   - name: health
 paths:
@@ -517,6 +518,70 @@ paths:
               schema: { $ref: "#/components/schemas/PrivacyState" }
               example: { state: off_record, since: "2026-11-15T14:08:00-06:00" }
 
+  /calls/started:
+    post:
+      tags: [calls]
+      operationId: callStarted
+      summary: The call agent reports that a FaceTime call is live (T0-10); emits call.started
+      description: |
+        Idempotent: repeating it for the active `call_id` changes nothing and emits nothing.
+        If a different call is still active (one call at a time), that call is ended first and
+        `call.ended` is emitted for it, then `call.started` for the new one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CallRef" }
+            example: { call_id: "call_1a2b3c" }
+      responses:
+        "200":
+          description: The active call
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+              example: { call_id: "call_1a2b3c", started_at: "2026-11-15T14:10:00-06:00", ended_at: null }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /calls/ended:
+    post:
+      tags: [calls]
+      operationId: callEnded
+      summary: The call agent reports that the call is over (T0-10); emits call.ended
+      description: |
+        Idempotent: repeating it for a call that already ended returns it again and emits nothing.
+        404 when the backend never saw `call_id` (for example after a restart); the call agent ignores that.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CallRef" }
+            example: { call_id: "call_1a2b3c" }
+      responses:
+        "200":
+          description: The call, with `ended_at` set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Call" }
+              example: { call_id: "call_1a2b3c", started_at: "2026-11-15T14:10:00-06:00", ended_at: "2026-11-15T14:12:30-06:00" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /calls/current:
+    get:
+      tags: [calls]
+      operationId: getCurrentCall
+      summary: The call in progress, if any, so a dashboard opened mid-call still shows "On Call" (T0-10)
+      description: |
+        Calls cap at 5 minutes on the Chert line. A call that has no `call.ended` after 6 minutes
+        counts as ended, so a crashed agent cannot leave the dashboard stuck on "On Call".
+      responses:
+        "200":
+          description: "The active call, or call: null"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CurrentCall" }
+              example: { call: { call_id: "call_1a2b3c", started_at: "2026-11-15T14:10:00-06:00", ended_at: null } }
+
   /modes/{id}/activate:
     parameters:
       - { $ref: "#/components/parameters/Id" }
@@ -567,6 +632,7 @@ paths:
         moment.created, moment.deleted, person.created, promise.proposed, promise.confirmed,
         action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, call.started, call.ended.
         The data payload is the affected entity (see components.schemas.Event).
+        For call.started and call.ended the payload is a Call (components.schemas.Call).
         Prism returns the example once; real streaming comes from the backend.
       responses:
         "200":
@@ -647,6 +713,27 @@ components:
       properties:
         state: { type: string, enum: [capturing, paused, off_record] }
         since: { type: string, format: date-time }
+    CallRef:
+      type: object
+      required: [call_id]
+      properties:
+        call_id: { type: string, minLength: 1, description: "Chert call id (the bridge participant is chert-bridge-<call id>)." }
+    Call:
+      type: object
+      description: One FaceTime call. This is also the `data` of the call.started and call.ended events.
+      required: [call_id, started_at, ended_at]
+      properties:
+        call_id: { type: string }
+        started_at: { type: string, format: date-time }
+        ended_at: { type: [string, "null"], format: date-time, description: "Null while the call is live." }
+    CurrentCall:
+      type: object
+      required: [call]
+      properties:
+        call:
+          oneOf:
+            - { $ref: "#/components/schemas/Call" }
+            - { type: "null" }
     Event:
       type: object
       required: [type, at, data]

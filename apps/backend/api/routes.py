@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from actions import followup
 from api import models
-from core import db, events, receipts, snapshots, tiger
+from core import calls, db, events, receipts, snapshots, tiger
 from core.config import REPO_ROOT, settings
 from core.errors import not_found
 from core.llm import get_llm
@@ -139,6 +139,22 @@ def activate_mode(id: str):  # noqa: A002
         raise not_found("mode")
     events.publish("mode.changed", mode)
     return mode
+
+
+# ---------- calls (T0-10) ----------
+@router.post("/calls/started", tags=["calls"])
+def call_started(body: models.CallRef):
+    return calls.started(body.call_id)
+
+
+@router.post("/calls/ended", tags=["calls"])
+def call_ended(body: models.CallRef):
+    return calls.ended(body.call_id)
+
+
+@router.get("/calls/current", tags=["calls"])
+def current_call():
+    return calls.current()
 
 
 # ---------- events (SSE) ----------

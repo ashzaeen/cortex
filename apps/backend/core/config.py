@@ -53,6 +53,8 @@ class Settings:
     # Server
     public_url: str = field(default_factory=lambda: os.getenv("PUBLIC_URL", "http://localhost:8000").rstrip("/"))
     cors_origins: str = field(default_factory=lambda: os.getenv("CORS_ORIGINS", "*"))
+    # Shared key every client sends (X-Cortex-Key or Authorization: Bearer). Empty = open (local dev, tests).
+    api_key: str = field(default_factory=lambda: os.getenv("CORTEX_API_KEY", ""))
     timezone: str = field(default_factory=lambda: os.getenv("CORTEX_TZ", "America/Chicago"))
 
     # Email action

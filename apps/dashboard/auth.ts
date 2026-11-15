@@ -19,6 +19,18 @@ import Google from "next-auth/providers/google";
 
 export const authConfigured = Boolean(process.env.AUTH_SECRET && process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
+// Cortex is one wearer's memory, and the backend holds a single user's data. AUTH_ALLOWED_EMAILS
+// (comma-separated) lists the Google accounts that may sign in; everyone else is turned away, so no
+// second person can open the wearer's memory or act on it. Empty = any account Google lets through
+// (the OAuth app's test users, while it is in testing).
+export const allowedEmails = (process.env.AUTH_ALLOWED_EMAILS ?? "")
+  .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+/** Checked on every request too, so a session from before the list changed stops working at once. */
+export function isAllowed(email: string | null | undefined): boolean {
+  return !allowedEmails.length || Boolean(email && allowedEmails.includes(email.toLowerCase()));
+}
+
 export const GOOGLE_SCOPES = [
   "openid", "email", "profile",
   "https://www.googleapis.com/auth/calendar.events",
@@ -38,6 +50,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // A placeholder keeps the handlers loadable when sign-in is not configured; nothing can sign in then.
   secret: process.env.AUTH_SECRET ?? "auth-not-configured",
   callbacks: {
+    signIn({ profile }) {
+      return profile?.email_verified !== false && isAllowed(profile?.email);
+    },
     jwt({ token, account }) {
       if (account?.provider === "google") {
         token.google = {

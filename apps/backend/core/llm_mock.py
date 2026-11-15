@@ -78,7 +78,25 @@ class MockLLM:
         caption = "A short video from the wearer's point of view." if video else (
             "A scene from the wearer's point of view." if image else None)
         return {"caption": caption, "topics": topics,
-                "people_introduced": people, "promises": promises}
+                "people_introduced": people, "promises": promises, "suggestions": self._suggest(t)}
+
+    @staticmethod
+    def _suggest(t: str) -> list[dict]:
+        """Fake rules: "remind me to X [by Friday]" and "<event> on <day> at <h>[:mm] am|pm"."""
+        out, low = [], t.lower()
+        m = re.search(r"\bremind me to ([^.?!]+?)(?:\s+by\s+(\w+))?[.?!]?$", low.strip())
+        if m:
+            d = (m.group(2) or "").lower()
+            out.append({"type": "reminder", "title": m.group(1).strip().capitalize(),
+                        "due_date": next_weekday(d) if d in DAYS else None, "confidence": 0.9})
+        m = re.search(r"\b([\w ]*?(?:meeting|demo|quiz|exam|class|interview))\s+(?:is\s+)?(?:on\s+)?"
+                      r"(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2})(?::(\d\d))?\s*(am|pm)", low)
+        if m:
+            hour = int(m.group(3)) % 12 + (12 if m.group(5) == "pm" else 0)
+            start = f"{next_weekday(m.group(2))}T{hour:02d}:{m.group(4) or '00'}"
+            out.append({"type": "calendar_event", "title": m.group(1).strip().removeprefix("the ").capitalize(), "start": start,
+                        "end": None, "location": None, "confidence": 0.9})
+        return out
 
     def answer(self, *, question: str, moments: str, promises: str, **_) -> dict:
         rows = re.findall(r"^\[(mom_[\w-]+)\]\s*(.*)$", moments or "", flags=re.MULTILINE)

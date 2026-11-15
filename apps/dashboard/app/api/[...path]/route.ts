@@ -1,5 +1,6 @@
 // Same-origin proxy (ADR 0005): the browser calls /api/*, this forwards to CORTEX_API_URL
 // (the stateful mock locally, the real backend later). Streams responses, so /api/events (SSE) works.
+import { auth, authConfigured, isAllowed } from "@/auth";
 import { googleAccessToken } from "@/lib/google-token";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,16 @@ const GOOGLE_ACTION = /^actions\/[^/]+\/(confirm|undo)$/;
 
 const API = (process.env.CORTEX_API_URL ?? "http://127.0.0.1:4010").replace(/\/$/, "");
 
+// The API key never leaves the server. With sign-in on, only a signed-in session reaches the API.
+const API_KEY = process.env.CORTEX_API_KEY ?? "";
+
 async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> }) {
+  if (authConfigured) {
+    const session = await auth();
+    if (!session || !isAllowed(session.user?.email)) {
+      return Response.json({ error: { code: "unauthorized", message: "Sign in to use Cortex." } }, { status: 401 });
+    }
+  }
   const { path } = await ctx.params;
   const search = new URL(req.url).search;
   const target = `${API}/${path.map(encodeURIComponent).join("/")}${search}`;
@@ -18,6 +28,7 @@ async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> })
     "content-type": req.headers.get("content-type") ?? "application/json",
     accept: req.headers.get("accept") ?? "*/*",
   };
+  if (API_KEY) headers["x-cortex-key"] = API_KEY;
   if (req.method === "POST" && GOOGLE_ACTION.test(path.join("/"))) {
     const google = await googleAccessToken(req).catch(() => null);
     if (google) headers["x-google-access-token"] = google;

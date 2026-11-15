@@ -9,6 +9,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const session = authConfigured ? await auth() : null;
   const notice =
     sp.signin === "required" ? "Sign in to open Cortex, or try the demo." :
+    sp.error === "AccessDenied" ? "That Google account can't open this Cortex. Sign in with the wearer's account." :
     sp.error ? "Couldn't sign you in with Google. Try again." : null;
   return <Landing signedIn={!!session} userName={session?.user?.name ?? null} authReady={authConfigured} notice={notice} />;
 }

@@ -80,9 +80,19 @@ export const api = {
 };
 
 // Snapshot URLs may be absolute, site-relative (/demo-snaps/..., served from public/) or
-// repo-relative (fixtures/...), served by the API.
-export const snapshotSrc = (url: string | null | undefined) =>
-  !url ? null : /^(https?:|data:|\/)/.test(url) ? url : `/api/${url}`;
-
-export const videoSrc = (url: string | null | undefined) =>
-  !url ? null : /^(https?:|data:|\/)/.test(url) ? url : `/api/${url}`;
+// repo-relative (fixtures/...), served by the API. The API's own files (/snapshots, /videos,
+// /fixtures) always load through the /api proxy, which holds the API key, even when the backend
+// hands out an absolute URL: the browser never talks to the backend directly.
+const API_FILE = /^\/(snapshots|videos|fixtures)\//;
+function mediaSrc(url: string | null | undefined) {
+  if (!url) return null;
+  if (/^https?:/.test(url)) {
+    try {
+      const path = new URL(url).pathname;
+      return API_FILE.test(path) ? `/api${path}` : url;
+    } catch { return url; }
+  }
+  return /^(data:|\/)/.test(url) ? url : `/api/${url}`;
+}
+export const snapshotSrc = mediaSrc;
+export const videoSrc = mediaSrc;

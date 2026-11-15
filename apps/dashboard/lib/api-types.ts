@@ -1465,6 +1465,37 @@ export interface components {
             bullets: string[];
             open_promises: components["schemas"]["promise.schema"][];
             sources: components["schemas"]["moment.schema"][];
+            /** @description One line: who they are and the thing that matters most right now (#54). */
+            headline?: string;
+            /** @description What you talked about last time. Null when you have not talked yet. */
+            last_time?: components["schemas"]["BriefLastTime"] | null;
+            /** @description One sentence you could say to start the conversation. */
+            opener?: string | null;
+            /** @description Open commitments in both directions, overdue first, each already worded. */
+            open?: components["schemas"]["BriefOpenItem"][];
+        };
+        BriefLastTime: {
+            /** @description e.g. yesterday at 11:41 AM. */
+            when: string;
+            where: string | null;
+            /** @description One sentence: what you talked about. */
+            gist: string;
+            /** @description Their exact words from that moment, or null. */
+            quote: string | null;
+            moment_id: string;
+        };
+        BriefOpenItem: {
+            promise_id: string;
+            /** @description e.g. Chris owes you: intro to the Hooli hiring manager by Friday, Nov 20. */
+            text: string;
+            /** @enum {string} */
+            direction: "waiting_on" | "i_owe";
+            /** Format: date */
+            due_date: string | null;
+            due_text: string | null;
+            overdue: boolean;
+            days_overdue: number;
+            source_moment_id: string;
         };
         Digest: {
             /** Format: date */

@@ -6,6 +6,7 @@ import { friendly } from "@/lib/errors";
 import { dueChip } from "@/lib/format";
 import { skillsApi, type BriefCall, type Nudge, type NudgeSettings, type PersonMatch, type SkillInfo } from "@/lib/skills-api";
 import type { CortexData } from "@/lib/useCortex";
+import { BriefCard, type BriefFull } from "../BriefCard";
 import { Button, Chip, Label, Tag } from "../primitives";
 import { speak } from "../sheets";
 import { useToast } from "../Toast";
@@ -92,7 +93,7 @@ export function WaitingPanel({ skill, data, refresh, onOpenWaiting }: P & { onOp
 }
 
 // ------------------------------------------------------------------ SKL-3 Brief
-export function BriefPanel({ skill, data }: P) {
+export function BriefPanel({ skill, data, onOpenMoment }: P & { onOpenMoment?: (id: string) => void }) {
   const toast = useToast();
   const [who, setWho] = useState<string | null>(null);
   const [brief, setBrief] = useState<Brief | null>(null);
@@ -114,16 +115,12 @@ export function BriefPanel({ skill, data }: P) {
       </div>
       {busy && <p className="t-callout" role="status">Briefing</p>}
       {brief && who && (
-        <section className="nested rise flex flex-col gap-3 p-5" aria-live="polite">
-          <Label>Brief</Label>
-          <p className="t-display" style={{ fontSize: "1.5rem", lineHeight: 1.25 }}>{brief.spoken}</p>
-          <ul className="flex flex-col gap-1">{brief.bullets.map((b) => <li key={b} className="t-callout">{b}</li>)}</ul>
-          <span className="t-data text-text-3">FROM {brief.sources.length} MOMENT{brief.sources.length === 1 ? "" : "S"}</span>
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="nested p-5" aria-live="polite">
+          <BriefCard brief={brief as BriefFull} onOpenMoment={onOpenMoment}>
             <Button variant="secondary" onClick={async () => { try { setCall(await skillsApi.briefCall(who)); } catch (e) { toast({ text: friendly(e), tone: "danger" }); } }}>Call Me With This</Button>
             {call && <Tag tone="muted">{call.status === "requested" ? "Requested. Waiting for the call line" : call.status}</Tag>}
-          </div>
-        </section>
+          </BriefCard>
+        </div>
       )}
       {auto !== null && (
         <label className="nested flex min-h-11 items-center justify-between gap-4 p-5">

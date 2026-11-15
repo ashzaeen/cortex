@@ -1968,6 +1968,38 @@ components:
         bullets: { type: array, maxItems: 3, items: { type: string } }
         open_promises: { type: array, items: { $ref: "./schemas/promise.schema.json" } }
         sources: { type: array, items: { $ref: "./schemas/moment.schema.json" } }
+        headline: { type: string, description: "One line: who they are and the thing that matters most right now (#54)." }
+        last_time:
+          oneOf:
+            - $ref: "#/components/schemas/BriefLastTime"
+            - { type: "null" }
+          description: "What you talked about last time. Null when you have not talked yet."
+        opener: { type: [string, "null"], description: "One sentence you could say to start the conversation." }
+        open:
+          type: array
+          description: "Open commitments in both directions, overdue first, each already worded."
+          items: { $ref: "#/components/schemas/BriefOpenItem" }
+    BriefLastTime:
+      type: object
+      required: [when, where, gist, quote, moment_id]
+      properties:
+        when: { type: string, description: "e.g. yesterday at 11:41 AM." }
+        where: { type: [string, "null"] }
+        gist: { type: string, description: "One sentence: what you talked about." }
+        quote: { type: [string, "null"], description: "Their exact words from that moment, or null." }
+        moment_id: { type: string, pattern: "^mom_" }
+    BriefOpenItem:
+      type: object
+      required: [promise_id, text, direction, due_date, due_text, overdue, days_overdue, source_moment_id]
+      properties:
+        promise_id: { type: string }
+        text: { type: string, description: "e.g. Chris owes you: intro to the Hooli hiring manager by Friday, Nov 20." }
+        direction: { type: string, enum: [waiting_on, i_owe] }
+        due_date: { type: [string, "null"], format: date }
+        due_text: { type: [string, "null"] }
+        overdue: { type: boolean }
+        days_overdue: { type: integer, minimum: 0 }
+        source_moment_id: { type: string }
     Digest:
       type: object
       required: [date, spoken, bullets, moment_count, people, promises, actions, source_moment_ids]

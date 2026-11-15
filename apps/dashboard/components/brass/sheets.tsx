@@ -11,6 +11,7 @@ import type { CortexData } from "@/lib/useCortex";
 import { useListen, voiceSupported } from "@/lib/voice";
 import { PersonTextRow } from "./actions/PersonText";
 import { sourceLabel } from "./AskPanel";
+import { BriefCard, type BriefFull } from "./BriefCard";
 import { Button, Chip, Frame, Label, Tag } from "./primitives";
 import { Sheet } from "./Sheet";
 import { useToast } from "./Toast";
@@ -174,11 +175,7 @@ export function PeopleSheet({ open, onClose, data, focusId, onEmail, onText, onP
                 </ul>
               )}
               {brief?.person.id === p.id && (
-                <div className="rise flex flex-col gap-3 border-t border-divider pt-4">
-                  <Label>Brief</Label>
-                  <ul className="flex flex-col gap-2">{brief.bullets.map((b, i) => <li key={b} className="t-callout rise" style={{ animationDelay: `${i * 40}ms` }}>{b}</li>)}</ul>
-                  <span className="t-data text-text-3">FROM {brief.sources.length} MOMENT{brief.sources.length === 1 ? "" : "S"}</span>
-                </div>
+                <div className="border-t border-divider pt-4"><BriefCard brief={brief as BriefFull} /></div>
               )}
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" onClick={() => doBrief(p)} disabled={loading === p.id}>{loading === p.id ? "Briefing" : "Brief Me"}</Button>

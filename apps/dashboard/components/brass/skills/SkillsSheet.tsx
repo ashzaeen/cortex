@@ -49,7 +49,7 @@ export function SkillsSheet({ open, onClose, data, refresh, initial = "network",
         <div id="skill-panel" role="tabpanel" aria-labelledby={`skill-tab-${tab}`} key={tab} className="rise">
           {tab === "network" && <NetworkPanel {...common} onOpenPeople={onOpenPeople} />}
           {tab === "waiting" && <WaitingPanel {...common} onOpenWaiting={onOpenWaiting} />}
-          {tab === "brief" && <BriefPanel {...common} />}
+          {tab === "brief" && <BriefPanel {...common} onOpenMoment={onOpenMoment} />}
           {tab === "world" && <WorldPanel skill={skill} onOpenMoment={onOpenMoment} />}
           {tab === "translate" && <TranslatePanel skill={skill} />}
           {tab === "immersion" && <ImmersionPanel skill={skill} onOpenMoment={onOpenMoment} />}

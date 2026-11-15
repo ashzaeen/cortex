@@ -77,3 +77,36 @@ def test_default_email_provider_is_smtp(monkeypatch):
 
     monkeypatch.delenv("EMAIL_PROVIDER", raising=False)
     assert config.Settings().email_provider == "smtp"
+
+
+def test_resend_request_has_a_user_agent_and_the_key(monkeypatch):
+    """Resend rejects urllib's default User-Agent with 403 error 1010, so the request must name itself."""
+    import urllib.request
+
+    from actions import email
+    from core.config import settings
+
+    seen = {}
+
+    class Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=0):
+        seen["url"], seen["headers"], seen["body"] = req.full_url, dict(req.header_items()), req.data
+        return Resp()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(settings, "email_dry_run", False)
+    monkeypatch.setattr(settings, "email_provider", "resend")
+    monkeypatch.setattr(settings, "email_from", "onboarding@resend.dev")
+    monkeypatch.setattr(settings, "email_api_key", "re_test")
+    email.send("someone@example.com", "Subject", "Body")
+    assert seen["url"] == "https://api.resend.com/emails"
+    assert seen["headers"]["User-agent"] == "cortex-backend/1.0" and seen["headers"]["Authorization"] == "Bearer re_test"
+    assert b"someone@example.com" in seen["body"]

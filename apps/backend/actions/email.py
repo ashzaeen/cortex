@@ -35,7 +35,8 @@ def send(to: str, subject: str, body: str):
         req = urllib.request.Request(
             "https://api.resend.com/emails", method="POST",
             data=json.dumps({"from": settings.email_from, "to": [to], "subject": subject, "text": body}).encode(),
-            headers={"Authorization": f"Bearer {settings.email_api_key}", "Content-Type": "application/json"})
+            headers={"Authorization": f"Bearer {settings.email_api_key}", "Content-Type": "application/json",
+                     "User-Agent": "cortex-backend/1.0"})  # Resend (Cloudflare) answers 403 1010 to urllib's default
         with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             if resp.status >= 300:
                 raise EmailError(f"resend returned {resp.status}")

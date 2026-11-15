@@ -30,20 +30,20 @@ CORTEX_API_URL=http://localhost:8000 make dev   # dashboard against the real bac
 | `actions/` | `followup.py` (propose, confirm send/draft, undo; dispatches other types), `email.py` (dry run, SMTP, Resend), `doers.py` (calendar_event, reminder, flashcards, notes, message, read_aloud), `google.py` (Calendar, Tasks, Drive with the forwarded `X-Google-Access-Token`), `chert.py` (texts from the Chert line) |
 | `core/` | config, MongoDB, Tiger Data, Gemini + mock, prompts, SSE broker, receipts, contract serializers, snapshots and short videos |
 | `scripts/seed.py` | `make seed` loader for `fixtures/*.json` |
-| `tests/` | contract tests and the done-when tests for T0-1 to T0-7 and T0-9 |
+| `tests/` | contract tests and the done-when tests for D-1 to D-7 and D-9 |
 
-## How Tier 0 maps to code
+## How the demo checklist maps to code
 
 | Id | Behaviour | Code |
 | --- | --- | --- |
-| T0-1 | `POST /moments` stores transcript, caption (Gemini vision), snapshot, embedding; 201 with the moment; 409 when paused | `memory/ingest.py` |
-| T0-2 | `GET /moments/search` returns source moments; recent moments are always merged in because Atlas Search indexes update asynchronously | `memory/search.py` |
-| T0-3 | "This is Ash from Acme" creates `per_ash` linked to the moment; later moments within 5 minutes link to Ash too | `skills/network.py` |
-| T0-4 | Spoken promise becomes a `proposed` promise (confirm chip) with who, what, due; vague dates keep `date: null` | `skills/promises.py` |
-| T0-5 | `POST /ask`: promise questions answered from the promises table; others by search + Gemini with citations checked; else `grounded: false`. Every answer writes a receipt | `skills/ask.py` |
-| T0-6 | `GET /people/{id}/brief`: Gemini writes it from stored data; a template from the same data is the fallback; cached until the person's data changes. `POST /ask` "Brief me on Ash" returns it too | `skills/brief.py` |
-| T0-7 | Confirming a promise auto-proposes the follow-up email (`action.proposed`). Confirm `send` holds delivery until the undo window (30 s) closes; undo cancels it. `EMAIL_DRY_RUN=true` saves a draft instead | `actions/followup.py` |
-| T0-9 | `POST /privacy/pause` (paused, off_record) blocks ingest with 409; `DELETE /moments/{id}` removes the moment, embedding, snapshot, derived promises, people it introduced, its Tiger row, and returns a deletion receipt | `memory/store.py`, `memory/delete.py` |
+| D-1 | `POST /moments` stores transcript, caption (Gemini vision), snapshot, embedding; 201 with the moment; 409 when paused | `memory/ingest.py` |
+| D-2 | `GET /moments/search` returns source moments; recent moments are always merged in because Atlas Search indexes update asynchronously | `memory/search.py` |
+| D-3 | "This is Ash from Acme" creates `per_ash` linked to the moment; later moments within 5 minutes link to Ash too | `skills/network.py` |
+| D-4 | Spoken promise becomes a `proposed` promise (confirm chip) with who, what, due; vague dates keep `date: null` | `skills/promises.py` |
+| D-5 | `POST /ask`: promise questions answered from the promises table; others by search + Gemini with citations checked; else `grounded: false`. Every answer writes a receipt | `skills/ask.py` |
+| D-6 | `GET /people/{id}/brief`: Gemini writes it from stored data; a template from the same data is the fallback; cached until the person's data changes. `POST /ask` "Brief me on Ash" returns it too | `skills/brief.py` |
+| D-7 | Confirming a promise auto-proposes the follow-up email (`action.proposed`). Confirm `send` holds delivery until the undo window (30 s) closes; undo cancels it. `EMAIL_DRY_RUN=true` saves a draft instead | `actions/followup.py` |
+| D-9 | `POST /privacy/pause` (paused, off_record) blocks ingest with 409; `DELETE /moments/{id}` removes the moment, embedding, snapshot, derived promises, people it introduced, its Tiger row, and returns a deletion receipt | `memory/store.py`, `memory/delete.py` |
 
 ## Notes for other areas
 

@@ -1,37 +1,33 @@
-# Plan: tiers and ids
+# Plan: the demo checklist
 
-The priority plan is the source of truth: [Cortex Core Priority Plan - Flawless Demo.md](../Cortex%20Core%20Priority%20Plan%20-%20Flawless%20Demo.md). This page only carries the tier list and the ids used in issues and [STATUS.md](STATUS.md). Examples use the name **Ash** where the plan says Priya (see [RISKS.md](RISKS.md), item 8).
+**The tier system is gone (decided by @ashzaeen, 2026-11-15).** Nothing is gated: any feature in the [feature spec](../Cortex%20-%20Complete%20Feature%20Specification.md) can be built at any time. The old Tier 1 and Cut items are ordinary features now. Two rules stay, because they are safety rules, not priorities: **no face recognition**, and **people enter memory only by introduction or consent** (AGENTS.md).
 
-## Tier 0: must work (if any fails, the demo fails)
+What stays is the list below: the eleven things the 3-minute demo ([DEMO_SCRIPT.md](DEMO_SCRIPT.md)) needs on stage. It doesn't block other work; it shows what the demo needs. Their state lives in [STATUS.md](STATUS.md). The ids `D-1` to `D-11` replace the old `T0-1` to `T0-11`.
 
-| Id | Must work | Done when |
+The [priority plan](../Cortex%20Core%20Priority%20Plan%20-%20Flawless%20Demo.md) is kept unchanged as a source file; its tiers and cut list are superseded by this page. Examples use the name **Ash** where it says Priya (see [RISKS.md](RISKS.md), item 8).
+
+## Demo checklist
+
+| Id | Must work for the demo | Done when |
 | --- | --- | --- |
-| T0-1 | Capture to backend: camera and mic (glasses, or phone fallback) into one ingest pipeline storing transcript, caption, snapshot, timestamp | Saying a sentence and showing an object produces a stored moment within a few seconds |
-| T0-2 | Shared memory with search that returns the source moment | Asking about something from earlier returns the right moment, every time, on the seeded data |
-| T0-3 | Network skill: introduction creates a contact card | "This is Ash from Acme" produces a correct card with the moment linked |
-| T0-4 | Waiting-on tracker with a one-tap confirm chip | A spoken promise becomes a tracked item with who, what and due date |
-| T0-5 | Ask with a proof receipt | A voice question gets a spoken answer and a receipt showing the source moment |
-| T0-6 | Pre-meeting brief, spoken | "Brief me on Ash" returns a correct 20-second brief from stored data |
-| T0-7 | Action loop for one action: follow-up email | Propose, confirm, send (or save draft), then a receipt with undo |
-| T0-8 | Live dashboard: Live, Timeline, Ask, Proof receipts | Updates appear on screen within seconds while the demo runs |
-| T0-9 | Privacy minimums: pause or off-the-record, and delete a moment | Both work on stage and are visible to judges |
-| T0-10 | Chert inbound call answered from memory, with caller camera on one object or document | An iPhone FaceTime reaches Cortex, which greets in time (within 10 s), answers from memory and saves what the camera shows |
-| T0-11 | Demo reliability: seeded data, frozen script, recorded backup video | The full script runs start to finish without touching code, twice in a row |
+| D-1 | Capture to backend: camera and mic (glasses, or phone fallback) into one ingest pipeline storing transcript, caption, snapshot, timestamp | Saying a sentence and showing an object produces a stored moment within a few seconds |
+| D-2 | Shared memory with search that returns the source moment | Asking about something from earlier returns the right moment, every time, on the seeded data |
+| D-3 | Network skill: introduction creates a contact card | "This is Ash from Acme" produces a correct card with the moment linked |
+| D-4 | Waiting-on tracker with a one-tap confirm chip | A spoken promise becomes a tracked item with who, what and due date |
+| D-5 | Ask with a proof receipt | A voice question gets a spoken answer and a receipt showing the source moment |
+| D-6 | Pre-meeting brief, spoken | "Brief me on Ash" returns a correct 20-second brief from stored data |
+| D-7 | Action loop for one action: follow-up email | Propose, confirm, send (or save draft), then a receipt with undo |
+| D-8 | Live dashboard: Live, Timeline, Ask, Proof receipts | Updates appear on screen within seconds while the demo runs |
+| D-9 | Privacy minimums: pause or off-the-record, and delete a moment | Both work on stage and are visible to judges |
+| D-10 | Chert inbound call answered from memory, with caller camera on one object or document | An iPhone FaceTime reaches Cortex, which greets in time (within 10 s), answers from memory and saves what the camera shows |
+| D-11 | Demo reliability: seeded data, frozen script, recorded backup video | The full script runs start to finish without touching code, twice in a row |
 
-Fresh use of video is weighted double in the Chert track, so T0-10 (the camera) is not optional.
+Fresh use of video is weighted double in the Chert track, so D-10 (the camera) matters for that prize.
 
-## Tier 1: only after Tier 0 passes twice in a row and the script is rehearsed (in this order)
+## Also in the feature spec (not gated)
 
-1. T1-1 Agent video back on the call (fallback: iMessage attachment with the proof card).
-2. T1-2 Outbound call for a pre-meeting brief (phone verified in advance).
-3. T1-3 Daily digest and rewind ("what did I do today?").
-4. T1-4 A second mode that visibly behaves differently (for example Student turning a snapshot into flashcards).
-5. T1-5 Persona and framing on calls.
+The ideas that used to be Tier 1 or Cut are normal features with spec entries, built whenever someone picks them up. Examples: agent video back on calls, outbound calls for a brief, daily digest and rewind, a second visibly different mode, call persona and framing, memory graph, car mode, smart tags, multi-user sharing, whisper coach, live translation, language immersion, proactive nudge, and the cooking or repair coach.
 
-## Cut for the hackathon
+## Freeze before judging
 
-Face recognition, memory graph, car mode, smart tags and ambient hub, multi-user sharing, whisper coach, live translation, language immersion, proactive nudge, cooking or repair coach, and Assist beyond a simple read-aloud. Ask the world stays out unless it comes free from memory search. These go on the roadmap slide, not in the demo.
-
-## Build order and freeze
-
-Build order, go/no-go checks and fallbacks: see the priority plan. Feature freeze (proposed): at least 6 hours before judging; after that, bug fixes and rehearsal only (at least 10 runs).
+Feature freeze (proposed): at least 6 hours before judging. After that, bug fixes and rehearsal only (at least 10 runs).

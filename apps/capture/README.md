@@ -1,6 +1,6 @@
 # apps/capture
 
-Turns what the wearer hears and sees into moments and posts them to `POST /moments` ([contract](../../contracts/openapi.yaml)). Both paths post moments today; neither has run on a real iPhone or the Gen 1 glasses yet (#2, #10, T0-1 in [STATUS.md](../../docs/STATUS.md)). The capture path is **Accepted** in [ADR 0003](../../docs/decisions/0003-capture-path.md): a native iOS app for the glasses camera (#36 and #39, led by @ahnafzabir-utd; see [glasses/README.md](glasses/README.md)), with the web app's phone capture as the fallback.
+Turns what the wearer hears and sees into moments and posts them to `POST /moments` ([contract](../../contracts/openapi.yaml)). Both paths post moments today; neither has run on a real iPhone or the Gen 1 glasses yet (#2, #10, D-1 in [STATUS.md](../../docs/STATUS.md)). The capture path is **Accepted** in [ADR 0003](../../docs/decisions/0003-capture-path.md): a native iOS app for the glasses camera (#36 and #39, led by @ahnafzabir-utd; see [glasses/README.md](glasses/README.md)), with the web app's phone capture as the fallback.
 
 ## Two paths, one endpoint
 

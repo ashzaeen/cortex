@@ -14,6 +14,6 @@ Fake seed data shared by every area. **No real personal data**: fake names, `.ex
 
 **Ash is not seeded.** The demo creates Ash live ("This is Ash from Acme"). The Ash examples in `contracts/openapi.yaml` (`mom_live_*`, `per_ash`) show what the live flow should produce. Whether to seed earlier Ash history is the demo owner's call (see docs/RISKS.md).
 
-Recall questions for testing T0-2: "Where did I leave my keys?", "What did Sam promise me?", "When are the CSE 3310 demos?", "What do I owe Dana?"
+Recall questions for testing D-2: "Where did I leave my keys?", "What did Sam promise me?", "When are the CSE 3310 demos?", "What do I owe Dana?"
 
 When you change fixtures, keep them valid (`make check`) and mention `area:demo` on the issue.

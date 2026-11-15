@@ -23,7 +23,7 @@ Everything flows through one shared memory, so modes are presets over it and cha
 `apps/backend` stores moments with an embedding, and runs search that always returns the source moments behind a result (`GET /moments/search`, `POST /ask`). Skills read and write memory: Network creates **people** from introductions, the waiting-on tracker creates **promises** (proposed, then confirmed with one tap), and the brief reads a person's moments and open promises (`GET /people/{id}/brief`).
 
 ## Modes
-A **mode** (Focus, Student, Life, Assist) is a preset over the same memory: what it captures, when it speaks, what it proposes, which actions it may take. Search crosses modes. The demo uses one mode; a second visible mode is Tier 1.
+A **mode** (Focus, Student, Life, Assist) is a preset over the same memory: what it captures, when it speaks, what it proposes, which actions it may take. Search crosses modes. The dashboard switches modes from the dock, and each mode suggests its own kind of action.
 
 ## Action loop
 Notice, propose, confirm, do, prove. `POST /actions/propose` creates a proposed action (the follow-up email) with its source moments; `POST /actions/{id}/confirm` sends it or saves a draft and writes a **receipt**; `POST /actions/{id}/undo` reverses it while the undo window is open. Anything that leaves the device needs a confirm.

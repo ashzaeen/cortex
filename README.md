@@ -12,7 +12,7 @@ Needs Node 24+, GNU Make and the GitHub CLI.
 make setup    # install repo tooling and any area dependencies
 make dev      # stateful mock API on :4010 + the dashboard on :3000 (Ash demo driver on the Live tab)
 make check    # lint, contract validation, tests, status and secret checks
-make status   # Tier 0 status table and open Tier 0 issues
+make status   # demo checklist status and open checklist issues
 ```
 
 Every area runs alone against the mock API at `http://localhost:4010` and the seed data in `fixtures/`. `make mock` serves the plain Prism mock straight from the contract.

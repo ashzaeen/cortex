@@ -1,4 +1,4 @@
-"""Ask with proof (T0-5). Answers ONLY from retrieved moments; otherwise grounded=false. Every answer
+"""Ask with proof (D-5). Answers ONLY from retrieved moments; otherwise grounded=false. Every answer
 writes a receipt (kind answer) and returns its source moments.
 
 Order: 1) "brief me on <name>" -> the brief; 2) questions about a known person's promises ("What did Ash

@@ -6,7 +6,7 @@
 - **Date:** 2026-11-14
 
 ## Context
-The glasses have no display, so the dashboard is where the wearer and the judges see Cortex work (T0-8). The team is iPhone-first but does not want an iOS app for the dashboard. The page must run on an iPhone in Safari and on a laptop on the projector, and must work on the mock before the backend exists.
+The glasses have no display, so the dashboard is where the wearer and the judges see Cortex work (D-8). The team is iPhone-first but does not want an iOS app for the dashboard. The page must run on an iPhone in Safari and on a laptop on the projector, and must work on the mock before the backend exists.
 
 ## Decision
 | Question | Choice |

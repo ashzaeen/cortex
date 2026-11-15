@@ -1,4 +1,4 @@
-"""Action loop for one action (T0-7): follow-up email. Propose -> confirm (send or draft) -> receipt -> undo.
+"""Action loop for one action (D-7): follow-up email. Propose -> confirm (send or draft) -> receipt -> undo.
 
 Undo really works: a confirmed send is held until the undo window (ACTION_UNDO_SECONDS, default 30)
 closes, then delivered; undo inside the window cancels it. With EMAIL_DRY_RUN=true (default) a send

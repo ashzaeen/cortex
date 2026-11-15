@@ -1,4 +1,4 @@
-"""Waiting-on tracker (T0-4): a spoken promise becomes a proposed item (confirm chip) with who, what, due.
+"""Waiting-on tracker (D-4): a spoken promise becomes a proposed item (confirm chip) with who, what, due.
 One tap confirms it. Vague dates keep date=null and the words in due.text, never a guessed deadline."""
 import re
 from datetime import date, timedelta

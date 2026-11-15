@@ -1,4 +1,4 @@
-"""Search memory and always return the source moments (T0-2).
+"""Search memory and always return the source moments (D-2).
 
 1. Time phrases ("this morning", "yesterday") narrow the range.
 2. Atlas $vectorSearch when available.

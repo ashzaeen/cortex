@@ -1,34 +1,30 @@
-# Blockers: what stops a Tier 0 run-through
+# Blockers: what stops a full demo run-through
 
 Snapshot, 2026-11-14 late evening · @ashzaeen. Replaces the 7:20 meeting snapshot. Every agent: read this after [AGENTS.md](../AGENTS.md) and [STATUS.md](STATUS.md), before you start a task. The full feature list is in [Cortex - Complete Feature Specification.md](../Cortex%20-%20Complete%20Feature%20Specification.md).
 
 ## TL;DR
 
-1. The real stack is up. The backend runs on Railway on real Atlas, Tiger Data and Gemini, and the Vercel dashboard talks to it. **T0-2 is the first Tier 0 item that `works`** (search returned the right source moment 12 of 12 times on the hosted backend).
-2. The other backend items (T0-3 to T0-7, T0-9) pass offline but have not had their done-when test run on the real stack. That is now the cheapest progress available.
-3. The last unjoined part is the **call agent**: it talks on real FaceTime calls but does not call the Cortex API (T0-10).
+1. The real stack is up. The backend runs on Railway on real Atlas, Tiger Data and Gemini, and the Vercel dashboard talks to it. **D-2 is the first demo checklist item that `works`** (search returned the right source moment 12 of 12 times on the hosted backend).
+2. The other backend items (D-3 to D-7, D-9) pass offline but have not had their done-when test run on the real stack. That is now the cheapest progress available.
+3. The last unjoined part is the **call agent**: it talks on real FaceTime calls but does not call the Cortex API (D-10).
 4. Capture is wired in code (glasses app and phone fallback both post moments) but has never run on a real iPhone or the Gen 1 glasses. That is a hardware and people blocker.
-5. Tier 1, Should and Roadmap work stays blocked until all of Tier 0 is `works` twice in a row.
+5. There is no tier gating any more (2026-11-15): any feature can be built now. The demo checklist shows what the stage needs.
 
-## 1. Tier rule: the spec is mostly gated
+## 1. No more gating
 
-Per AGENTS.md, no Tier 1, Should or Cut work starts while any Tier 0 item is not `works`. Today: 1 of 11 `works`, 10 `in progress`.
-
-**Blocked until Tier 0 passes twice:** MEM-9 digest, MEM-10 rewind, MODE-2 to MODE-6, DASH-10 Modes tab, DASH-11, CALL-4 video back, CALL-5 outbound call, ACT-5 to ACT-10, the backend half of #41 (#45), and every Should item.
-
-**Waived on purpose (@ashzaeen, 2026-11-14):** the #41 contract change, the Brass redesign and the browser-only `/demo` profile (#44) are on `main`. Also waived (@ashzaeen, 2026-11-15): ACT-5 calendar, ACT-6 tasks, ACT-7 notes and flashcards to Drive, ACT-9 texts through Chert, and the backend half of #41 (#45). They are built and tested offline; live Google writes and Chert sends are not yet verified. Nothing else in this list is waived.
+The tier system was scrapped (@ashzaeen, 2026-11-15). Nothing in the feature spec is blocked by priority any more: digest, rewind, modes, video back, outbound calls, the integrations and the old cut list (except the safety rules: no face recognition, people by introduction or consent) can all be built now. What remains is the demo checklist (D-1 to D-11, [PLAN.md](PLAN.md)): 1 of 11 `works`, 10 `in progress`. The blockers below are real ones: hardware, people and integration gaps.
 
 ## 2. Verification gap: works offline, not yet proven live
 
 | Item | Offline (mongomock + mock LLM) | Real stack | What's missing |
 | --- | --- | --- | --- |
-| T0-2 search | passes | **works** (12/12) | nothing |
-| T0-3 introduction card | passes | not run | Run on a scratch database, not the demo data |
-| T0-4 promise tracker | passes | not run | Gemini extraction of who, what and due |
-| T0-5 ask with proof | passes | grounded `/ask` seen once (#42) | Voice question from capture, spoken answer |
-| T0-6 brief | passes (template) | not run | Gemini brief, spoken through the glasses |
-| T0-7 follow-up email | passes (dry run) | not run | One real send through SMTP or Resend |
-| T0-9 pause and delete | passes | not run | Delete cascade on Atlas and Tiger Data |
+| D-2 search | passes | **works** (12/12) | nothing |
+| D-3 introduction card | passes | not run | Run on a scratch database, not the demo data |
+| D-4 promise tracker | passes | not run | Gemini extraction of who, what and due |
+| D-5 ask with proof | passes | grounded `/ask` seen once (#42) | Voice question from capture, spoken answer |
+| D-6 brief | passes (template) | not run | Gemini brief, spoken through the glasses |
+| D-7 follow-up email | passes (dry run) | not run | One real send through SMTP or Resend |
+| D-9 pause and delete | passes | not run | Delete cascade on Atlas and Tiger Data |
 
 **Unblock:** @ClosetCoderSad runs each done-when test against a real but **separate** Atlas database (the hosted one holds the demo seed, and these tests write), comments **How I verified this** on #15 to #21, and updates STATUS.md.
 
@@ -36,25 +32,25 @@ Per AGENTS.md, no Tier 1, Should or Cut work starts while any Tier 0 item is not
 
 | Issue | Blocker | Blocks | Owner |
 | --- | --- | --- | --- |
-| #2 | Does the Meta toolkit deliver camera frames on Gen 1 glasses? Go/no-go | T0-1 glasses path | @794KHSameer |
-| #10 | Glasses confirmed for testing and demo day | T0-1, T0-11 | @794KHSameer |
-| #3 | Capture latency and frame rate measured | T0-1 | @794KHSameer |
-| #36, #39 | Run the iOS app on a real iPhone (iOS 17.2+) with the Gen 1 glasses. Simulator builds pass; @ashzaeen has no iPhone | T0-1 | @ahnafzabir-utd, @794KHSameer |
-| #42 | Open the Vercel dashboard on an iPhone and check that the live timeline loads from the hosted backend | T0-8 | @ashzaeen (needs someone's iPhone) |
-| #6 | How the free Chert line is issued, whether the trial clock has started, and which teammate's iPhone gets the iMessage code | T0-10 | @ahnafzabir-utd |
-| #7 | Our own LiveKit project and env | T0-10 | @ahnafzabir-utd |
-| #11 | Greeting within 10 s: seen at about 5 to 7 s on real calls (handoff); needs to be recorded on the issue and closed | T0-10 | @ahnafzabir-utd |
-| #12 | Demo phone verified for outbound calls and texts | T1-2, fallback | @ahnafzabir-utd |
-| #30, #31, #33 | Freeze the script, record the backup video, at least 10 rehearsals | T0-11 | team |
+| #2 | Does the Meta toolkit deliver camera frames on Gen 1 glasses? Go/no-go | D-1 glasses path | @794KHSameer |
+| #10 | Glasses confirmed for testing and demo day | D-1, D-11 | @794KHSameer |
+| #3 | Capture latency and frame rate measured | D-1 | @794KHSameer |
+| #36, #39 | Run the iOS app on a real iPhone (iOS 17.2+) with the Gen 1 glasses. Simulator builds pass; @ashzaeen has no iPhone | D-1 | @ahnafzabir-utd, @794KHSameer |
+| #42 | Open the Vercel dashboard on an iPhone and check that the live timeline loads from the hosted backend | D-8 | @ashzaeen (needs someone's iPhone) |
+| #6 | How the free Chert line is issued, whether the trial clock has started, and which teammate's iPhone gets the iMessage code | D-10 | @ahnafzabir-utd |
+| #7 | Our own LiveKit project and env | D-10 | @ahnafzabir-utd |
+| #11 | Greeting within 10 s: seen at about 5 to 7 s on real calls (handoff); needs to be recorded on the issue and closed | D-10 | @ahnafzabir-utd |
+| #12 | Demo phone verified for outbound calls and texts | CALL-5, fallback | @ahnafzabir-utd |
+| #30, #31, #33 | Freeze the script, record the backup video, at least 10 rehearsals | D-11 | team |
 
 ## 4. Integration gaps (agent work)
 
 | Gap | Blocks | Area |
 | --- | --- | --- |
-| Call agent answers from its own prompt: no `POST /ask` (channel `call`), no `GET /people/{id}/brief`, no `POST /moments` (source `call`) for the caller's camera | T0-10 | call (#22) |
-| Re-meeting seeded Ash: the backend must link the moment to the existing card and emit `person.updated` (the mock already does) | T0-3, T0-11 (#29) | backend, contracts (#43) |
-| Ash's earlier career-fair meeting is not seeded, because it waits on #43 | T0-6 brief, T0-11 | demo (#29) |
-| The iOS app has no pause or off-the-record controls of its own; it only checks `GET /privacy` before posting | T0-9 on the glasses | capture (#36) |
+| Call agent answers from its own prompt: no `POST /ask` (channel `call`), no `GET /people/{id}/brief`, no `POST /moments` (source `call`) for the caller's camera | D-10 | call (#22) |
+| Re-meeting seeded Ash: the backend must link the moment to the existing card and emit `person.updated` (the mock already does) | D-3, D-11 (#29) | backend, contracts (#43) |
+| Ash's earlier career-fair meeting is not seeded, because it waits on #43 | D-6 brief, D-11 | demo (#29) |
+| The iOS app has no pause or off-the-record controls of its own; it only checks `GET /privacy` before posting | D-9 on the glasses | capture (#36) |
 
 ## 5. Housekeeping the owners should do
 
@@ -67,17 +63,17 @@ Per AGENTS.md, no Tier 1, Should or Cut work starts while any Tier 0 item is not
 ## 6. Open decisions
 
 - [ ] Is the plan's frozen demo final over the PRD demo, which has Student, Life and Assist beats? (#30)
-- [ ] Do calendar and task actions (ACT-5, ACT-6) return after Tier 1, or stay out?
+- [x] Calendar and task actions (ACT-5, ACT-6): built (no tiers any more).
 - [ ] ADR 0004 (sponsor stack) is still Proposed. The call agent already uses LiveKit Agents (Node) and Gemini Live; @ahnafzabir-utd can accept it as built. The spec's PLAT-3 still calls 0001 to 0004 Proposed; 0001, 0002, 0003 and 0005 are Accepted.
-- [ ] @ClosetCoderSad reviews #41's looser `person_id` on the T0-7 action, and schedules #45.
+- [ ] @ClosetCoderSad reviews #41's looser `person_id` on the D-7 action, and schedules #45.
 - [ ] Which one extra skill or mode goes in the demo after rehearsal?
 
 ## Next actions, by person
 
 | Who | Do next |
 | --- | --- |
-| @ClosetCoderSad | Real-stack done-when runs for T0-3 to T0-7 and T0-9 on a scratch database; #43 re-introduction |
+| @ClosetCoderSad | Real-stack done-when runs for D-3 to D-7 and D-9 on a scratch database; #43 re-introduction |
 | @ahnafzabir-utd | Wire the call agent to `POST /ask`, the brief and `POST /moments` (#22); close #5 and #11; #6 Chert line, #7 LiveKit |
 | @794KHSameer | #2 glasses go/no-go, #10 glasses for demo day, #3 latency; run the iOS app on a real iPhone (#36, #39) |
 | @ashzaeen | iPhone check of the Vercel dashboard (#42); #29 seed Ash after #43; #30 freeze the script |
-| Every agent | Tier 0 only. Claim per AGENTS.md, and update this file or STATUS.md when a blocker clears |
+| Every agent | Anything in the spec; demo checklist items help most. Claim per AGENTS.md, and update this file or STATUS.md when a blocker clears |

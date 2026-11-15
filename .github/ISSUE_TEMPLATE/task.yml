@@ -4,13 +4,13 @@ labels: ["type:task"]
 body:
   - type: markdown
     attributes:
-      value: "Add one `tier:*` and one `area:*` label. Add `agent-ready` only when an agent could start from this issue alone."
+      value: "Add one `area:*` label, and `demo-checklist` if it is one of D-1 to D-11. Add `agent-ready` only when an agent could start from this issue alone."
   - type: input
-    id: tier0
+    id: checklist
     attributes:
-      label: Tier 0 id
-      description: T0-1 to T0-11 from docs/PLAN.md, or "none"
-      placeholder: T0-3
+      label: Demo checklist id
+      description: D-1 to D-11 from docs/PLAN.md, or "none"
+      placeholder: D-3
     validations:
       required: true
   - type: textarea
@@ -24,7 +24,7 @@ body:
     id: done
     attributes:
       label: Done when (acceptance criteria)
-      description: The test that proves it works. Copy it from docs/PLAN.md for Tier 0 items.
+      description: The test that proves it works. Copy it from docs/PLAN.md for demo checklist items.
       value: |
         - [ ]
     validations:

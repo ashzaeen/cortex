@@ -32,7 +32,7 @@ export interface paths {
         get: operations["listMoments"];
         put?: never;
         /**
-         * Ingest a moment from glasses, phone, call or dashboard (T0-1)
+         * Ingest a moment from glasses, phone, call or dashboard (D-1)
          * @description One ingest pipeline for every capture source. The backend transcribes, captions and
          *     stores the moment, links people by introduction, detects promises, and emits
          *     moment.created (plus person.created / promise.proposed) on /events.
@@ -52,7 +52,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search memory; always returns the source moments (T0-2) */
+        /** Search memory; always returns the source moments (D-2) */
         get: operations["searchMoments"];
         put?: never;
         post?: never;
@@ -74,7 +74,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete a moment and everything derived from it (T0-9) */
+        /** Delete a moment and everything derived from it (D-9) */
         delete: operations["deleteMoment"];
         options?: never;
         head?: never;
@@ -91,7 +91,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Answer a question from memory with proof (T0-5)
+         * Answer a question from memory with proof (D-5)
          * @description Answers only from retrieved moments. If nothing supports an answer, grounded is false and the answer says so.
          */
         post: operations["ask"];
@@ -112,7 +112,7 @@ export interface paths {
         get: operations["listPeople"];
         put?: never;
         /**
-         * Create a contact card from an introduction (T0-3)
+         * Create a contact card from an introduction (D-3)
          * @description Usually created by the backend during ingest; this endpoint lets the dashboard add or correct a person by hand.
          */
         post: operations["createPerson"];
@@ -131,7 +131,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** Pre-meeting brief, about 20 seconds spoken (T0-6) */
+        /** Pre-meeting brief, about 20 seconds spoken (D-6) */
         get: operations["briefPerson"];
         put?: never;
         post?: never;
@@ -148,7 +148,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Waiting on and I owe lists (T0-4) */
+        /** Waiting on and I owe lists (D-4) */
         get: operations["listPromises"];
         put?: never;
         /** Propose a promise (shows a confirm chip) */
@@ -204,7 +204,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Propose an action with its source moments (T0-7 for follow_up_email) */
+        /** Propose an action with its source moments (D-7 for follow_up_email) */
         post: operations["proposeAction"];
         delete?: never;
         options?: never;
@@ -293,7 +293,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Pause, go off-the-record, or resume capture (T0-9) */
+        /** Pause, go off-the-record, or resume capture (D-9) */
         post: operations["setPrivacy"];
         delete?: never;
         options?: never;

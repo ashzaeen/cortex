@@ -52,29 +52,29 @@ for (const [path, type] of [["/moments", "Moment"], ["/people", "Person"], ["/pr
 let r = await call("POST", "/moments", { ts: new Date().toISOString(), source: "glasses", transcript: "This is Ash from Acme." });
 ok(r.status === 201, "intro moment returns 201"); valid("Moment", r.body, "POST /moments (intro)");
 const ash = (await call("GET", "/people")).body.items.find((p) => p.name === "Ash");
-ok(ash && ash.company === "Acme" && ash.introduced_moment_id === r.body.id, "Ash card created with the moment linked (T0-3)");
+ok(ash && ash.company === "Acme" && ash.introduced_moment_id === r.body.id, "Ash card created with the moment linked (D-3)");
 valid("Person", ash, "Ash");
 
 // Promise
 r = await call("POST", "/moments", { ts: new Date().toISOString(), source: "glasses", transcript: "I'll send you the deck Friday." });
 const prm = (await call("GET", "/promises?status=proposed")).body.items.find((p) => p.person_id === ash.id);
-ok(prm && prm.what === "Send the deck" && prm.due.text === "Friday" && prm.due.date, "promise detected with who, what and due date (T0-4)");
+ok(prm && prm.what === "Send the deck" && prm.due.text === "Friday" && prm.due.date, "promise detected with who, what and due date (D-4)");
 valid("Promise", prm, "proposed promise");
 r = await call("POST", `/promises/${prm.id}/confirm`);
 ok(r.body.status === "confirmed", "one-tap confirm");
 
 // Ask with proof
 r = await call("POST", "/ask", { question: "What did Ash promise me?", channel: "voice" });
-ok(r.body.grounded && /deck/i.test(r.body.spoken) && r.body.sources[0]?.id === prm.source_moment_id, "answer cites the promise moment (T0-5)");
+ok(r.body.grounded && /deck/i.test(r.body.spoken) && r.body.sources[0]?.id === prm.source_moment_id, "answer cites the promise moment (D-5)");
 r.body.sources.forEach((m, i) => valid("Moment", m, `ask source ${i}`));
 r = await call("POST", "/ask", { question: "Where did I leave my keys?", channel: "dashboard" });
-ok(r.body.sources[0]?.id === "mom_seed_003", "seeded recall: keys (T0-2)");
+ok(r.body.sources[0]?.id === "mom_seed_003", "seeded recall: keys (D-2)");
 r = await call("POST", "/ask", { question: "zebra quantum", channel: "dashboard" });
 ok(r.body.grounded === false, "no memory means grounded: false");
 
 // Brief
 r = await call("GET", `/people/${ash.id}/brief`);
-ok(/Acme/.test(r.body.spoken) && r.body.open_promises.length === 1 && r.body.bullets.length === 3, "brief names company and the open promise (T0-6)");
+ok(/Acme/.test(r.body.spoken) && r.body.open_promises.length === 1 && r.body.bullets.length === 3, "brief names company and the open promise (D-6)");
 
 // Act
 r = await call("POST", "/actions/propose", { type: "follow_up_email", person_id: ash.id });
@@ -82,7 +82,7 @@ ok(r.status === 201 && r.body.status === "proposed", "email proposed"); valid("A
 const act = r.body;
 ok((await call("GET", "/actions?status=proposed")).body.items.some((a) => a.id === act.id), "GET /actions lists it");
 r = await call("POST", `/actions/${act.id}/confirm`, { deliver: "send" });
-ok(r.body.action.status === "sent" && r.body.receipt.undo.available, "sent with an undo receipt (T0-7)");
+ok(r.body.action.status === "sent" && r.body.receipt.undo.available, "sent with an undo receipt (D-7)");
 valid("Action", r.body.action, "sent action"); valid("Receipt", r.body.receipt, "action receipt");
 r = await call("POST", `/actions/${act.id}/undo`);
 ok(r.body.action.status === "undone", "undo works");
@@ -90,7 +90,7 @@ ok(r.body.action.status === "undone", "undo works");
 // Phone capture (#4): snapshot plus transcript, same payload the glasses app sends.
 const tinyJpeg = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
 r = await call("POST", "/moments", { ts: new Date().toISOString(), source: "phone", transcript: "Remember this whiteboard.", snapshot_base64: tinyJpeg });
-ok(r.status === 201 && r.body.source === "phone" && r.body.snapshot_url?.startsWith("data:image/jpeg;base64,"), "phone capture stores snapshot and transcript (T0-1 fallback)");
+ok(r.status === 201 && r.body.source === "phone" && r.body.snapshot_url?.startsWith("data:image/jpeg;base64,"), "phone capture stores snapshot and transcript (D-1 fallback)");
 valid("Moment", r.body, "phone capture moment");
 
 // Modes (D18): the dock activates a mode; each mode has a working suggestion.
@@ -127,11 +127,11 @@ await call("POST", "/modes/focus/activate");
 r = await call("POST", "/privacy/pause", { state: "off_record" });
 ok(r.body.state === "off_record", "off the record");
 r = await call("POST", "/moments", { ts: new Date().toISOString(), source: "phone", transcript: "secret" });
-ok(r.status === 409, "nothing stored while off the record (T0-9)");
+ok(r.status === 409, "nothing stored while off the record (D-9)");
 await call("POST", "/privacy/pause", { state: "capturing" });
 r = await call("DELETE", `/moments/${prm.source_moment_id}`);
 valid("Receipt", r.body, "deletion receipt");
-ok(!(await call("GET", "/moments")).body.items.some((m) => m.id === prm.source_moment_id), "moment deleted (T0-9)");
+ok(!(await call("GET", "/moments")).body.items.some((m) => m.id === prm.source_moment_id), "moment deleted (D-9)");
 ok(!(await call("GET", "/promises")).body.items.some((p) => p.id === prm.id), "derived promise deleted too");
 
 // Demo driver runs end to end from a reset.

@@ -1,8 +1,8 @@
-"""POST /moments (T0-1): one ingest pipeline for glasses, phone, call and dashboard.
+"""POST /moments (D-1): one ingest pipeline for glasses, phone, call and dashboard.
 
 ts/source/transcript/audio/snapshot in -> transcribe if needed -> Gemini perception (caption, intros,
-promises) -> embedding -> MongoDB (+ Tiger Data timeline) -> link people by introduction (T0-3) ->
-proposed promises (T0-4) -> events: moment.created, person.created, promise.proposed."""
+promises) -> embedding -> MongoDB (+ Tiger Data timeline) -> link people by introduction (D-3) ->
+proposed promises (D-4) -> events: moment.created, person.created, promise.proposed."""
 import base64
 import binascii
 import logging

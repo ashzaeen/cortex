@@ -29,11 +29,11 @@ export function capture(cmd, args) {
   return r.status === 0 ? r.stdout : null;
 }
 
-// Parse the Tier 0 table in docs/STATUS.md into row objects.
+// Parse the demo checklist table in docs/STATUS.md into row objects.
 export function statusRows() {
   return read("docs/STATUS.md")
     .split("\n")
-    .filter((l) => /^\|\s*T0-\d+\s*\|/.test(l))
+    .filter((l) => /^\|\s*D-\d+\s*\|/.test(l))
     .map((l) => {
       const [id, item, state, verified, issue, notes] = l.split("|").slice(1, -1).map((c) => c.trim());
       return { id, item, state, verified, issue, notes };

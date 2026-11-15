@@ -32,7 +32,7 @@ endif
 dev: $(STAMP) ## Run the API on http://localhost:8000 with reload
 	$(VENV_PY) -m uvicorn main:app --reload --host 0.0.0.0 --port $(PORT)
 
-test: ## Contract tests and Tier 0 done-when tests (offline: mongomock + mock LLM)
+test: ## Contract tests and demo checklist done-when tests (offline: mongomock + mock LLM)
 ifeq ($(HAVE_PY),1)
 	@$(MAKE) --no-print-directory $(STAMP)
 	$(VENV_PY) -m pytest -q

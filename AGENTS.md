@@ -17,9 +17,9 @@ For any UI work, also read [design.md](design.md) (the Brass design system, sour
 
 Never edit, move or rewrite those two files. Where anything else disagrees with them, they win; record the conflict in [docs/RISKS.md](docs/RISKS.md).
 
-## Priority rule
+## Priorities
 
-Tier 0 before anything else. Never work on a Tier 1 or Cut item while any Tier 0 item in [docs/STATUS.md](docs/STATUS.md) is not `works`. The tier list and ids (T0-1 to T0-11) are in [docs/PLAN.md](docs/PLAN.md). If an issue is labeled `tier:1` or `tier:cut`, do not start it unless a human says so in the issue.
+There are no tiers and no gating (decided 2026-11-15): any feature in the feature spec can be built at any time. The **demo checklist** (D-1 to D-11) in [docs/PLAN.md](docs/PLAN.md) lists what the 3-minute demo needs on stage, and its state is in [docs/STATUS.md](docs/STATUS.md). Issues for those items carry the `demo-checklist` label. Pick work by what helps the demo and the team most; the safety rules below always apply.
 
 ## Where truth lives
 
@@ -52,13 +52,13 @@ Owners are also in [.github/CODEOWNERS](.github/CODEOWNERS). Each area has its o
 ## Session start ritual
 
 1. Read this file and [docs/STATUS.md](docs/STATUS.md).
-2. Run `make status` (or `gh issue list --label tier:0 --state open`).
+2. Run `make status` (or `gh issue list --label demo-checklist --state open`).
 3. Read the issues assigned to your person: `gh issue list --assignee <handle>`.
 4. `git pull` on `main` before you change anything.
 
 ## Claim protocol
 
-1. Pick an open issue labeled `agent-ready` in your area, Tier 0 first.
+1. Pick an open issue labeled `agent-ready` in your area; `demo-checklist` issues are a good place to start.
 2. Assign it to your person (`gh issue edit <n> --add-assignee <handle>`), add `status:in-progress`, and comment `Claiming`.
 3. **No branches, no PRs.** Everyone works on `main` locally and pushes to `main`. One issue at a time; small commits that mention the issue (`#<n>`).
 
@@ -118,7 +118,7 @@ Record non-trivial decisions as ADRs in [docs/decisions/](docs/decisions/) with 
 
 ## Demo rules
 
-- Never push anything to `main` that breaks the Tier 0 demo script or fails `make check`.
+- Never push anything to `main` that breaks the demo script or fails `make check`.
 - `main` must always run `make dev` against the mock API.
 - After feature freeze (see [docs/PLAN.md](docs/PLAN.md)), only bug fixes are pushed.
 

@@ -3,9 +3,7 @@
 import { capture, run } from "./lib.mjs";
 
 const LABELS = [
-  ["tier:0", "b60205", "Must work for the demo"],
-  ["tier:1", "fbca04", "Stretch: only after Tier 0 passes twice"],
-  ["tier:cut", "cccccc", "Cut for the hackathon (roadmap only)"],
+  ["demo-checklist", "b60205", "One of D-1 to D-11: what the demo needs on stage (docs/PLAN.md)"],
   ["area:capture", "1d76db", "apps/capture: glasses and phone"],
   ["area:backend", "1d76db", "apps/backend: memory API and brain"],
   ["area:dashboard", "1d76db", "apps/dashboard: companion web app"],
@@ -28,7 +26,7 @@ const LABELS = [
 const MILESTONES = [
   ["M0 Go/no-go checks", "Spikes that decide the plan. Switch to the fallback the same day if one fails."],
   ["M1 Walking skeleton", "Fake end-to-end on mocks: every area runs against the mock API and fixtures."],
-  ["M2 Tier 0 complete", "All of T0-1 to T0-11 work, twice in a row."],
+  ["M2 Demo checklist complete", "All of D-1 to D-11 work, twice in a row."],
   ["M3 Rehearsal and feature freeze", "Freeze at least 6 h before judging; 10+ rehearsal runs; backup video."],
   ["M4 Submission", "Devpost writeup and the Chert track submission."],
 ];

@@ -158,7 +158,9 @@ def _close_answer(q: str) -> dict | None:
     done = promises.close(pick[0]["_id"])
     brief_skill.prewarm(person["_id"])
     line = brief_skill.promise_line(done, person)
-    msg = f"Marked done: {line[0].lower() + line[1:]}."
+    if line.startswith("You "):  # "You promised Ash..." reads better lowercase; a name keeps its capital
+        line = line[0].lower() + line[1:]
+    msg = f"Marked done: {line}."
     return _result(q, msg, msg, store.moments_by_ids([done["source_moment_id"]]), True)
 
 

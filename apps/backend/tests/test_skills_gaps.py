@@ -33,7 +33,7 @@ def test_got_it_closes_the_promise(seeded):
     pid = confirm_deck(seeded, pm)
     assert ask(seeded, "What is open with Ash?")["grounded"]
     done = ask(seeded, "Got the deck from Ash")
-    assert done["grounded"] and done["answer"].startswith("Marked done") and "deck" in done["answer"].lower()
+    assert done["grounded"] and done["answer"].startswith("Marked done: Ash promised") and "deck" in done["answer"].lower()
     items = seeded.get("/promises", params={"status": "done"}).json()["items"]
     assert [i["id"] for i in items] == [pid]
     # Gone from the open lists and from the brief

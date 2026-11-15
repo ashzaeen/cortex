@@ -21,15 +21,42 @@ struct HomeScreenView: View {
 
   var body: some View {
     ZStack {
-      Color.white.edgesIgnoringSafeArea(.all)
+      LinearGradient(
+        colors: [Color(red: 0.03, green: 0.08, blue: 0.06), Color(red: 0.07, green: 0.18, blue: 0.14)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
+      .edgesIgnoringSafeArea(.all)
 
-      VStack(spacing: 12) {
+      Circle()
+        .fill(Color(red: 0.82, green: 0.66, blue: 0.38).opacity(0.14))
+        .frame(width: 320, height: 320)
+        .blur(radius: 70)
+        .offset(x: 130, y: -260)
+
+      VStack(spacing: 20) {
         Spacer()
 
-        Image(.cameraAccessIcon)
+        Image("CorneaLogo")
           .resizable()
           .aspectRatio(contentMode: .fit)
-          .frame(width: 120)
+          .frame(width: 132, height: 132)
+          .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+          .overlay {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+              .stroke(Color.white.opacity(0.14), lineWidth: 1)
+          }
+          .shadow(color: Color.black.opacity(0.35), radius: 24, y: 12)
+
+        VStack(spacing: 6) {
+          Text("CORNEA")
+            .font(.system(size: 28, weight: .bold, design: .rounded))
+            .tracking(5)
+            .foregroundStyle(Color(red: 0.93, green: 0.91, blue: 0.83))
+          Text("The eyes of your second brain")
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(Color(red: 0.82, green: 0.66, blue: 0.38))
+        }
 
         VStack(spacing: 12) {
           TipRow(
@@ -48,13 +75,20 @@ struct HomeScreenView: View {
             text: "Take photos and record video with audio from your glasses' microphone."
           )
         }
+        .padding(18)
+        .background(.ultraThinMaterial.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+          RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        }
 
         Spacer()
 
         VStack(spacing: 20) {
           Text("You'll be redirected to the Meta AI app to confirm your connection.")
             .font(.system(size: 14))
-            .foregroundStyle(.gray)
+            .foregroundStyle(Color.white.opacity(0.68))
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12)

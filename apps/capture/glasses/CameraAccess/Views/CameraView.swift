@@ -24,7 +24,7 @@ private let updateRequiredTitle = "Update required"
 struct CameraView: View {
   @State private var viewModel: CameraViewModel
   @Bindable var wearablesVM: WearablesViewModel
-  @State private var showSettingsMenu: Bool = false
+  @State private var showSettingsSheet: Bool = false
   @State private var isLaunchingUpdate: Bool = false
 
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
@@ -58,18 +58,6 @@ struct CameraView: View {
         .zIndex(1)
       }
 
-      // Tap outside the open top-bar settings menu dismisses it.
-      if showSettingsMenu {
-        Color.clear
-          .contentShape(Rectangle())
-          .onTapGesture {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-              showSettingsMenu = false
-            }
-          }
-          .edgesIgnoringSafeArea(.all)
-      }
-
       VStack(spacing: 0) {
         topBar
           .padding(.horizontal, 20)
@@ -101,6 +89,20 @@ struct CameraView: View {
       Button("Cancel", role: .cancel) {}
     } message: {
       Text("To preview your glasses camera, you'll be taken to the Meta AI app to grant access, then returned here.")
+    }
+    .sheet(isPresented: $showSettingsSheet) {
+      CorneaSettingsView {
+        wearablesVM.disconnectGlasses()
+        showSettingsSheet = false
+      }
+      .presentationDetents([.medium, .large])
+      .presentationDragIndicator(.visible)
+    }
+    .onChange(of: viewModel.needsAPIKey) { _, needsAPIKey in
+      if needsAPIKey {
+        showSettingsSheet = true
+        viewModel.needsAPIKey = false
+      }
     }
     .navigationBarHidden(true)
   }
@@ -222,32 +224,18 @@ struct CameraView: View {
   private var topBar: some View {
     HStack(alignment: .top, spacing: 12) {
       VStack(alignment: .leading, spacing: 6) {
+        Text("CORNEA")
+          .font(.system(size: 11, weight: .bold, design: .rounded))
+          .tracking(2.4)
+          .foregroundStyle(Color(red: 0.82, green: 0.66, blue: 0.38))
         statusChip(label: "Session", value: viewModel.sessionStateText, active: viewModel.isSessionActive, present: viewModel.hasSession)
         statusChip(label: "Stream", value: viewModel.streamStateText, active: viewModel.isStreaming, present: viewModel.hasStream)
       }
 
       Spacer()
 
-      // Top bar carries only the app-level settings/Disconnect control.
       iconButton("gearshape", id: "settings_button") {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-          showSettingsMenu.toggle()
-        }
-      }
-      .overlay(alignment: .trailing) {
-        if showSettingsMenu {
-          CustomButton(
-            title: "Disconnect",
-            style: .destructive,
-            isDisabled: wearablesVM.registrationState != .registered
-          ) {
-            wearablesVM.disconnectGlasses()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { showSettingsMenu = false }
-          }
-          .frame(width: 120)
-          .offset(y: 44)
-          .transition(.scale(scale: 0.01, anchor: .topTrailing).combined(with: .opacity))
-        }
+        showSettingsSheet = true
       }
     }
   }
@@ -516,6 +504,89 @@ struct CameraView: View {
   }
 }
 
+// MARK: - Cornea settings
+
+private struct CorneaSettingsView: View {
+  @Environment(\.dismiss) private var dismiss
+  @State private var apiKey = ""
+  @State private var statusMessage = ""
+  @State private var saveError: String?
+  let disconnect: () -> Void
+
+  var body: some View {
+    NavigationStack {
+      Form {
+        Section {
+          HStack(spacing: 14) {
+            Image("CorneaLogo")
+              .resizable()
+              .scaledToFit()
+              .frame(width: 54, height: 54)
+              .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 3) {
+              Text("Cornea")
+                .font(.title3.weight(.semibold))
+              Text("The eyes of your second brain")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+        }
+
+        Section {
+          SecureField("Cortex API key", text: $apiKey)
+            .textContentType(.password)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+
+          Button("Save API key") {
+            do {
+              try CortexAPIKeyStore.save(apiKey)
+              statusMessage = "API key saved securely on this iPhone."
+              saveError = nil
+            } catch {
+              saveError = error.localizedDescription
+            }
+          }
+          .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+          if !statusMessage.isEmpty {
+            Label(statusMessage, systemImage: "checkmark.shield.fill")
+              .font(.caption)
+              .foregroundStyle(.green)
+          }
+        } header: {
+          Text("API Connection")
+        } footer: {
+          Text("The key is stored in this iPhone's Keychain and is never committed to GitHub.")
+        }
+
+        Section("Glasses") {
+          Button("Disconnect glasses", role: .destructive, action: disconnect)
+          Text("Streaming uses glasses battery. End the session when you are finished, especially when charge is low.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
+      .navigationTitle("Settings")
+      .toolbar {
+        ToolbarItem(placement: .confirmationAction) {
+          Button("Done") { dismiss() }
+        }
+      }
+      .alert("Could not save key", isPresented: Binding(
+        get: { saveError != nil },
+        set: { if !$0 { saveError = nil } }
+      )) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(saveError ?? "Unknown error")
+      }
+    }
+  }
+}
+
 private struct CortexUploadStatusView: View {
   let message: String
   let isUploading: Bool
@@ -605,7 +676,7 @@ private struct RecordingTimerLabel: View {
 // MARK: - Update banner
 
 struct UpdateRequiredMessage: View {
-  private let message = "Your glasses need a firmware update before Camera Access can start."
+  private let message = "Your glasses need a firmware update before Cornea can start."
 
   var body: some View {
     HStack(alignment: .top, spacing: 12) {

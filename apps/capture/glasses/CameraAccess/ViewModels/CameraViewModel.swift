@@ -75,6 +75,7 @@ final class CameraViewModel {
   var isCapturingPhoto: Bool = false
   private(set) var isSavingMoment: Bool = false
   private(set) var cortexMessage: String = "Captured photos and videos upload automatically."
+  var needsAPIKey: Bool = false
 
   // MARK: - Video recording
 
@@ -622,6 +623,7 @@ final class CameraViewModel {
       cortexMessage = moment.caption ?? "Photo insight saved to Cortex."
     } catch {
       cortexMessage = "Upload failed: \(error.localizedDescription)"
+      markMissingAPIKeyIfNeeded(error)
     }
   }
 
@@ -650,6 +652,13 @@ final class CameraViewModel {
       cortexMessage = moment.caption ?? "Video insight saved to Cortex."
     } catch {
       cortexMessage = "Upload failed: \(error.localizedDescription)"
+      markMissingAPIKeyIfNeeded(error)
+    }
+  }
+
+  private func markMissingAPIKeyIfNeeded(_ error: Error) {
+    if case CortexError.serverError(let statusCode, _) = error, statusCode == 401 {
+      needsAPIKey = true
     }
   }
 

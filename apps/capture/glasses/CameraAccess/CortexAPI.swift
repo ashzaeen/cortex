@@ -1,4 +1,88 @@
 import Foundation
+import Security
+
+enum CortexAPIKeyStore {
+    private static let service = Bundle.main.bundleIdentifier ?? "com.cortex.cornea"
+    private static let account = "cortex-api-key"
+
+    static var key: String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty else {
+            return bundledKey
+        }
+        return value
+    }
+
+    static func save(_ value: String) throws {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            delete()
+            return
+        }
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [
+            kSecValueData as String: Data(trimmedValue.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+
+        let status: OSStatus
+        if SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess {
+            status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        } else {
+            status = SecItemAdd(query.merging(attributes) { _, new in new } as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else {
+            throw CortexCredentialError.keychain(status)
+        }
+    }
+
+    static func delete() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    private static var bundledKey: String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIKey") as? String else {
+            return nil
+        }
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty, !trimmedValue.hasPrefix("$(") else {
+            return nil
+        }
+        return trimmedValue
+    }
+}
+
+enum CortexCredentialError: LocalizedError {
+    case keychain(OSStatus)
+
+    var errorDescription: String? {
+        switch self {
+        case .keychain(let status):
+            return "Cornea could not securely save the API key (\(status))."
+        }
+    }
+}
 
 private struct PrivacyResponse: Decodable {
     let state: String
@@ -64,18 +148,8 @@ enum CortexAPI {
         return url
     }
 
-    /// The shared key the backend requires on every route but /health (CORTEX_API_KEY build setting).
-    /// Nil when it is empty or still the unexpanded "$(CORTEX_API_KEY)" placeholder, so a local build
-    /// against an open backend sends no header.
     private static var apiKey: String? {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "CortexAPIKey") as? String else {
-            return nil
-        }
-        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedValue.isEmpty || trimmedValue.hasPrefix("$(") {
-            return nil
-        }
-        return trimmedValue
+        CortexAPIKeyStore.key
     }
 
     static func capturePhoto(imageData: Data) async throws -> CortexMoment {
@@ -181,7 +255,7 @@ enum CortexError: LocalizedError {
             return "Could not reach the Cortex API: \(error.localizedDescription)"
 
         case .serverError(401, _):
-            return "Cortex rejected the app's key. Set CORTEX_API_KEY in the CameraAccess target's build settings."
+            return "Cornea needs the Cortex API key. Open Settings, choose API Connection, and save the current key."
 
         case .serverError(let code, let message):
             return "Cortex API error \(code): \(message)"

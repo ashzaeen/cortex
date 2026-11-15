@@ -163,6 +163,7 @@ function Home() {
               moments={moments} people={data.people} promises={data.promises} ids={ids} selected={selected}
               onSelect={(id) => { autoFollow.current = false; setSelected(id); }}
               onOpen={(id) => setMomentId(id)}
+              onDelete={deleteMoment}
               onSeeAll={() => setSheet("timeline")}
               onWaitingOn={() => setSheet("waiting")}
             />

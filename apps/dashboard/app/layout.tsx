@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Cortex",
   description: "Your memory, with proof.",
   appleWebApp: { capable: true, title: "Cortex", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }] },
 };
 
 export const viewport: Viewport = {

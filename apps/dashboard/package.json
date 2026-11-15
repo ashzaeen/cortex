@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start --port 3000",
     "mock": "node mock/server.mjs",
-    "test": "node mock/test.mjs && node mock/profile-test.mjs",
+    "test": "node mock/test.mjs && node mock/profile-test.mjs && node scripts/build-tokens.mjs --check",
     "mock:demo": "node mock/server.mjs --profile demo",
     "typecheck": "tsc --noEmit",
-    "types": "openapi-typescript ../../contracts/openapi.yaml -o lib/api-types.ts"
+    "types": "openapi-typescript ../../contracts/openapi.yaml -o lib/api-types.ts",
+    "tokens": "node scripts/build-tokens.mjs"
   },
   "dependencies": {
     "lucide-react": "1.61.0",

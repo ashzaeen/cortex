@@ -215,6 +215,12 @@ export function createSkills({ getDb, emit, id, now, ingest }) {
       }
       return null;
     };
+    if (p === "/_demo/skills-seed" && m === "POST") {  // mock-only: the demo profile's immersion words and coach history
+      const t = now();
+      S().vocab = (body?.vocab ?? []).map((v) => ({ ...v, created_at: t }));
+      S().coach = (body?.coach_sessions ?? []).map(({ index, ...c }) => ({ ...c, index, created_at: t }));
+      return ok({ vocab: S().vocab.length, coach: S().coach.length });
+    }
     if (p === "/skills" && m === "GET") return ok({ items: SKILLS.map((s) => ({ ...s, enabled: s.id === "nudge" ? S().proactive.enabled : true })) });
     if (p === "/skills/view" && m === "GET") {
       const on = S().glassesOn;

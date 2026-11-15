@@ -11,7 +11,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, normalize, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createEngine } from "./engine.mjs";
-import { demoEngineOptions, PROFILE_FILES } from "./profile.mjs";
+import { demoEngineOptions, PROFILE_FILES, seedExtras } from "./profile.mjs";
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (dir, f) => JSON.parse(readFileSync(join(ROOT, dir, f), "utf8"));
@@ -33,9 +33,9 @@ const readBody = (req) => new Promise((ok) => {
 const MIME = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json" };
 
 export function startMock(port = 4010, host = "127.0.0.1", { profile = "fixtures" } = {}) {
-  const engine = profile === "demo"
-    ? createEngine(demoEngineOptions(Object.fromEntries(PROFILE_FILES.map((k) => [k, read("apps/dashboard/demo", `${k}.json`)]))))
-    : fixturesEngine();
+  const demoFiles = profile === "demo" ? Object.fromEntries(PROFILE_FILES.map((k) => [k, read("apps/dashboard/demo", `${k}.json`)])) : null;
+  const engine = demoFiles ? createEngine(demoEngineOptions(demoFiles)) : fixturesEngine();
+  if (demoFiles) seedExtras(engine, demoFiles.extras);
   const clients = new Set();
   engine.subscribe((msg) => {
     const line = `event: ${msg.type}\ndata: ${JSON.stringify(msg)}\n\n`;

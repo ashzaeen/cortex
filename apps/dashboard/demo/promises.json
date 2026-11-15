@@ -5,5 +5,6 @@
   { "id": "prm_demo_04", "direction": "i_owe", "person_id": "per_dana", "what": "One-page prototype summary", "due": { "date": "2026-11-16", "inferred": false, "text": "by Monday" }, "status": "confirmed", "source_moment_id": "mom_demo_16" },
   { "id": "prm_demo_05", "direction": "waiting_on", "person_id": "per_chris", "what": "Intro to the Hooli hiring manager", "due": { "date": "2026-11-20", "inferred": false, "text": "by Friday" }, "status": "confirmed", "source_moment_id": "mom_demo_27" },
   { "id": "prm_demo_06", "direction": "waiting_on", "person_id": "per_theo", "what": "Push the API fix", "due": { "date": "2026-11-14", "inferred": false, "text": "tonight" }, "status": "done", "source_moment_id": "mom_demo_28" },
-  { "id": "prm_demo_07", "direction": "i_owe", "person_id": "per_theo", "what": "Pitch slides", "due": { "date": "2026-11-15", "inferred": false, "text": "tomorrow morning" }, "status": "confirmed", "source_moment_id": "mom_demo_29" }
+  { "id": "prm_demo_07", "direction": "i_owe", "person_id": "per_theo", "what": "Pitch slides", "due": { "date": "2026-11-15", "inferred": false, "text": "tomorrow morning" }, "status": "confirmed", "source_moment_id": "mom_demo_29" },
+  {"id": "prm_demo_08", "direction": "i_owe", "person_id": "per_theo", "what": "Record the backup video", "due": {"date": "2026-11-15", "inferred": false, "text": "before nine tomorrow morning"}, "status": "confirmed", "source_moment_id": "mom_demo_35"}
 ]

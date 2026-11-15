@@ -3,7 +3,7 @@
 // page is opened with ?engine=1) it falls back to the mock engine running in this browser tab, so the demo never
 // breaks. The engine has no model: it answers from simple rules and does not look at pictures.
 import { createEngine, type Engine } from "@/mock/engine.mjs";
-import { demoEngineOptions } from "@/mock/profile.mjs";
+import { demoEngineOptions, seedExtras } from "@/mock/profile.mjs";
 import owner from "@/demo/owner.json";
 import people from "@/demo/people.json";
 import moments from "@/demo/moments.json";
@@ -11,6 +11,7 @@ import promises from "@/demo/promises.json";
 import actions from "@/demo/actions.json";
 import receipts from "@/demo/receipts.json";
 import modes from "@/demo/modes.json";
+import extras from "@/demo/extras.json";
 
 export const DEMO_OWNER = owner;
 let engine: Engine | null = null;
@@ -21,7 +22,10 @@ export const isDemo = () => typeof window !== "undefined" && /^\/demo(\/|$)/.tes
 /** The tab's demo engine, created on first use; null outside /demo. */
 export function demoEngine(): Engine | null {
   if (!isDemo()) return null;
-  engine ??= createEngine(demoEngineOptions({ owner, people, moments, promises, actions, receipts, modes }));
+  if (!engine) {
+    engine = createEngine(demoEngineOptions({ owner, people, moments, promises, actions, receipts, modes }));
+    seedExtras(engine, extras);
+  }
   return engine;
 }
 

@@ -8,14 +8,14 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # A newer push makes an older check pointless, so cancel it.
+    concurrency:
+      group: ci-check-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,3 +25,47 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: make check (lint, contract validation, tests, status and secret checks)
         run: make check
+
+  # Redeploy the backend on Railway after make check passes, only when backend inputs changed
+  # (the image is built from the repo root and needs contracts/ and fixtures/). Frontend-only pushes
+  # never restart the backend, whose SSE broker and undo timers live in memory. Needs the
+  # RAILWAY_TOKEN secret (a Railway project token for cortex-api / production); without it this
+  # job says so and skips, and `railway up --ci --service api` from a clean checkout still works.
+  deploy-backend:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Deploys queue rather than cancel, so a deploy is never cut off halfway.
+    concurrency:
+      group: railway-deploy
+      cancel-in-progress: false
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Did backend inputs change?
+        id: changed
+        run: |
+          base="${{ github.event.before }}"
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::notice::RAILWAY_TOKEN is not set, so the backend was not redeployed. Run 'railway up --ci --service api' by hand."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$base" "${{ github.sha }}" | grep -qE '^(apps/backend/|contracts/|fixtures/|railway\.json|\.dockerignore)'; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No backend changes in this push; skipping the deploy."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy to Railway
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          npm install -g @railway/cli@5.71.0
+          railway up --ci --service api --environment production
+      - name: Health check
+        if: steps.changed.outputs.deploy == 'true'
+        run: curl -fsS --retry 12 --retry-delay 10 --retry-all-errors https://api-production-47227cba.up.railway.app/health

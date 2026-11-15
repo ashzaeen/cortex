@@ -44,7 +44,8 @@ def col(name: str):
     from core import merged, user
 
     mine = _client[user.db_name()][name]
-    if user.current() == user.DEFAULT or name not in merged.MERGED:
+    # Public /demo visitors (v-<id>@demo.cortex) see only their own demo profile, never the owner's real captures.
+    if user.current() == user.DEFAULT or name not in merged.MERGED or user.current().endswith("@demo.cortex"):
         return mine
     return merged.Merged(mine, _db[name], name)
 

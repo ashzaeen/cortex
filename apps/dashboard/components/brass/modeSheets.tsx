@@ -71,7 +71,7 @@ function ProofLine({ text, momentId, at, onOpen }: { text: string; momentId: str
 export function RecapSheet({ open, onClose, arg, onOpenMoment }: { open: boolean; onClose: () => void; arg?: string; onOpenMoment: (id: string) => void }) {
   const kind = arg === "lecture" ? "lecture" : "meeting";
   const title = arg === "lecture" ? "Live Notes" : arg === "actions" ? "Action Items" : "Recap";
-  const { data, err, busy } = useLoad<Recap>(open, () => api.recap(kind), kind);
+  const { data, err, busy } = useLoad<Recap>(open, () => api.recap(kind, kind === "lecture" ? "student" : "focus"), kind);
   const none = data && data.moment_count === 0;
   return (
     <Sheet open={open} onClose={onClose} label={title} title={title} detent="full" matte>
@@ -112,7 +112,9 @@ export function RecapSheet({ open, onClose, arg, onOpenMoment }: { open: boolean
 
 // ------------------------------------------------------------------ Decisions (FOC-5)
 export function DecisionsSheet({ open, onClose, moments, onOpenMoment }: { open: boolean; onClose: () => void; moments: Moment[]; onOpenMoment: (id: string) => void }) {
-  const list = moments.filter((m) => m.tags?.includes("decision")).sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
+  // Asked for by tag, not filtered from the newest moments, so older decisions never fall off the list.
+  const { data } = useLoad<{ items: Moment[] }>(open, () => api.decisions());
+  const list = (data?.items ?? moments.filter((m) => m.tags?.includes("decision"))).sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
   return (
     <Sheet open={open} onClose={onClose} label="Decisions" title="Decisions" detent="half" matte>
       <div className="flex flex-col gap-4">

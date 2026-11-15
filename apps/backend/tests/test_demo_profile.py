@@ -57,3 +57,20 @@ def test_a_user_seeded_from_older_demo_data_is_seeded_again(client):
         assert db.col("state").find_one({"_id": "profile"})["version"] == profile_version()
     finally:
         user._current.reset(token)
+
+
+def test_a_public_visitor_never_sees_the_owners_real_memory(client):
+    """Signed-in users see the shared memory (core/merged.py); a /demo visitor (@demo.cortex) must not."""
+    from core import db, user
+    from core.timeutil import now
+
+    db.col("moments").insert_one({"_id": "mom_owner_private", "ts": now(), "source": "glasses", "mode": "focus",
+                                  "transcript": "owner only", "caption": None, "snapshot_url": None, "place": None,
+                                  "person_ids": [], "off_record": False, "created_at": now()})
+    ids = {m["id"] for m in get(client, "/moments", limit=200)["items"]}
+    assert "mom_owner_private" not in ids and "mom_demo_41" in ids
+    token = user._current.set("someone@gmail.com")
+    try:
+        assert db.col("moments").find_one({"_id": "mom_owner_private"})  # a real signed-in user still sees it
+    finally:
+        user._current.reset(token)

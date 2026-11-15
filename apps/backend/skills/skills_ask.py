@@ -59,7 +59,9 @@ def route(q: str, channel: str, result):
             spoken, sources = people_search.answer(q)
         except ApiError:
             return None
-        return result(q, spoken, spoken, sources, bool(sources))
+        if not sources:  # no card matches: it may be a place or an event ("at the career fair"), so let memory search answer
+            return None
+        return result(q, spoken, spoken, sources, True)
     if WORLD.search(q):
         try:
             r = world.answer(q, source="glasses")

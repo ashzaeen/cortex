@@ -10,14 +10,22 @@ from skills import network, promises
 _cache: dict[str, tuple[tuple, dict]] = {}
 
 
+# Commitments are usually "send the deck" (a verb) but can be a thing ("Intro to the hiring manager"): "promised to
+# intro to the hiring manager" is not a sentence, so a thing is written as "owes you: ...".
+VERBS = frozenset("""send get give bring call email share pay push post finish submit review write make schedule introduce
+text forward fix update check confirm book buy return drop set reply follow pick upload deliver prepare complete ask tell
+show meet join pitch print sign mail move clean cook plan order pass connect loop sort resend look read take""".split())
+
+
 def promise_line(p: dict, person: dict) -> str:
     first = person["name"].split()[0]
     what = p["what"][0].lower() + p["what"][1:]
     due = p.get("due") or {}
     when = f" by {human_date(due['date'])}" if due.get("date") else (f" ({due['text']})" if due.get("text") else "")
+    verb = what.split()[0].lower() in VERBS
     if p["direction"] == "waiting_on":
-        return f"{first} promised to {what}{when}"
-    return f"You promised {first} to {what}{when}"
+        return f"{first} promised to {what}{when}" if verb else f"{first} owes you: {what}{when}"
+    return f"You promised {first} to {what}{when}" if verb else f"You owe {first}: {what}{when}"
 
 
 def _template(person: dict, moments: list[dict], open_p: list[dict]) -> dict:

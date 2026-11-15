@@ -335,7 +335,8 @@ def test_contact_search_finds_by_company_topic_and_says_when_nobody_matches(clie
 def test_ask_routes_for_the_skills(client):
     post(client, "This is Ash from Acme.")
     assert "Ash" in ask(client, "Who did I meet from Acme?")["spoken"]
-    assert "I don't have anyone" in ask(client, "Who did I meet that works at Nowhere?")["spoken"]
+    nobody = ask(client, "Who did I meet that works at Nowhere?")  # no card matches: falls through to memory search
+    assert nobody["grounded"] is False and "Ash" not in nobody["spoken"]
     assert ask(client, "Translate to french: hello")["spoken"] == "bonjour"
     assert ask(client, "How do you say thank you in german")["spoken"] == "danke"
     assert "glasses" in ask(client, "What is this?")["spoken"]

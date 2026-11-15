@@ -114,6 +114,12 @@ def ask(question: str, channel: str) -> dict:
     if routed:
         return routed
 
+    from skills import skills_ask  # skills (#51): got it, contact search, world, translate, immersion, coach
+
+    skilled = skills_ask.route(q, channel, _result)
+    if skilled:
+        return skilled
+
     m = BRIEF_RE.search(q)
     if m:
         person = network.find_by_name(m.group(1)) or next(iter(network.mentioned_in(m.group(1))), None)

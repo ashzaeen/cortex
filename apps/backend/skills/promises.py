@@ -110,3 +110,25 @@ def list_filtered(status: str | None, direction: str | None, person_id: str | No
     if person_id:
         q["person_id"] = person_id
     return [contract.promise(p) for p in db.col("promises").find(q).sort("created_at", -1)]
+
+
+def complete(promise_id: str) -> dict:
+    """WAI-7 close out: "got it" or a done tap. Only a confirmed promise can be done; undo is re-adding it."""
+    p = db.col("promises").find_one({"_id": promise_id})
+    if not p:
+        raise not_found("promise")
+    if p["status"] == "proposed":
+        raise ApiError(409, "not_confirmed", "Confirm the promise first, or dismiss it.")
+    if p["status"] != "done":
+        db.col("promises").update_one({"_id": promise_id}, {"$set": {"status": "done", "done_at": now()}})
+        p = db.col("promises").find_one({"_id": promise_id})
+        tiger.log_action(tiger.user(), now(), None, "promise.done", "user", {"promise_id": promise_id})
+    return contract.promise(p)
+
+
+def dismiss(promise_id: str) -> dict:
+    p = db.col("promises").find_one({"_id": promise_id})
+    if not p:
+        raise not_found("promise")
+    db.col("promises").update_one({"_id": promise_id}, {"$set": {"status": "dismissed"}})
+    return contract.promise({**p, "status": "dismissed"})

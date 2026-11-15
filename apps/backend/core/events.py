@@ -14,7 +14,8 @@ TYPES = {"moment.created", "moment.deleted", "person.created", "person.updated",
          "promise.proposed", "promise.confirmed",
          "action.proposed", "action.updated", "receipt.created", "privacy.changed", "mode.changed",
          "mode.suggested", "routine.due",
-         "call.started", "call.ended"}
+         "call.started", "call.ended",
+         "nudge.due", "brief.due", "brief.call", "skill.offer", "coach.updated"}
 
 # (loop, queue, user): each SSE client only hears its own user's events.
 _subs: list[tuple[asyncio.AbstractEventLoop, asyncio.Queue, str]] = []

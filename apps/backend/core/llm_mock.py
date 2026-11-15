@@ -174,6 +174,12 @@ class MockLLM:
             return {"spoken": "Let's take it step by step. First, write down what is given.", "text": steps, "found": None}
         return {"spoken": seen[:200], "text": seen, "found": None}
 
+    def skill(self, task: str, image=None, **kw) -> dict:
+        """Deterministic stand-ins for the SKL-4..8 model tasks (see core/skill_prompts.py)."""
+        from core import skill_mock
+
+        return skill_mock.run(task, image, **kw)
+
     def generate(self, *, kind: str, transcript: str, caption: str, image, now_local: str) -> dict:
         src = [s.strip() for s in re.split(r"(?<=[.!?])\s+", " ".join(filter(None, [transcript, caption]))) if s.strip()]
         if kind == "flashcards":

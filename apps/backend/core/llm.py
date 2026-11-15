@@ -154,6 +154,17 @@ class GeminiLLM:
                                          caption=caption or "(nothing)", image_note=note, body_rule=rule)
         return self._json(prompt, parts, model=self.vision_model if parts else self.model)
 
+    def skill(self, task: str, image: bytes | None = None, **kw) -> dict:
+        """The model-backed skills (SKL-4 to SKL-8): one prompt per task in core/skill_prompts.py."""
+        from google.genai import types
+
+        from core import skill_prompts
+
+        parts = [types.Part.from_bytes(data=image, mime_type="image/jpeg")] if image else []
+        kw["image_note"] = "One image from the wearer's point of view is attached." if image else "No image is attached."
+        prompt = skill_prompts.PROMPTS[task].format(**{k: "" if v is None else v for k, v in kw.items()})
+        return self._json(prompt, parts, model=self.vision_model if parts else self.model)
+
     def answer(self, **kw) -> dict:
         return self._json(prompts.ANSWER.format(**kw), temperature=0.1)
 

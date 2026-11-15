@@ -13,7 +13,7 @@ before(async () => {
     let raw = '';
     for await (const chunk of req) raw += chunk;
     const body = raw ? JSON.parse(raw) : null;
-    seen.push({ method: req.method, path: req.url, body });
+    seen.push({ method: req.method, path: req.url, body, key: req.headers['x-cortex-key'] ?? null });
     const reply = script[`${req.method} ${req.url}`] ?? { status: 404, body: { error: { code: 'not_found', message: 'No route.' } } };
     if (reply.hang) return; // never answers: exercises the timeout
     res.writeHead(reply.status ?? 200, { 'content-type': 'application/json' });
@@ -68,6 +68,29 @@ describe('client', () => {
     const client = createCortexClient({ baseUrl: base, timeoutMs: 100 });
     const res = await client.ask('anything');
     assert.deepEqual([res.ok, res.code], [false, 'timeout']);
+  });
+});
+
+describe('API key', () => {
+  it('sends X-Cortex-Key on every request when a key is set, trimmed', async () => {
+    script['POST /ask'] = { body: { answer: 'a', spoken: 'a', grounded: true, sources: [], receipt_id: 'r' } };
+    script['GET /people'] = { body: { items: [] } };
+    const client = createCortexClient({ baseUrl: base, apiKey: '  secret-key  ' });
+    await client.ask('q'); await client.people(); await client.callStarted('c1');
+    assert.deepEqual(seen.map(r => r.key), ['secret-key', 'secret-key', 'secret-key']);
+  });
+  it('sends no key header when none is set (local dev, open backend)', async () => {
+    script['GET /people'] = { body: { items: [] } };
+    await createCortexClient({ baseUrl: base, apiKey: '' }).people();
+    await createCortexClient({ baseUrl: base, apiKey: undefined }).people();
+    assert.deepEqual(seen.map(r => r.key), [null, null]);
+  });
+  it('reports a rejected key as unauthorized, and the model is told memory is unreachable', async () => {
+    script['POST /ask'] = { status: 401, body: { error: { code: 'unauthorized', message: 'Missing or wrong Cortex API key.' } } };
+    const client = createCortexClient({ baseUrl: base, apiKey: 'wrong' });
+    assert.equal((await client.ask('q')).code, 'unauthorized');
+    const act = memoryActions({ client, callId: 'c1', getLatestFrame: () => null });
+    assert.match((await act.askMemory({ question: 'q' })).error, /not reachable/);
   });
 });
 

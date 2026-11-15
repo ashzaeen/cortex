@@ -45,16 +45,18 @@ export function localApiWarning(apiUrl, onLiveKitWorker) {
 }
 
 /**
- * @param {{ baseUrl?: string, fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
+ * @param {{ baseUrl?: string, apiKey?: string, fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
  */
-export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, fetchImpl = fetch, timeoutMs = 12000 } = {}) {
+export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, apiKey = process.env.CORTEX_API_KEY, fetchImpl = fetch, timeoutMs = 12000 } = {}) {
   const base = baseUrl.replace(/\/+$/, '');
+  // The backend requires this key on every route but /health when CORTEX_API_KEY is set there. Never logged.
+  const keyHeader = apiKey && apiKey.trim() ? { 'x-cortex-key': apiKey.trim() } : {};
 
   async function request(method, path, body, ms = timeoutMs) {
     try {
       const res = await fetchImpl(`${base}${path}`, {
         method,
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: { 'content-type': 'application/json', accept: 'application/json', ...keyHeader },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(ms),
       });

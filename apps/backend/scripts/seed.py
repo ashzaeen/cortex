@@ -120,6 +120,16 @@ def seed(reset: bool = False, shift: timedelta | None = None) -> dict:
     counts["receipts"] = len(load("receipts"))
 
     extras = _extras()
+    if extras.get("lists"):  # list items the spoken moments do not already produce (the backfill runs first, so no duplicates)
+        from skills import lists
+
+        lists.ensure_backfilled()
+        for list_id, items in extras["lists"].items():
+            have = {d["text"].lower() for d in db.col("list_items").find({"list": list_id})}
+            for it in items:
+                if it["text"].lower() not in have:
+                    src = db.col("moments").find_one({"_id": it.get("source_moment_id")}, {"ts": 1})
+                    lists._insert(list_id, it["text"], it.get("amount"), it.get("source_moment_id"), src["ts"] if src else None)
     for r in extras.get("routines", []):
         upsert("routines", {**{k: v for k, v in r.items() if k != "id"}, "_id": r["id"], "created_at": now(), "last_fired": None})
     for v in extras.get("vocab", []):

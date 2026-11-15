@@ -19,7 +19,7 @@ def test_a_new_visitor_has_something_in_every_feature(client):
     assert len(get(client, "/skills/immersion/vocab")["items"]) >= 8
     assert any(s["status"] == "done" for s in get(client, "/skills/coach")["items"])
     lists = {x["id"]: x for x in get(client, "/lists")["items"]}
-    assert len(lists["shopping"]["items"]) >= 4 and lists["expenses"]["total"] == 18.4
+    assert len(lists["shopping"]["items"]) >= 4 and lists["expenses"]["total"] == 89.3
 
 
 def test_decisions_recap_nudges_and_auto_brief_have_material(client):

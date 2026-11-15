@@ -1,0 +1,11 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.env
+.git
+apps/dashboard
+apps/capture
+apps/call-agent
+*.zip
+*.pdf

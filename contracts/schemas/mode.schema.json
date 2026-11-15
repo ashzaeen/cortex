@@ -2,17 +2,25 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mode.schema.json",
   "title": "Mode",
-  "description": "A preset over the one shared memory. Memory is never split by mode.",
+  "description": "A preset over the one shared memory (MODE-1). Memory is never split by mode. The four built-in modes are focus, student, life and assist; custom modes (MODE-7) use any other short slug.",
   "type": "object",
   "required": ["id", "name", "captures", "speaks", "proposes", "allowed_actions", "active"],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "enum": ["focus", "student", "life", "assist"] },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,31}$", "description": "focus, student, life, assist, or a custom mode's slug." },
     "name": { "type": "string" },
+    "description": { "type": "string", "description": "One line on who the mode is for." },
     "captures": { "type": "array", "items": { "type": "string" } },
     "speaks": { "type": "string", "description": "When Cortex speaks up unprompted." },
     "proposes": { "type": "array", "items": { "type": "string" } },
-    "allowed_actions": { "type": "array", "items": { "type": "string", "enum": ["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message"] } },
+    "allowed_actions": {
+      "type": "array",
+      "description": "Action types Cortex may suggest on its own in this mode. Actions the user asks for directly work in any mode.",
+      "items": { "type": "string", "enum": ["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message", "caregiver_summary"] }
+    },
+    "auto_suggest": { "type": "boolean", "description": "False: Cortex proposes nothing on its own in this mode; it only answers. Default true." },
+    "retention_days": { "type": ["integer", "null"], "minimum": 1, "description": "How long moments captured in this mode are kept; null keeps them until deleted. Shown in settings (MEM-12 applies it)." },
+    "custom": { "type": "boolean", "description": "True for a user-defined mode (MODE-7)." },
     "active": { "type": "boolean" }
   }
 }

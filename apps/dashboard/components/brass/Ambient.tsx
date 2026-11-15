@@ -16,7 +16,7 @@ const WEIGHTS: Record<Mode["id"], { green: number; brass: number; deep: number; 
 const glow = (color: string) => `radial-gradient(closest-side, ${color} 0%, ${color} 35%, transparent 100%)`;
 
 export function Ambient({ mode, seed, paused, pullKey }: { mode: Mode["id"]; seed: LightSeed; paused: boolean; pullKey: string }) {
-  const w = WEIGHTS[mode];
+  const w = WEIGHTS[mode] ?? WEIGHTS.focus; // a custom mode uses the Focus light
   const ref = useRef<HTMLDivElement>(null);
   const [pull, setPull] = useState<"a" | "b">("a");
   const first = useRef(true);

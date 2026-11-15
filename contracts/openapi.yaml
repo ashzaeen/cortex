@@ -93,6 +93,7 @@ tags:
   - name: modes
   - name: calls
   - name: lists
+  - name: skills
   - name: events
   - name: health
 paths:
@@ -150,6 +151,7 @@ paths:
       parameters:
         - { name: since, in: query, schema: { type: string, format: date-time } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+        - { name: tag, in: query, description: "Only moments with this tag, e.g. decision (FOC-5 decision log).", schema: { type: string } }
       responses:
         "200":
           description: Moments
@@ -502,7 +504,7 @@ paths:
       summary: Actions, for example proposed emails waiting for approval
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [proposed, sent, draft_saved, done, undone, dismissed, failed] } }
-        - { name: mode, in: query, schema: { type: string, enum: [focus, student, life, assist] } }
+        - { name: mode, in: query, schema: { $ref: "#/components/schemas/ModeId" } }
       responses:
         "200":
           description: Actions
@@ -533,7 +535,7 @@ paths:
                 type: { type: string, enum: [follow_up_email, flashcards, reminder, read_aloud, calendar_event, notes, message] }
                 person_id: { type: [string, "null"], description: "Required for follow_up_email." }
                 source_moment_ids: { type: array, items: { type: string }, description: "Required for every type except follow_up_email, which can find its own." }
-                mode: { type: string, enum: [focus, student, life, assist] }
+                mode: { $ref: "#/components/schemas/ModeId" }
                 title: { type: string, description: "Required for every type except follow_up_email." }
                 summary: { type: string }
                 event: { $ref: "./schemas/action.schema.json#/properties/event" }
@@ -547,6 +549,36 @@ paths:
             application/json:
               schema: { $ref: "./schemas/action.schema.json" }
               example: *FollowUp
+
+  /actions/generate:
+    post:
+      tags: [actions, modes]
+      operationId: generateAction
+      summary: Turn one stored moment into a proposed action that Cortex writes itself (STU-2 flashcards, FOC-3 whiteboard notes, AST-2 read aloud)
+      description: |
+        Cortex writes the content from the moment (flashcards as Q/A pairs, notes as key points, the text to
+        read aloud) and proposes it; nothing runs until the user confirms. Works in any mode because the user
+        asked for it. Omit moment_id to use the newest moment with a snapshot (else the newest moment).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [flashcards, notes, read_aloud] }
+                moment_id: { type: string, pattern: "^mom_" }
+                mode: { $ref: "#/components/schemas/ModeId" }
+            example: { type: flashcards, moment_id: mom_seed_005 }
+      responses:
+        "201":
+          description: Proposed action
+          content:
+            application/json:
+              schema: { $ref: "./schemas/action.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 
   /actions/{id}/confirm:
     parameters:
@@ -817,7 +849,8 @@ paths:
     post:
       tags: [modes]
       operationId: activateMode
-      summary: Make this mode the active one (the mode dock); emits mode.changed
+      summary: Make this mode the active one (the mode dock, a voice command or a confirmed suggestion); emits mode.changed
+      description: Clears any pending mode suggestion. Cortex never switches silently; clients confirm with a chime and the spoken label.
       responses:
         "200":
           description: The now-active mode
@@ -826,11 +859,49 @@ paths:
               schema: { $ref: "./schemas/mode.schema.json" }
         "404": { $ref: "#/components/responses/Error" }
 
+  /modes/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    patch:
+      tags: [modes]
+      operationId: updateMode
+      summary: Change a mode's settings (DASH-10), e.g. which actions it may suggest; emits mode.changed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModeUpdate" }
+            example: { allowed_actions: [flashcards, calendar_event], retention_days: 30 }
+      responses:
+        "200":
+          description: The updated mode
+          content:
+            application/json:
+              schema: { $ref: "./schemas/mode.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [modes]
+      operationId: deleteMode
+      summary: Delete a custom mode (MODE-7). Built-in modes cannot be deleted (409). If it was active, Focus becomes active.
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
   /modes:
     get:
       tags: [modes]
       operationId: listModes
-      summary: Mode presets; one is active
+      summary: Mode presets; one is active. Also the pending mode suggestion, if any (MODE-2 auto-suggest).
       responses:
         "200":
           description: Modes
@@ -841,6 +912,10 @@ paths:
                 required: [items]
                 properties:
                   items: { type: array, items: { $ref: "./schemas/mode.schema.json" } }
+                  suggestion:
+                    oneOf:
+                      - { $ref: "#/components/schemas/ModeSuggestion" }
+                      - { type: "null" }
               example:
                 items:
                   - id: focus
@@ -849,7 +924,787 @@ paths:
                     speaks: on request or at meeting end
                     proposes: [follow-up email]
                     allowed_actions: [follow_up_email]
+                    auto_suggest: true
+                    retention_days: null
                     active: true
+                suggestion: null
+    post:
+      tags: [modes]
+      operationId: createMode
+      summary: Create a custom mode (MODE-7, API only). It starts inactive.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ModeCreate" }
+            example: { name: Lab, captures: [lab steps], speaks: on request, proposes: [notes], allowed_actions: [notes] }
+      responses:
+        "201":
+          description: Created mode
+          content:
+            application/json:
+              schema: { $ref: "./schemas/mode.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /modes/suggestion/dismiss:
+    post:
+      tags: [modes]
+      operationId: dismissModeSuggestion
+      summary: Say no to the pending mode suggestion. The same mode is not suggested again for 30 minutes.
+      responses:
+        "200":
+          description: Dismissed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dismissed]
+                properties:
+                  dismissed: { type: boolean, description: "False when nothing was pending." }
+
+  /recap:
+    get:
+      tags: [modes]
+      operationId: getRecap
+      summary: Recap of the latest session (FOC-2 meeting recap, STU-1 live lecture notes, FOC-1 action items)
+      description: |
+        A session is the newest run of moments with no gap over 30 minutes. Built only from stored moments;
+        every note, decision and follow-up links its source moment. moment_count is 0 when there is nothing.
+      parameters:
+        - { name: mode, in: query, description: "Only moments captured in this mode.", schema: { $ref: "#/components/schemas/ModeId" } }
+        - { name: kind, in: query, schema: { type: string, enum: [meeting, lecture], default: meeting } }
+      responses:
+        "200":
+          description: Recap
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recap" }
+
+  /look:
+    post:
+      tags: [modes]
+      operationId: look
+      summary: Look at the scene and answer now (AST-1 describe, AST-2 read, AST-3 hazards, AST-4 find, STU-3 tutor)
+      description: |
+        Nothing is stored: the answer is spoken and shown, and the user can save the view as a moment
+        afterwards (POST /moments). Send snapshot_base64 for what the camera sees now; otherwise moment_id,
+        or the newest moment with a snapshot from the last 10 minutes. find without a view searches memory.
+        Assist is support, not a medical or mobility device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task]
+              properties:
+                task: { type: string, enum: [describe, read, hazards, find, tutor] }
+                target: { type: string, description: "find: the object; hazards: what to look for, e.g. the door." }
+                question: { type: string, description: "tutor: what the user asked about the problem." }
+                snapshot_base64: { type: [string, "null"], description: "JPEG of what the camera sees now. Not stored." }
+                moment_id: { type: string, pattern: "^mom_" }
+            example: { task: read }
+      responses:
+        "200":
+          description: What Cortex saw
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LookResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /routines:
+    get:
+      tags: [modes]
+      operationId: listRoutines
+      summary: Routine reminders (AST-5), next first
+      responses:
+        "200":
+          description: Routines
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "./schemas/routine.schema.json" } }
+    post:
+      tags: [modes]
+      operationId: createRoutine
+      summary: Add a routine reminder; emits routine.due at its time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoutineIn" }
+            example: { title: Take the evening medicine, time: "20:00", days: [] }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "./schemas/routine.schema.json" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /routines/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    patch:
+      tags: [modes]
+      operationId: updateRoutine
+      summary: Change a routine reminder (pause it with active false)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoutineUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "./schemas/routine.schema.json" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [modes]
+      operationId: deleteRoutine
+      summary: Delete a routine reminder
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /caregiver:
+    get:
+      tags: [modes]
+      operationId: getCaregiver
+      summary: Caregiver sharing (AST-6, AST-7) and a preview of exactly what today's summary would send
+      responses:
+        "200":
+          description: Caregiver settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Caregiver" }
+    put:
+      tags: [modes]
+      operationId: setCaregiver
+      summary: Give or revoke consent. With consent, the summary is emailed daily at send_at (dry run unless email is set up).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaregiverIn" }
+            example: { consent: true, name: Sam, email: "sam@example.com", send_at: "20:00" }
+      responses:
+        "200":
+          description: Caregiver settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Caregiver" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /caregiver/send:
+    post:
+      tags: [modes]
+      operationId: sendCaregiverSummary
+      summary: Send today's summary now (the same as the daily send), with a receipt and an undo window
+      responses:
+        "200":
+          description: The caregiver_summary action and its receipt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /skills:
+    get:
+      tags: [skills]
+      operationId: listSkills
+      summary: "The skills and their SKL-0 contract (trigger, inputs, steps, output, confirmation, undo, source moment, if unsure)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/SkillInfo" } } } }
+
+  /skills/view:
+    get:
+      tags: [skills]
+      operationId: getGlassesView
+      summary: "Are the glasses streaming? Skill panels use this to offer Use my glasses, or to fall back to the device camera"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GlassesView" }
+
+  /skills/people/search:
+    get:
+      tags: [skills]
+      operationId: searchPeople
+      summary: "Contact search by topic, company, role or name (NET-5)"
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/PersonMatch" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /skills/world:
+    post:
+      tags: [skills]
+      operationId: askWorld
+      summary: "Ask the world: what is this? (SKL-4)"
+      description: |
+        Looks at the view (snapshot_base64, a moment, or source glasses for the latest glasses frame) and answers in a sentence or two,
+        then saves the view and answer as a moment unless save is false. source glasses with no glasses streaming is 409 no_glasses
+        (You don't have your glasses on): the dashboard then offers the device camera.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorldIn" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorldResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /skills/translate:
+    post:
+      tags: [skills]
+      operationId: translate
+      summary: "Live translation (SKL-5)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TranslateIn" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TranslateResult" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /skills/translate/settings:
+    get:
+      tags: [skills]
+      operationId: getTranslateSettings
+      summary: "Default languages"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TranslateSettings" }
+    put:
+      tags: [skills]
+      operationId: putTranslateSettings
+      summary: "Set default languages"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TranslateSettings" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TranslateSettings" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /skills/immersion/name:
+    post:
+      tags: [skills]
+      operationId: nameObjects
+      summary: "Name what the camera sees in the language you are learning (SKL-6)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NameIn" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NameResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /skills/immersion/vocab:
+    get:
+      tags: [skills]
+      operationId: listVocab
+      summary: "Saved words"
+      parameters:
+        - { name: language, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/VocabItem" } } } }
+
+  /skills/immersion/vocab/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    delete:
+      tags: [skills]
+      operationId: deleteVocab
+      summary: "Delete a saved word"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [deleted, id], properties: { deleted: { type: boolean }, id: { type: string } } }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/immersion/quiz:
+    get:
+      tags: [skills]
+      operationId: getQuiz
+      summary: "The next quiz question (least-known word first)"
+      parameters:
+        - { name: language, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Quiz" }
+        "409": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [skills]
+      operationId: answerQuiz
+      summary: "Answer the quiz question"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [vocab_id, answer], properties: { vocab_id: { type: string }, answer: { type: string } } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuizResult" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/immersion/settings:
+    get:
+      tags: [skills]
+      operationId: getImmersionSettings
+      summary: "Language being learned"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImmersionSettings" }
+    put:
+      tags: [skills]
+      operationId: putImmersionSettings
+      summary: "Set the language being learned"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImmersionSettings" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImmersionSettings" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /skills/proactive/settings:
+    get:
+      tags: [skills]
+      operationId: getProactiveSettings
+      summary: "Proactive nudge settings (off by default)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProactiveSettings" }
+    put:
+      tags: [skills]
+      operationId: putProactiveSettings
+      summary: "Turn the proactive nudge on or off, set the wait and the cooldown"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProactiveSettings" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProactiveSettings" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /skills/proactive/observe:
+    post:
+      tags: [skills]
+      operationId: observeScene
+      summary: "Send a frame; Cortex offers help if the same confusing thing stays in view (SKL-7)"
+      description: |
+        Frames are never stored. An offer is only an offer: nothing happens until the user accepts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/View" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Observation" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /skills/proactive/offers:
+    get:
+      tags: [skills]
+      operationId: listOffers
+      summary: "Open offers"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Offer" } } } }
+
+  /skills/proactive/offers/{id}/accept:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [skills]
+      operationId: acceptOffer
+      summary: "Accept an offer: Cortex explains what it sees"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/View" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorldResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/proactive/offers/{id}/dismiss:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [skills]
+      operationId: dismissOffer
+      summary: "Dismiss an offer (the quiet time doubles)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [id, status], properties: { id: { type: string }, status: { type: string } } }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/coach:
+    post:
+      tags: [skills]
+      operationId: startCoach
+      summary: "Start a coaching session (SKL-8)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CoachStartIn" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachReply" }
+        "400": { $ref: "#/components/responses/Error" }
+    get:
+      tags: [skills]
+      operationId: listCoach
+      summary: "Recent coaching sessions"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/CoachSession" } } } }
+
+  /skills/coach/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    get:
+      tags: [skills]
+      operationId: getCoach
+      summary: "One coaching session"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachSession" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/coach/{id}/step:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [skills]
+      operationId: coachStep
+      summary: "Send a frame and/or what the wearer said; get the next line"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CoachStepIn" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachReply" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /skills/coach/{id}/end:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [skills]
+      operationId: endCoach
+      summary: "End a coaching session"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CoachSession" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/nudges/settings:
+    get:
+      tags: [skills]
+      operationId: getNudgeSettings
+      summary: "Overdue nudge settings: quiet hours and daily cap"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NudgeSettings" }
+    put:
+      tags: [skills]
+      operationId: putNudgeSettings
+      summary: "Set quiet hours (default 22:00 to 08:00), the daily cap (default 3), or turn nudges off"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NudgeSettings" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NudgeSettings" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /skills/nudges:
+    get:
+      tags: [skills]
+      operationId: listNudges
+      summary: "Today's nudges"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Nudge" } } } }
+
+  /skills/nudges/tick:
+    post:
+      tags: [skills]
+      operationId: tickNudges
+      summary: "Check for overdue promises now (the backend also does this every minute)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Nudge" } } } }
+
+  /skills/nudges/{id}/dismiss:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [skills]
+      operationId: dismissNudge
+      summary: "Dismiss a nudge"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Nudge" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /promises/{id}/done:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [promises]
+      operationId: completePromise
+      summary: "Close out a confirmed promise (WAI-7: got it)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "./schemas/promise.schema.json" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /promises/{id}/dismiss:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    post:
+      tags: [promises]
+      operationId: dismissPromise
+      summary: "Dismiss a promise"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "./schemas/promise.schema.json" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/brief/settings:
+    get:
+      tags: [skills]
+      operationId: getAutoBriefSettings
+      summary: "Automatic pre-meeting brief on or off"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AutoBriefSettings" }
+    put:
+      tags: [skills]
+      operationId: putAutoBriefSettings
+      summary: "Turn the automatic brief on or off"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutoBriefSettings" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AutoBriefSettings" }
+
+  /skills/brief/tick:
+    post:
+      tags: [skills]
+      operationId: tickAutoBrief
+      summary: "Brief for any approved calendar event starting within 10 minutes that names someone on file (BRF-6)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/BriefDue" } } } }
+
+  /skills/brief/call:
+    post:
+      tags: [skills]
+      operationId: requestBriefCall
+      summary: "Ask for the brief by phone call (BRF-7)"
+      description: |
+        Queues the request and publishes brief.call. Dialing is the call agent's job (area:call): the status stays requested until it takes the request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [person_id], properties: { person_id: { type: string } } }
+      responses:
+        "201":
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BriefCall" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /skills/brief/call/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    get:
+      tags: [skills]
+      operationId: getBriefCall
+      summary: "A brief call request"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BriefCall" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [skills]
+      operationId: updateBriefCall
+      summary: "The call agent reports dialing, completed or failed"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [status], properties: { status: { type: string, enum: [dialing, completed, failed] } } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BriefCall" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 
   /events:
     get:
@@ -860,7 +1715,10 @@ paths:
         Each SSE message has `event: <type>` and `data: <JSON>`. Types:
         moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed,
         promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed,
-        list.updated, call.started, call.ended. person.deleted carries {id}; list.updated carries the whole List.
+        mode.suggested, routine.due, list.updated, call.started, call.ended, nudge.due, brief.due, brief.call, skill.offer, coach.updated. nudge.due carries a Nudge (clients speak it); brief.due a BriefDue; brief.call a BriefCall; skill.offer an Offer;
+        coach.updated {session, spoken, mistake}. person.deleted carries {id};
+        list.updated carries the whole List; mode.suggested carries a ModeSuggestion; routine.due carries the
+        Routine that is due now (clients speak its spoken line).
         The data payload is the affected entity (see components.schemas.Event).
         For call.started and call.ended the payload is a Call (components.schemas.Call).
         Prism returns the example once; real streaming comes from the backend.
@@ -901,6 +1759,118 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: not_found, message: "No such moment." } }
   schemas:
+    ModeId:
+      type: string
+      pattern: "^[a-z][a-z0-9_-]{1,31}$"
+      description: "A mode id: focus, student, life, assist, or a custom mode's slug."
+    ModeSuggestion:
+      type: object
+      description: "Cortex thinks another mode fits (MODE-2). It never switches on its own: the user confirms (activate, or say yes) or dismisses."
+      required: [mode_id, reason, moment_id, at]
+      properties:
+        mode_id: { $ref: "#/components/schemas/ModeId" }
+        reason: { type: string, description: "Short, e.g. Sounds like a lecture." }
+        moment_id: { type: [string, "null"], description: "The moment that prompted it." }
+        at: { type: string, format: date-time }
+    ModeUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        description: { type: string, maxLength: 200 }
+        captures: { type: array, items: { type: string } }
+        speaks: { type: string }
+        proposes: { type: array, items: { type: string } }
+        allowed_actions: { $ref: "./schemas/mode.schema.json#/properties/allowed_actions" }
+        auto_suggest: { type: boolean }
+        retention_days: { type: ["integer", "null"], minimum: 1 }
+    ModeCreate:
+      type: object
+      required: [name]
+      properties:
+        id: { $ref: "#/components/schemas/ModeId" }
+        name: { type: string, minLength: 1, maxLength: 40 }
+        description: { type: string, maxLength: 200 }
+        captures: { type: array, items: { type: string } }
+        speaks: { type: string }
+        proposes: { type: array, items: { type: string } }
+        allowed_actions: { $ref: "./schemas/mode.schema.json#/properties/allowed_actions" }
+        auto_suggest: { type: boolean }
+        retention_days: { type: ["integer", "null"], minimum: 1 }
+    RecapLine:
+      type: object
+      required: [text, moment_id]
+      properties:
+        text: { type: string }
+        moment_id: { type: string, pattern: "^mom_" }
+        at: { type: string, format: date-time }
+    Recap:
+      type: object
+      required: [kind, title, spoken, bullets, notes, decisions, follow_ups, started_at, ended_at, moment_count, source_moment_ids]
+      properties:
+        kind: { type: string, enum: [meeting, lecture] }
+        mode: { oneOf: [{ $ref: "#/components/schemas/ModeId" }, { type: "null" }] }
+        title: { type: string }
+        spoken: { type: string, description: "The recap to speak (about 20 seconds)." }
+        bullets: { type: array, items: { type: string } }
+        notes: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Running notes, oldest first, one per moment." }
+        decisions: { type: array, items: { $ref: "#/components/schemas/RecapLine" } }
+        follow_ups: { type: array, items: { $ref: "#/components/schemas/RecapLine" }, description: "Action items and promises from the session." }
+        started_at: { type: [string, "null"], format: date-time }
+        ended_at: { type: [string, "null"], format: date-time }
+        moment_count: { type: integer, minimum: 0 }
+        source_moment_ids: { type: array, items: { type: string, pattern: "^mom_" } }
+    LookResult:
+      type: object
+      required: [task, spoken, text, found, moment]
+      properties:
+        task: { type: string, enum: [describe, read, hazards, find, tutor] }
+        spoken: { type: string }
+        text: { type: string, description: "The full answer (read: the text as printed; tutor: the steps)." }
+        found: { type: [boolean, "null"], description: "find and hazards: whether it was seen; null for the other tasks." }
+        moment: { oneOf: [{ $ref: "./schemas/moment.schema.json" }, { type: "null" }], description: "The stored moment used, if any (never the live view)." }
+    RoutineIn:
+      type: object
+      required: [title, time]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        time: { $ref: "./schemas/routine.schema.json#/properties/time" }
+        days: { $ref: "./schemas/routine.schema.json#/properties/days" }
+        spoken: { type: string, maxLength: 200 }
+    RoutineUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        time: { $ref: "./schemas/routine.schema.json#/properties/time" }
+        days: { $ref: "./schemas/routine.schema.json#/properties/days" }
+        spoken: { type: string, maxLength: 200 }
+        active: { type: boolean }
+    CaregiverIn:
+      type: object
+      required: [consent]
+      properties:
+        consent: { type: boolean, description: "false revokes sharing at once." }
+        name: { type: [string, "null"], maxLength: 80 }
+        email: { type: [string, "null"], format: email, description: "Required when consent is true." }
+        send_at: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", description: "Local HH:MM; default 20:00." }
+    Caregiver:
+      type: object
+      required: [consent, name, email, send_at, consented_at, last_sent_at, shares, preview]
+      properties:
+        consent: { type: boolean }
+        name: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+        send_at: { type: string }
+        consented_at: { type: [string, "null"], format: date-time }
+        last_sent_at: { type: [string, "null"], format: date-time }
+        shares: { type: array, items: { type: string }, description: "Plain list of what the summary includes and what it never includes." }
+        preview:
+          type: object
+          description: Exactly what today's email would say.
+          required: [subject, body, source_moment_ids]
+          properties:
+            subject: { type: string }
+            body: { type: string }
+            source_moment_ids: { type: array, items: { type: string, pattern: "^mom_" } }
     Error:
       type: object
       required: [error]
@@ -918,7 +1888,7 @@ components:
       properties:
         ts: { type: string, format: date-time }
         source: { type: string, enum: [glasses, phone, call, dashboard] }
-        mode: { type: string, enum: [focus, student, life, assist] }
+        mode: { $ref: "#/components/schemas/ModeId" }
         transcript: { type: [string, "null"], description: "If capture already transcribed it." }
         audio_base64: { type: [string, "null"], description: "Short audio clip if not transcribed on device." }
         snapshot_base64: { type: [string, "null"], description: "JPEG snapshot." }
@@ -1004,12 +1974,251 @@ components:
           oneOf:
             - { $ref: "#/components/schemas/Call" }
             - { type: "null" }
+    SkillInfo:
+      type: object
+      required: [id, code, name, tagline, best_mode, uses_view, trigger, inputs, steps, output, confirmation, undo, source_moment, if_unsure, enabled]
+      properties:
+        id: { type: string, enum: [network, waiting, brief, world, translate, immersion, nudge, coach] }
+        code: { type: string, pattern: "^SKL-[0-9]$" }
+        name: { type: string }
+        tagline: { type: string }
+        best_mode: { type: string }
+        uses_view: { type: boolean, description: "True when the skill looks through a camera (glasses or device)." }
+        trigger: { type: string }
+        inputs: { type: string }
+        steps: { type: array, items: { type: string } }
+        output: { type: string }
+        confirmation: { type: string }
+        undo: { type: string }
+        source_moment: { type: string }
+        if_unsure: { type: string }
+        enabled: { type: boolean }
+    GlassesView:
+      type: object
+      required: [available, moment_id, age_seconds, message]
+      properties:
+        available: { type: boolean }
+        moment_id: { type: [string, "null"] }
+        age_seconds: { type: [integer, "null"] }
+        message: { type: [string, "null"], description: "You don't have your glasses on. when none are streaming." }
+    View:
+      type: object
+      description: "Where a skill looks. Send one of: snapshot_base64 (device camera or upload), moment_id, or source glasses (the latest glasses frame, at most 2 minutes old). source glasses with none is 409 no_glasses."
+      properties:
+        snapshot_base64: { type: [string, "null"] }
+        moment_id: { type: string, pattern: "^mom_" }
+        source: { type: string, enum: [glasses, device] }
+    WorldIn:
+      allOf:
+        - { $ref: "#/components/schemas/View" }
+        - type: object
+          properties:
+            question: { type: [string, "null"], description: "Defaults to What is this?" }
+            save: { type: boolean, default: true }
+    WorldResult:
+      type: object
+      required: [spoken, text, confidence, unsure, saved, moment]
+      properties:
+        spoken: { type: string }
+        text: { type: string }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        unsure: { type: boolean, description: "True below 0.5; the spoken line then says it is not sure." }
+        saved: { type: boolean }
+        moment: { oneOf: [{ $ref: "./schemas/moment.schema.json" }, { type: "null" }] }
+    TranslateIn:
+      type: object
+      properties:
+        text: { type: [string, "null"] }
+        audio_base64: { type: [string, "null"] }
+        target_language: { type: [string, "null"], description: "Defaults to the saved setting." }
+        source_language: { type: [string, "null"], description: "Defaults to auto-detect." }
+        save: { type: boolean, default: false }
+    TranslateResult:
+      type: object
+      required: [spoken, text, original, translation, source_language, target_language, confidence, unsure, moment]
+      properties:
+        spoken: { type: string }
+        text: { type: string }
+        original: { type: string }
+        translation: { type: string, description: "Empty when Cortex could not translate it." }
+        source_language: { type: string }
+        target_language: { type: string }
+        confidence: { type: number }
+        unsure: { type: boolean }
+        moment: { oneOf: [{ $ref: "./schemas/moment.schema.json" }, { type: "null" }] }
+    TranslateSettings:
+      type: object
+      properties:
+        target_language: { type: string }
+        source_language: { type: string }
+    ImmersionSettings:
+      type: object
+      properties:
+        language: { type: string }
+    NameIn:
+      allOf:
+        - { $ref: "#/components/schemas/View" }
+        - type: object
+          properties:
+            language: { type: [string, "null"], description: "Defaults to the saved language." }
+    VocabItem:
+      type: object
+      required: [id, language, object, word, box, right, wrong, source_moment_id, created_at]
+      properties:
+        id: { type: string, pattern: "^vcb_" }
+        language: { type: string }
+        object: { type: string, description: "English name." }
+        word: { type: string }
+        box: { type: integer, minimum: 1, maximum: 5, description: "1 is least known." }
+        right: { type: integer }
+        wrong: { type: integer }
+        source_moment_id: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+    NameResult:
+      type: object
+      required: [spoken, text, items, language, moment]
+      properties:
+        spoken: { type: string }
+        text: { type: string }
+        items: { type: array, items: { $ref: "#/components/schemas/VocabItem" } }
+        language: { type: string }
+        moment: { oneOf: [{ $ref: "./schemas/moment.schema.json" }, { type: "null" }] }
+    Quiz:
+      type: object
+      required: [vocab_id, language, object, box, prompt, choices]
+      properties:
+        vocab_id: { type: string }
+        language: { type: string }
+        object: { type: string }
+        box: { type: integer }
+        prompt: { type: string }
+        choices: { type: array, items: { type: string }, description: "Empty when there are too few words to offer choices." }
+    QuizResult:
+      type: object
+      required: [spoken, text, correct, expected, box]
+      properties:
+        spoken: { type: string }
+        text: { type: string }
+        correct: { type: boolean }
+        expected: { type: string }
+        box: { type: integer }
+    ProactiveSettings:
+      type: object
+      properties:
+        enabled: { type: boolean, default: false }
+        dwell_seconds: { type: integer, minimum: 0, maximum: 600, default: 20 }
+        cooldown_minutes: { type: integer, minimum: 0, maximum: 1440, default: 30 }
+    Offer:
+      type: object
+      description: A proactive offer of help. Also the data of the skill.offer event.
+      required: [id, scene, text, status, created_at]
+      properties:
+        id: { type: string, pattern: "^off_" }
+        scene: { type: string }
+        text: { type: string }
+        status: { type: string, enum: [offered, accepted, dismissed] }
+        created_at: { type: string, format: date-time }
+    Observation:
+      type: object
+      required: [offered, reason, dwell_seconds, offer]
+      properties:
+        offered: { type: boolean }
+        reason: { type: string, enum: [disabled, nothing_confusing, watching, cooldown, offered] }
+        dwell_seconds: { type: integer }
+        offer: { oneOf: [{ $ref: "#/components/schemas/Offer" }, { type: "null" }] }
+    CoachStartIn:
+      allOf:
+        - { $ref: "#/components/schemas/View" }
+        - type: object
+          required: [goal]
+          properties:
+            goal: { type: string, minLength: 1 }
+    CoachStepIn:
+      allOf:
+        - { $ref: "#/components/schemas/View" }
+        - type: object
+          properties:
+            said: { type: [string, "null"], description: "next, repeat, back, or anything else the wearer says." }
+    CoachSession:
+      type: object
+      required: [id, goal, steps, step_index, current_step, status, mistakes, moment_id, created_at]
+      properties:
+        id: { type: string, pattern: "^cch_" }
+        goal: { type: string }
+        steps: { type: array, items: { type: string } }
+        step_index: { type: integer }
+        current_step: { type: [string, "null"] }
+        status: { type: string, enum: [active, done, ended] }
+        mistakes: { type: integer }
+        moment_id: { type: [string, "null"], description: "The summary saved when the job was finished." }
+        created_at: { type: string, format: date-time }
+    CoachReply:
+      type: object
+      description: What Cortex says next, and the session. The coach.updated event carries the same (session, spoken, mistake).
+      required: [spoken, text, session, mistake]
+      properties:
+        spoken: { type: string }
+        text: { type: string }
+        session: { $ref: "#/components/schemas/CoachSession" }
+        mistake: { type: [string, "null"], description: "Set when Cortex saw something go wrong; it stops and corrects." }
+    NudgeSettings:
+      type: object
+      properties:
+        enabled: { type: boolean, default: true }
+        quiet_start: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", default: "22:00" }
+        quiet_end: { type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", default: "08:00" }
+        daily_cap: { type: integer, minimum: 0, maximum: 20, default: 3 }
+    Nudge:
+      type: object
+      description: An overdue-promise nudge. Also the data of the nudge.due event (clients speak it).
+      required: [id, promise_id, person_id, direction, spoken, text, days_overdue, status, source_moment_id, created_at]
+      properties:
+        id: { type: string, pattern: "^ndg_" }
+        promise_id: { type: string }
+        person_id: { type: string }
+        direction: { type: string, enum: [waiting_on, i_owe] }
+        spoken: { type: string }
+        text: { type: string }
+        days_overdue: { type: integer }
+        status: { type: string, enum: [open, dismissed] }
+        source_moment_id: { type: string }
+        created_at: { type: string, format: date-time }
+    AutoBriefSettings:
+      type: object
+      properties:
+        enabled: { type: boolean, default: true }
+    BriefDue:
+      type: object
+      description: The automatic brief for an upcoming event. Also the data of the brief.due event.
+      required: [person_id, event_title, event_start, spoken, bullets]
+      properties:
+        person_id: { type: string }
+        event_title: { type: string }
+        event_start: { type: string, format: date-time }
+        spoken: { type: string }
+        bullets: { type: array, items: { type: string } }
+    BriefCall:
+      type: object
+      description: A request for the brief by phone call. Also the data of the brief.call event.
+      required: [id, person_id, status, spoken, created_at]
+      properties:
+        id: { type: string, pattern: "^bcl_" }
+        person_id: { type: string }
+        status: { type: string, enum: [requested, dialing, completed, failed] }
+        spoken: { type: string }
+        created_at: { type: string, format: date-time }
+    PersonMatch:
+      type: object
+      required: [person, matched]
+      properties:
+        person: { $ref: "./schemas/person.schema.json" }
+        matched: { type: array, items: { type: string }, description: "The search words that hit." }
     Event:
       type: object
       required: [type, at, data]
       properties:
         type:
           type: string
-          enum: [moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, list.updated, call.started, call.ended]
+          enum: [moment.created, moment.deleted, person.created, person.updated, person.deleted, promise.proposed, promise.confirmed, action.proposed, action.updated, receipt.created, privacy.changed, mode.changed, mode.suggested, routine.due, list.updated, call.started, call.ended, nudge.due, brief.due, brief.call, skill.offer, coach.updated]
         at: { type: string, format: date-time }
         data: { type: object }

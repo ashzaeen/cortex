@@ -2,7 +2,8 @@
 writes a receipt (kind answer) and returns its source moments.
 
 Order: 0) rewind ("replay what Ash said", MEM-10), the daily digest ("what did I do today?", MEM-9) and
-lists ("what's on my shopping list?", MEM-11), all built from stored records; 1) "brief me on <name>" -> the
+lists ("what's on my shopping list?", MEM-11), all built from stored records; then the mode routes
+(skills/mode_ask.py: switch mode, recap, decisions, what I owe, routines, look); 1) "brief me on <name>" -> the
 brief; 2) questions about a known person's promises ("What did Ash
 promise me?", "What is open with Ash?") -> answered straight from the promises table with their source
 moments (deterministic, demo-safe); 3) anything else -> search + Gemini, citations checked against hits."""
@@ -107,6 +108,17 @@ def ask(question: str, channel: str) -> dict:
     listed = _list_answer(q)
     if listed:
         return listed
+    from skills import mode_ask  # modes (#50): switch, recap, decisions, what I owe, routines, look
+
+    routed = mode_ask.route(q, channel, _result)
+    if routed:
+        return routed
+
+    from skills import skills_ask  # skills (#51): got it, contact search, world, translate, immersion, coach
+
+    skilled = skills_ask.route(q, channel, _result)
+    if skilled:
+        return skilled
 
     m = BRIEF_RE.search(q)
     if m:

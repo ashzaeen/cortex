@@ -1,14 +1,18 @@
 """Request bodies, mirroring contracts/openapi.yaml. Bad input returns 400 in the contract error shape."""
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
+
+ModeId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_-]{1,31}$")]
+MomentId = Annotated[str, Field(pattern=r"^mom_")]
+HHMM = Annotated[str, Field(pattern=r"^([01][0-9]|2[0-3]):[0-5][0-9]$")]
 
 
 class MomentIngest(BaseModel):
     ts: str
     source: Literal["glasses", "phone", "call", "dashboard"]
-    mode: Literal["focus", "student", "life", "assist"] | None = None
+    mode: ModeId | None = None
     transcript: str | None = None
     audio_base64: str | None = None
     snapshot_base64: str | None = None
@@ -68,7 +72,7 @@ class ActionPropose(BaseModel):
     type: Literal["follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message"]
     person_id: str | None = None
     source_moment_ids: list[str] | None = None
-    mode: Literal["focus", "student", "life", "assist"] | None = None
+    mode: ModeId | None = None
     title: str | None = None
     summary: str | None = None
     event: EventIn | None = None
@@ -110,3 +114,55 @@ class ListItemUpdate(BaseModel):
     text: str | None = Field(None, min_length=1, max_length=200)
     amount: float | None = None
     done: bool | None = None
+
+
+class ModeUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=40)
+    description: str | None = Field(None, max_length=200)
+    captures: list[str] | None = None
+    speaks: str | None = None
+    proposes: list[str] | None = None
+    allowed_actions: list[str] | None = None
+    auto_suggest: bool | None = None
+    retention_days: int | None = Field(None, ge=1)
+
+
+class ModeCreate(ModeUpdate):
+    id: ModeId | None = None
+    name: str = Field(min_length=1, max_length=40)
+
+
+class LookBody(BaseModel):
+    task: Literal["describe", "read", "hazards", "find", "tutor"]
+    target: str | None = None
+    question: str | None = None
+    snapshot_base64: str | None = None
+    moment_id: MomentId | None = None
+
+
+class GenerateBody(BaseModel):
+    type: Literal["flashcards", "notes", "read_aloud"]
+    moment_id: MomentId | None = None
+    mode: ModeId | None = None
+
+
+class RoutineIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    time: HHMM
+    days: list[int] | None = None
+    spoken: str | None = Field(None, max_length=200)
+
+
+class RoutineUpdate(BaseModel):
+    title: str | None = Field(None, min_length=1, max_length=120)
+    time: HHMM | None = None
+    days: list[int] | None = None
+    spoken: str | None = Field(None, max_length=200)
+    active: bool | None = None
+
+
+class CaregiverIn(BaseModel):
+    consent: bool
+    name: str | None = Field(None, max_length=80)
+    email: str | None = None
+    send_at: HHMM | None = None

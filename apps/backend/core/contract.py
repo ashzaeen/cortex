@@ -16,7 +16,7 @@ def moment(doc: dict) -> dict:
         "place": doc.get("place"),
         "person_ids": list(doc.get("person_ids", [])),
         "off_record": bool(doc.get("off_record", False)),
-    }
+    } | ({"tags": list(doc["tags"])} if doc.get("tags") else {})
 
 
 def person(doc: dict) -> dict:
@@ -57,7 +57,7 @@ def action(doc: dict) -> dict:
     for k in ("mode", "title", "summary"):
         if doc.get(k):
             out[k] = doc[k]
-    if doc["type"] == "follow_up_email":
+    if doc["type"] in {"follow_up_email", "caregiver_summary"}:
         d = doc.get("draft") or {}
         out["draft"] = {"to": d.get("to", ""), "subject": d.get("subject", ""), "body": d.get("body", "")}
     for k in ("event", "task", "doc", "message"):
@@ -82,5 +82,9 @@ def receipt(doc: dict) -> dict:
 
 
 def mode(doc: dict) -> dict:
-    return {k: doc[k] for k in ("captures", "speaks", "proposes", "allowed_actions", "active")} | {
-        "id": doc["_id"], "name": doc["name"]}
+    out = {k: doc[k] for k in ("captures", "speaks", "proposes", "allowed_actions", "active")} | {
+        "id": doc["_id"], "name": doc["name"], "auto_suggest": bool(doc.get("auto_suggest", True)),
+        "retention_days": doc.get("retention_days"), "custom": bool(doc.get("custom", False))}
+    if doc.get("description"):
+        out["description"] = doc["description"]
+    return out

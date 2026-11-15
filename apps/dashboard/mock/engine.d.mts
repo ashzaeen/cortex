@@ -4,6 +4,7 @@ export type EngineResponse = { status: number; body: unknown };
 export type Engine = {
   handle(method: string, target: string, body?: unknown): EngineResponse;
   subscribe(fn: (e: EngineEvent) => void): () => void;
+  tick(ref?: Date): unknown[];
   stop(): void;
 };
 export type EngineOptions = {

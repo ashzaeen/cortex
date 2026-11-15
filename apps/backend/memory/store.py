@@ -13,8 +13,10 @@ def get_moment(moment_id: str) -> dict | None:
     return db.col("moments").find_one({"_id": moment_id})
 
 
-def list_moments(since: datetime | None = None, limit: int = 50) -> list[dict]:
+def list_moments(since: datetime | None = None, limit: int = 50, tag: str | None = None) -> list[dict]:
     q = {"ts": {"$gte": since}} if since else {}
+    if tag:
+        q["tags"] = tag
     docs = db.col("moments").find(q, {"embedding": 0}).sort("ts", -1).limit(limit)
     return [contract.moment(d) for d in docs]
 
@@ -64,10 +66,21 @@ def privacy_out() -> dict:
 # ---------- modes ----------
 
 
+MODES_VERSION = 2  # v2 (#50): description, auto_suggest, retention_days; Focus may also suggest tasks and notes
+
+
 def ensure_modes():
+    presets = json.loads((REPO_ROOT / "fixtures" / "modes.json").read_text())
     if db.col("modes").count_documents({}) == 0:
-        for m in json.loads((REPO_ROOT / "fixtures" / "modes.json").read_text()):
-            db.col("modes").insert_one({"_id": m.pop("id"), **m})
+        for m in presets:
+            db.col("modes").insert_one({"_id": m.pop("id"), **m, "version": MODES_VERSION})
+        return
+    # Built-in modes stored before v2 get the new preset fields once; nothing could edit them before v2.
+    for m in presets:
+        doc = db.col("modes").find_one({"_id": m["id"]})
+        if doc and doc.get("version", 1) < MODES_VERSION:
+            fields = {k: v for k, v in m.items() if k not in {"id", "active"}}
+            db.col("modes").update_one({"_id": m["id"]}, {"$set": {**fields, "version": MODES_VERSION}})
 
 
 def list_modes() -> list[dict]:

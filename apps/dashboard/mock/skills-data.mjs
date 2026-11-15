@@ -1,0 +1,167 @@
+// Generated from apps/backend/skills/registry.py (SKL-0 contract text). Keep the two in step.
+export const SKILLS = [
+  {
+    "id": "network",
+    "code": "SKL-1",
+    "name": "Network",
+    "tagline": "Who you met, and what you talked about.",
+    "best_mode": "any",
+    "uses_view": false,
+    "trigger": "“This is Ash from Acme”, “remember this person”, or Add person.",
+    "inputs": "The name and company said, the conversation after it, the time.",
+    "steps": [
+      "Create a contact card from the introduction",
+      "Listen for topics and promises",
+      "Draft a follow-up",
+      "You edit and approve; Cortex sends or saves a draft"
+    ],
+    "output": "A contact card, promises for the tracker, a follow-up draft.",
+    "confirmation": "Required before anything is sent.",
+    "undo": "Cards are editable and deletable. Nothing is shared with other users.",
+    "source_moment": "The introduction.",
+    "if_unsure": "A misheard name is marked low confidence and shown for correction first."
+  },
+  {
+    "id": "waiting",
+    "code": "SKL-2",
+    "name": "Waiting on",
+    "tagline": "What people owe you, and what you owe them.",
+    "best_mode": "any",
+    "uses_view": false,
+    "trigger": "Someone commits (“I'll send the deck Friday”), or “I'm waiting on Sam”.",
+    "inputs": "The commitment, who made it, the due date if stated.",
+    "steps": [
+      "Show a one-tap confirm chip",
+      "Track it under Waiting on or I owe",
+      "Nudge when overdue (quiet hours, daily cap)",
+      "Offer a follow-up email",
+      "Close it with “got it” or Done"
+    ],
+    "output": "A tracked promise and, when overdue, a spoken nudge.",
+    "confirmation": "You confirm each promise.",
+    "undo": "Dismiss it, or mark it done.",
+    "source_moment": "The moment it was said.",
+    "if_unsure": "A vague date stays empty; Cortex never guesses a deadline."
+  },
+  {
+    "id": "brief",
+    "code": "SKL-3",
+    "name": "Brief",
+    "tagline": "Twenty seconds on someone before you meet.",
+    "best_mode": "focus",
+    "uses_view": false,
+    "trigger": "“Brief me on Ash”, or about 10 minutes before a calendar event that names someone.",
+    "inputs": "The card, past moments, open promises both ways.",
+    "steps": [
+      "Read stored data only",
+      "Write three bullets and a spoken summary",
+      "Fall back to a template if the model fails"
+    ],
+    "output": "A spoken brief and a card with sources.",
+    "confirmation": "None; it only speaks.",
+    "undo": "Nothing changes.",
+    "source_moment": "Up to five moments it drew on.",
+    "if_unsure": "With no history it says there is nothing on file."
+  },
+  {
+    "id": "world",
+    "code": "SKL-4",
+    "name": "Ask the world",
+    "tagline": "What is this? Is this a good price?",
+    "best_mode": "life",
+    "uses_view": true,
+    "trigger": "“What is this?”, or a snapshot with a question.",
+    "inputs": "What the camera sees (glasses, device or a photo) and your question.",
+    "steps": [
+      "Look",
+      "Answer in a sentence or two",
+      "Save the view and answer as a moment"
+    ],
+    "output": "A short spoken answer.",
+    "confirmation": "None.",
+    "undo": "Delete the saved moment.",
+    "source_moment": "The saved view.",
+    "if_unsure": "It says it is not sure. It cannot check live prices and says so."
+  },
+  {
+    "id": "translate",
+    "code": "SKL-5",
+    "name": "Translate",
+    "tagline": "Hear it in your language.",
+    "best_mode": "life",
+    "uses_view": false,
+    "trigger": "“Translate that to French”, or type or speak a phrase.",
+    "inputs": "Text or speech, the language to translate into.",
+    "steps": [
+      "Transcribe if it is audio",
+      "Translate",
+      "Speak the translation"
+    ],
+    "output": "The translation, spoken.",
+    "confirmation": "None.",
+    "undo": "Nothing is stored unless you save it.",
+    "source_moment": "Only when saved.",
+    "if_unsure": "It says it couldn't translate and shows what it heard."
+  },
+  {
+    "id": "immersion",
+    "code": "SKL-6",
+    "name": "Immersion",
+    "tagline": "Name what you see in the language you're learning.",
+    "best_mode": "student",
+    "uses_view": true,
+    "trigger": "“Name things in Spanish”, or a snapshot.",
+    "inputs": "The view and your language.",
+    "steps": [
+      "Name up to five visible objects",
+      "Save each word",
+      "Quiz the ones you know least"
+    ],
+    "output": "Word and object pairs, then quiz questions.",
+    "confirmation": "None.",
+    "undo": "Delete a word or the moment.",
+    "source_moment": "The view that showed the object.",
+    "if_unsure": "Nothing clearly visible means no words."
+  },
+  {
+    "id": "nudge",
+    "code": "SKL-7",
+    "name": "Nudge",
+    "tagline": "Offers help when you keep staring at something confusing.",
+    "best_mode": "any",
+    "uses_view": true,
+    "trigger": "The same confusing thing stays in view past the wait time.",
+    "inputs": "Frames while this is on. Frames are never stored.",
+    "steps": [
+      "Label the scene",
+      "Track how long it stays",
+      "Offer help, then wait for your answer"
+    ],
+    "output": "An offer you can accept or dismiss.",
+    "confirmation": "Always asks first; it is only an offer.",
+    "undo": "Dismiss. A dismissed offer doubles the quiet time.",
+    "source_moment": "None until you accept.",
+    "if_unsure": "No confident “confusing” label, no offer. Off by default."
+  },
+  {
+    "id": "coach",
+    "code": "SKL-8",
+    "name": "Coach",
+    "tagline": "Hands-free steps for cooking or a repair.",
+    "best_mode": "life",
+    "uses_view": true,
+    "trigger": "“Coach me through fixing a tap.”",
+    "inputs": "Your goal, then a frame or what you say at each step.",
+    "steps": [
+      "Plan the steps",
+      "Speak one at a time",
+      "Check each frame",
+      "Stop and correct on a mistake"
+    ],
+    "output": "Spoken steps and corrections.",
+    "confirmation": "None; it only speaks. Risky jobs start with a safety step.",
+    "undo": "End the session.",
+    "source_moment": "A summary saved when you finish.",
+    "if_unsure": "No clear goal means no steps, and it asks what to coach."
+  }
+];

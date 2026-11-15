@@ -5,7 +5,7 @@ import asyncio
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 
-from actions import doers, followup
+from actions import doers, followup, generate
 from api import models
 from core import calls, db, events, receipts, snapshots, tiger, videos
 from core.config import REPO_ROOT, settings
@@ -14,7 +14,7 @@ from core.llm import get_llm
 from core.timeutil import parse_dt
 from memory import delete, ingest, search, store
 from skills import ask as ask_skill
-from skills import brief, digest, lists, network, promises, rewind
+from skills import brief, caregiver, digest, lists, look, modes, network, promises, recap, rewind, routines
 
 router = APIRouter()
 
@@ -33,8 +33,8 @@ def ingest_moment(body: models.MomentIngest):
 
 
 @router.get("/moments", tags=["moments"])
-def list_moments(since: str | None = None, limit: int = Query(50, ge=1, le=200)):
-    return {"items": store.list_moments(parse_dt(since), limit)}
+def list_moments(since: str | None = None, limit: int = Query(50, ge=1, le=200), tag: str | None = None):
+    return {"items": store.list_moments(parse_dt(since), limit, tag)}
 
 
 @router.get("/moments/search", tags=["moments"])
@@ -121,7 +121,7 @@ def confirm_promise(id: str):  # noqa: A002
 # ---------- actions ----------
 @router.get("/actions", tags=["actions"])
 def list_actions(status: str | None = Query(None, pattern="^(proposed|sent|draft_saved|done|undone|dismissed|failed)$"),
-                 mode: str | None = Query(None, pattern="^(focus|student|life|assist)$")):
+                 mode: str | None = Query(None, pattern="^[a-z][a-z0-9_-]{1,31}$")):
     return {"items": followup.list_actions(status, mode)}
 
 
@@ -132,6 +132,11 @@ def propose_action(body: models.ActionPropose):
             raise ApiError(400, "bad_request", "person_id is required for follow_up_email.")
         return followup.propose(body.person_id, body.source_moment_ids)
     return doers.propose(body.model_dump(mode="json", exclude_none=True))
+
+
+@router.post("/actions/generate", status_code=201, tags=["actions"])
+def generate_action(body: models.GenerateBody):
+    return generate.generate(body.type, body.moment_id, body.mode)
 
 
 # The dashboard proxy forwards the signed-in user's Google access token for the Google actions.
@@ -189,16 +194,79 @@ def set_privacy(body: models.PrivacySet):
 # ---------- modes ----------
 @router.get("/modes", tags=["modes"])
 def list_modes():
-    return {"items": store.list_modes()}
+    return {"items": store.list_modes(), "suggestion": modes.pending()}
+
+
+@router.post("/modes", status_code=201, tags=["modes"])
+def create_mode(body: models.ModeCreate):
+    return modes.create(body.model_dump(exclude_unset=True))
+
+
+@router.post("/modes/suggestion/dismiss", tags=["modes"])
+def dismiss_mode_suggestion():
+    return {"dismissed": modes.dismiss()}
 
 
 @router.post("/modes/{id}/activate", tags=["modes"])
 def activate_mode(id: str):  # noqa: A002
-    mode = store.set_active_mode(id)
-    if mode is None:
-        raise not_found("mode")
-    events.publish("mode.changed", mode)
-    return mode
+    return modes.activate(id)
+
+
+@router.patch("/modes/{id}", tags=["modes"])
+def update_mode(id: str, body: models.ModeUpdate):  # noqa: A002
+    return modes.update(id, body.model_dump(exclude_unset=True))
+
+
+@router.delete("/modes/{id}", tags=["modes"])
+def delete_mode(id: str):  # noqa: A002
+    return modes.delete(id)
+
+
+# ---------- recap, look, routines, caregiver (modes) ----------
+@router.get("/recap", tags=["modes"])
+def get_recap(mode: str | None = Query(None, pattern="^[a-z][a-z0-9_-]{1,31}$"),
+              kind: str = Query("meeting", pattern="^(meeting|lecture)$")):
+    return recap.recap(mode, kind)
+
+
+@router.post("/look", tags=["modes"])
+def look_now(body: models.LookBody):
+    return look.look(body.task, body.target, body.question, body.snapshot_base64, body.moment_id)
+
+
+@router.get("/routines", tags=["routines"])
+def list_routines():
+    return {"items": routines.list_all()}
+
+
+@router.post("/routines", status_code=201, tags=["routines"])
+def create_routine(body: models.RoutineIn):
+    return routines.create(body.model_dump(exclude_unset=True))
+
+
+@router.patch("/routines/{id}", tags=["routines"])
+def update_routine(id: str, body: models.RoutineUpdate):  # noqa: A002
+    return routines.update(id, body.model_dump(exclude_unset=True))
+
+
+@router.delete("/routines/{id}", tags=["routines"])
+def delete_routine(id: str):  # noqa: A002
+    return routines.delete(id)
+
+
+@router.get("/caregiver", tags=["caregiver"])
+def get_caregiver():
+    return caregiver.get()
+
+
+@router.put("/caregiver", tags=["caregiver"])
+def put_caregiver(body: models.CaregiverIn):
+    return caregiver.put(body.model_dump(exclude_unset=True))
+
+
+@router.post("/caregiver/send", tags=["caregiver"])
+def send_caregiver():
+    return caregiver.send()
 
 
 # ---------- calls (D-10) ----------

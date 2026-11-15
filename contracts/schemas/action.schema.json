@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "action.schema.json",
   "title": "Action",
-  "description": "An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist). Only follow_up_email carries an email draft; the other types carry their own optional payload (event, task, doc, message).",
+  "description": "An action Cortex suggests and the user approves. Each mode suggests its own types: follow_up_email (Focus), flashcards and notes (Student, saved to Google Drive), reminder (Life, Google Tasks), calendar_event (Google Calendar), message (a text through the Chert line), read_aloud (Assist), caregiver_summary (Assist: the daily summary emailed to a consenting caregiver, AST-6). Only follow_up_email and caregiver_summary carry an email draft; the other types carry their own optional payload (event, task, doc, message).",
   "type": "object",
   "required": [
     "id",
@@ -26,7 +26,8 @@
         "read_aloud",
         "calendar_event",
         "notes",
-        "message"
+        "message",
+        "caregiver_summary"
       ]
     },
     "status": {
@@ -44,13 +45,8 @@
     },
     "mode": {
       "type": "string",
-      "enum": [
-        "focus",
-        "student",
-        "life",
-        "assist"
-      ],
-      "description": "The mode that suggested it."
+      "pattern": "^[a-z][a-z0-9_-]{1,31}$",
+      "description": "The mode that suggested it (a built-in or custom mode id)."
     },
     "title": {
       "type": "string",
@@ -87,7 +83,7 @@
           "type": "string"
         }
       },
-      "description": "The email draft. Always present when type is follow_up_email; absent for the other types."
+      "description": "The email draft. Always present when type is follow_up_email or caregiver_summary; absent for the other types."
     },
     "event": {
       "type": "object",

@@ -1,6 +1,6 @@
 # 0001: Backend stack
 
-- **Status:** Proposed (not decided)
+- **Status:** Accepted (2026-11-14, by Md Abrar Al Zabir)
 - **Decider:** backend lead (@ClosetCoderSad)
 - **Issue:** #8
 - **Date:** 2026-11-14
@@ -18,7 +18,7 @@
 - Cons: fewer data and ML libraries; schema validation needs extra tooling.
 
 ## Decision
-Not decided. The backend lead records it here and marks the ADR Accepted.
+**Option A: Python 3.11+ with FastAPI**, sync handlers (FastAPI runs them in threads). Implemented in `apps/backend/`.
 
 ## Consequences
 Whichever wins adds `apps/backend/Makefile` targets (`setup`, `dev`, `test`, `lint`, `seed`) so the root Makefile picks them up.

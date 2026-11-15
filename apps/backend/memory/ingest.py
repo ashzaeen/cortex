@@ -1,0 +1,101 @@
+"""POST /moments (T0-1): one ingest pipeline for glasses, phone, call and dashboard.
+
+ts/source/transcript/audio/snapshot in -> transcribe if needed -> Gemini perception (caption, intros,
+promises) -> embedding -> MongoDB (+ Tiger Data timeline) -> link people by introduction (T0-3) ->
+proposed promises (T0-4) -> events: moment.created, person.created, promise.proposed."""
+import base64
+import binascii
+import logging
+import time
+
+from core import contract, db, events, receipts, snapshots, tiger
+from core.errors import ApiError
+from core.ids import new_id
+from core.llm import get_llm
+from core.prompts import SPEAKER_RULE_DEFAULT, SPEAKER_RULE_WITH_PARTNER
+from core.timeutil import human, now, parse_dt
+from memory import store
+from skills import network, promises
+
+log = logging.getLogger(__name__)
+
+
+def _b64(value: str | None, field: str) -> bytes | None:
+    if not value:
+        return None
+    if value.startswith("data:") and "," in value[:80]:
+        value = value.split(",", 1)[1]
+    try:
+        return base64.b64decode(value, validate=False)
+    except (binascii.Error, ValueError) as exc:
+        raise ApiError(400, "bad_request", f"{field} is not valid base64.") from exc
+
+
+def ingest(body: dict) -> dict:
+    t0 = time.perf_counter()
+    state = store.privacy()["state"]
+    if state != "capturing":
+        raise ApiError(409, state, f"Capture is {state.replace('_', '-')}; nothing was stored.")
+
+    transcript = (body.get("transcript") or "").strip() or None
+    audio = _b64(body.get("audio_base64"), "audio_base64")
+    image = _b64(body.get("snapshot_base64"), "snapshot_base64")
+    snapshot_url = body.get("snapshot_url")
+    if not (transcript or audio or image or snapshot_url):
+        raise ApiError(400, "bad_request", "Send at least one of transcript, audio_base64, snapshot_base64, snapshot_url.")
+
+    llm = get_llm()
+    if audio and not transcript:
+        transcript = llm.transcribe(audio) or None
+    if image:
+        snapshot_url = snapshots.save(image)
+    elif snapshot_url:
+        image = snapshots.load_bytes(snapshot_url)
+
+    ts = parse_dt(body.get("ts")) or now()
+    mode = body.get("mode") or store.active_mode()
+    moment_id = new_id("mom")
+
+    partner = network.active_partner(ts)
+    context, rule = "", SPEAKER_RULE_DEFAULT
+    if partner:
+        company = f" from {partner['company']}" if partner.get("company") else ""
+        rule = SPEAKER_RULE_WITH_PARTNER.format(name=partner["name"], company=company)
+        last = db.col("moments").find_one({"person_ids": partner["_id"]}, sort=[("ts", -1)])
+        if last and last.get("transcript"):
+            context = f'Just before this, the wearer was with {partner["name"]}{company}: "{last["transcript"]}"'
+
+    p = llm.perceive(transcript=transcript or "", image=image, mode=mode, now_local=human(now()),
+                     context=context, speaker_rule=rule) or {}
+
+    linked, created = network.from_introductions(p.get("people_introduced"), moment_id)
+    if not linked and partner:
+        linked = [partner]
+    person_ids = [x["_id"] for x in linked]
+    caption = (p.get("caption") or None) if image or body.get("snapshot_base64") else None
+    embed_text = " ".join(filter(None, [transcript, caption, *[x["name"] for x in linked],
+                                        *[x.get("company") or "" for x in linked]]))
+    doc = {
+        "_id": moment_id, "ts": ts, "source": body.get("source", "phone"), "mode": mode,
+        "transcript": transcript, "caption": caption, "snapshot_url": snapshot_url, "place": None,
+        "person_ids": person_ids, "off_record": False, "call_id": body.get("call_id"),
+        "embedding": llm.embed(embed_text or "moment"), "created_at": now(),
+    }
+    store.insert_moment(doc)
+    for x in linked:
+        network.touch(x["_id"], ts, p.get("topics"))
+
+    events.publish("moment.created", contract.moment(doc))
+    network.announce(created)
+    focus = created[0] if created else (linked[0] if linked else None)
+    new_promises = promises.from_perception(p.get("promises"), doc, focus)
+
+    if doc["source"] == "call":
+        what = caption or transcript or "the caller's camera"
+        receipts.create("capture", f"Saved from the call: {what[:120]}", [moment_id])
+
+    latency = int((time.perf_counter() - t0) * 1000)
+    tiger.log_metric(tiger.USER, now(), "moment", latency, len(image or b""))
+    log.info("moment %s stored in %d ms (%d people, %d promises)", moment_id, latency, len(person_ids),
+             len(new_promises))
+    return contract.moment(store.get_moment(moment_id))

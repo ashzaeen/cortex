@@ -1,0 +1,5 @@
+# Captured snapshots and local data never go in git
+data/
+.venv/
+.pytest_cache/
+.ruff_cache/

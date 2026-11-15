@@ -52,16 +52,20 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 /**
  * @param {{ baseUrl?: string, apiKey?: string, fetchImpl?: typeof fetch, timeoutMs?: number, retryDelaysMs?: number[] }} [options]
  */
-export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, apiKey = process.env.CORTEX_API_KEY, fetchImpl = fetch, timeoutMs = 12000, retryDelaysMs = [1000, 2000] } = {}) {
+export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEFAULT_API_URL, apiKey = process.env.CORTEX_API_KEY, user = process.env.CORTEX_USER, fetchImpl = fetch, timeoutMs = 12000, retryDelaysMs = [1000, 2000] } = {}) {
   const base = baseUrl.replace(/\/+$/, '');
   // The backend requires this key on every route but /health when CORTEX_API_KEY is set there. Never logged.
   const keyHeader = apiKey && apiKey.trim() ? { 'x-cortex-key': apiKey.trim() } : {};
+  // Whose memory the call reads and writes. The dashboard sends the signed-in email as X-Cortex-User, and each user has a
+  // private memory; with no header the agent would only see the shared default one (people made in the dashboard are
+  // invisible to it). Set CORTEX_USER to the email you sign in to the dashboard with. Never logged.
+  const userHeader = user && user.trim() ? { 'x-cortex-user': user.trim() } : {};
 
   async function once(method, path, body, ms) {
     try {
       const res = await fetchImpl(`${base}${path}`, {
         method,
-        headers: { 'content-type': 'application/json', accept: 'application/json', ...keyHeader },
+        headers: { 'content-type': 'application/json', accept: 'application/json', ...keyHeader, ...userHeader },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(ms),
       });
@@ -96,6 +100,7 @@ export function createCortexClient({ baseUrl = process.env.CORTEX_API_URL || DEF
 
   return {
     baseUrl: base,
+    asUser: Object.keys(userHeader).length > 0, // true when CORTEX_USER is set (never the value)
     callStarted: callId => request('POST', '/calls/started', { call_id: callId }, 4000),
     callEnded: callId => request('POST', '/calls/ended', { call_id: callId }, 3000),
     ask: question => request('POST', '/ask', { question, channel: 'call' }, timeoutMs, { retry: true }),

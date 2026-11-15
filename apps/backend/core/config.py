@@ -65,6 +65,8 @@ class Settings:
     # Hardcoded demo recipient: every follow-up email draft goes here instead of a guessed address.
     # FOLLOWUP_EMAIL_TO overrides it; set it empty to go back to guessed addresses.
     followup_email_to: str = field(default_factory=lambda: os.getenv("FOLLOWUP_EMAIL_TO", "ahnafzabir6633@gmail.com").strip())
+    # Name signed under every follow-up email. Empty = no name line (never a "[Your Name]" placeholder).
+    followup_signer: str = field(default_factory=lambda: os.getenv("FOLLOWUP_SIGNER", "").strip())
     smtp_host: str = field(default_factory=lambda: os.getenv("SMTP_HOST", "smtp.gmail.com"))
     smtp_port: int = field(default_factory=lambda: _int("SMTP_PORT", 587))
     undo_seconds: int = field(default_factory=lambda: _int("ACTION_UNDO_SECONDS", 30))

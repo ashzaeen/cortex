@@ -75,7 +75,8 @@ Return ONLY JSON: {{"spoken": "45-60 words for text-to-speech: who they are, whe
 Use only these facts. Start the spoken brief with the person's name."""
 
 FOLLOW_UP = """Draft a short follow-up email from the wearer to {name}{company}. Under 90 words, friendly,
-specific to the conversation and promises below. No placeholders.
+specific to the conversation and promises below. No placeholders like [Your Name]: end with a closing
+such as "Best regards" and nothing after it, because the sender's name is added afterwards.
 CONVERSATION (oldest first):
 {moments}
 PROMISES:

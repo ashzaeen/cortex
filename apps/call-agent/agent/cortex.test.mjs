@@ -403,3 +403,26 @@ describe('follow-up email by voice', () => {
     assert.equal((await act.undoFollowUp()).reason, 'nothing_to_undo'); // a failed send leaves nothing to undo
   });
 });
+
+
+describe('whose memory the call uses', () => {
+  it('sends X-Cortex-User when CORTEX_USER is set, and says so without exposing the value', async () => {
+    script['GET /people'] = { body: { items: [] } };
+    const raw = [];
+    const spy = (url, init) => { raw.push(init.headers); return fetch(url, init); };
+    const client = createCortexClient({ baseUrl: base, user: '  me@example.com ', fetchImpl: spy });
+    await client.people();
+    assert.equal(raw[0]['x-cortex-user'], 'me@example.com');
+    assert.equal(client.asUser, true);
+  });
+
+  it('sends no user header by default (the shared memory)', async () => {
+    script['GET /people'] = { body: { items: [] } };
+    const raw = [];
+    const spy = (url, init) => { raw.push(init.headers); return fetch(url, init); };
+    const client = createCortexClient({ baseUrl: base, user: '', fetchImpl: spy });
+    await client.people();
+    assert.equal('x-cortex-user' in raw[0], false);
+    assert.equal(client.asUser, false);
+  });
+});

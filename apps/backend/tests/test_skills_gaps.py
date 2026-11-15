@@ -133,3 +133,34 @@ def test_resend_rejection_reports_the_providers_reason(monkeypatch):
         monkeypatch.setattr(settings, k, v)
     with pytest.raises(email.EmailError, match="Resend said 403: You can only send testing emails to your own email"):
         email.send("someone@example.com", "S", "B")
+
+
+def test_follow_up_body_never_ships_a_placeholder(monkeypatch):
+    """Real email: the model ended with "Best regards,\\n[Your Name]" despite the prompt."""
+    from actions import followup
+    from core.config import settings
+
+    body = "Hi Sam,\n\nI'm following up.\n\nBest regards,\n[Your Name]"
+    monkeypatch.setattr(settings, "followup_signer", "")
+    assert followup._clean_body(body) == "Hi Sam,\n\nI'm following up.\n\nBest regards"
+    monkeypatch.setattr(settings, "followup_signer", "Ahnaf")
+    assert followup._clean_body(body) == "Hi Sam,\n\nI'm following up.\n\nBest regards,\nAhnaf"
+    assert followup._clean_body("Hi,\n\nThanks.\n\nBest regards,") == "Hi,\n\nThanks.\n\nBest regards,\nAhnaf"  # signer added
+    monkeypatch.setattr(settings, "followup_signer", "")
+    assert followup._clean_body("Hi,\n\nThanks.\n\nBest regards,") == "Hi,\n\nThanks.\n\nBest regards"
+    other = "Hi Sam,\n\nSee [the link] soon.\n\nBest"
+    assert followup._clean_body(other) == other  # other brackets stay
+    assert followup._clean_body("Hi [Your Name]'s friend") == "Hi 's friend"
+
+
+def test_proposed_draft_goes_through_the_cleanup(seeded, monkeypatch):
+    from core import llm
+    from core.config import settings
+
+    monkeypatch.setattr(settings, "followup_signer", "")
+    real = llm.get_llm()
+    draft = {"subject": "Hi", "body": "Hi Sam,\n\nThanks.\n\nBest regards,\n[Your Name]"}
+    monkeypatch.setattr(type(real), "follow_up", lambda self, **kw: draft, raising=False)
+    act = validate(seeded.post("/actions/propose", json={"type": "follow_up_email", "person_id": "per_sam"}),
+                   "/actions/propose", "post", 201)
+    assert "[" not in act["draft"]["body"] and act["draft"]["body"].endswith("Best regards")

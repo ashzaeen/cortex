@@ -31,7 +31,7 @@ No laptop should run any Cortex or Chert process. Two Railway services in the `c
 
 | Service | Folder | Runs | Needs |
 | --- | --- | --- | --- |
-| `call-agent` | `agent/` | the LiveKit worker (`node agent.mjs start`), outbound only | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `GOOGLE_API_KEY` (you add these), plus `AGENT_NAME`, `CORTEX_API_URL` and `CORTEX_API_KEY` (already set; the key is a reference to the `api` service's) |
+| `call-agent` | `agent/` | the LiveKit worker (`node agent.mjs start`), outbound only | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `GOOGLE_API_KEY` (you add these), plus `AGENT_NAME`, `CORTEX_API_URL` and `CORTEX_API_KEY` (already set; the key is a reference to the `api` service's), and `CORTEX_USER` (the email you sign in to the dashboard with, so the call reads your private memory; without it the agent only sees the shared default memory and cannot find people you added in the dashboard) |
 | `chert-connector` | `connector/` | `chert dev --agent $AGENT_NAME`, which holds the FaceTime line | its `LIVEKIT_*` and `AGENT_NAME` are references to `call-agent`'s, so enter them once there; a **volume at `/data`** keeps the Chert sign-in (`CHERT_HOME=/data/chert`) |
 
 Both refuse to start and say which variables are missing, and print an image check (the agent: native LiveKit library loads; the connector: the Chert CLI version). The agent image installs `ca-certificates`: LiveKit's native client needs the system roots, and without them every job fails with "no native root CA certificates found" (the library still loads, so the image check alone does not catch it).

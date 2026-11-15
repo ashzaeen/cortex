@@ -32,7 +32,7 @@ const agent = defineAgent({
     // Cortex: tell the dashboard a call is live, and give the model its memory tools. Never blocks the call.
     const callId = callIdFromIdentity(caller.identity);
     const cortex = createCortexClient();
-    console.log(JSON.stringify({ cortex: 'call', callId, api: cortex.baseUrl }));
+    console.log(JSON.stringify({ cortex: 'call', callId, api: cortex.baseUrl, memory: cortex.asUser ? 'your dashboard user' : 'shared default' }));
     const started = cortex.callStarted(callId);
     ctx.addShutdownCallback(async () => {
       await started; // never report the end before the start

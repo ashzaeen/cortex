@@ -30,6 +30,25 @@ def _guess_email(person: dict) -> str:
     return f"{first}@{company}.example" if company else ""
 
 
+_PLACEHOLDER = re.compile(r"\[\s*(?:your|my)[^\]\n]{0,30}\]", re.I)  # [Your Name], [My Name], [Your Company] ...
+
+
+def _clean_body(body: str) -> str:
+    """The model sometimes leaves a "[Your Name]" placeholder despite being told not to. Replace it with the
+    configured signer, or drop it, so a placeholder never reaches an inbox."""
+    signer = settings.followup_signer
+    text = _PLACEHOLDER.sub(signer, body)
+    lines = [ln.rstrip() for ln in text.splitlines()]
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if lines and lines[-1].endswith(","):  # a bare closing ("Best regards,") with nothing under it
+        if signer:
+            lines.append(signer)
+        else:
+            lines[-1] = lines[-1].rstrip(",")
+    return "\n".join(lines).strip()
+
+
 def _publish(doc: dict):
     events.publish("action.updated", contract.action(doc))
 
@@ -71,7 +90,7 @@ def propose(person_id: str, source_moment_ids: list[str] | None = None) -> dict:
     draft = {
         "to": _guess_email(person),
         "subject": (data.get("subject") or f"Great meeting you, {first}").strip(),
-        "body": (data.get("body") or f"Hi {first},\n\nGreat meeting you today. Talk soon.").strip(),
+        "body": _clean_body((data.get("body") or f"Hi {first},\n\nGreat meeting you today. Talk soon.").strip()),
     }
     doc = {"_id": new_id("act"), "type": "follow_up_email", "status": "proposed", "mode": "focus",
            "title": f"Draft a follow-up to {first}", "person_id": person_id, "draft": draft,

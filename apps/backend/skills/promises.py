@@ -93,7 +93,29 @@ def confirm(promise_id: str) -> dict:
         from actions import followup
 
         background.run(followup.auto_propose, p["person_id"])
+        from skills import brief
+
+        background.run(brief.prewarm, p["person_id"])  # the brief now lists this promise as open
     return contract.promise(p)
+
+
+def close(promise_id: str) -> dict:
+    """WAI-7: the promise was kept ("got it"). Status becomes done; it leaves the open lists and briefs."""
+    p = db.col("promises").find_one({"_id": promise_id})
+    if not p:
+        raise not_found("promise")
+    if p["status"] != "done":
+        db.col("promises").update_one({"_id": promise_id}, {"$set": {"status": "done", "closed_at": now()}})
+        p = db.col("promises").find_one({"_id": promise_id})
+        tiger.log_action(tiger.user(), now(), None, "promise.done", "user", {"promise_id": promise_id})
+    return p
+
+
+def overdue() -> list[dict]:
+    """Open promises whose due date has passed: the pull version of an overdue nudge (WAI-5)."""
+    today = now().astimezone(tz()).date().isoformat()
+    return [p for p in db.col("promises").find({"status": {"$in": ["proposed", "confirmed"]},
+                                                "due.date": {"$lt": today, "$ne": None}}).sort("due.date", 1)]
 
 
 def open_for(person_id: str) -> list[dict]:

@@ -59,9 +59,11 @@ class Settings:
 
     # Email action
     email_dry_run: bool = field(default_factory=lambda: _bool("EMAIL_DRY_RUN", True))
-    email_provider: str = field(default_factory=lambda: os.getenv("EMAIL_PROVIDER", ""))
+    email_provider: str = field(default_factory=lambda: os.getenv("EMAIL_PROVIDER", "") or "smtp")
     email_from: str = field(default_factory=lambda: os.getenv("EMAIL_FROM", ""))
     email_api_key: str = field(default_factory=lambda: os.getenv("EMAIL_API_KEY", ""))
+    # Hardcoded demo recipient: when set, every follow-up email draft goes here instead of a guessed address.
+    followup_email_to: str = field(default_factory=lambda: os.getenv("FOLLOWUP_EMAIL_TO", "").strip())
     smtp_host: str = field(default_factory=lambda: os.getenv("SMTP_HOST", "smtp.gmail.com"))
     smtp_port: int = field(default_factory=lambda: _int("SMTP_PORT", 587))
     undo_seconds: int = field(default_factory=lambda: _int("ACTION_UNDO_SECONDS", 30))

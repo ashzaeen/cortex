@@ -8,14 +8,14 @@ import binascii
 import logging
 import time
 
-from core import contract, db, events, receipts, snapshots, tiger, videos
+from core import background, contract, db, events, receipts, snapshots, tiger, videos
 from core.errors import ApiError
 from core.ids import new_id
 from core.llm import get_llm
 from core.prompts import SPEAKER_RULE_DEFAULT, SPEAKER_RULE_WITH_PARTNER
 from core.timeutil import human, now, parse_dt
 from memory import store
-from skills import lists, network, promises, suggest
+from skills import brief, lists, network, promises, suggest
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +93,8 @@ def ingest(body: dict) -> dict:
         transcript = _heard(p.get("transcript"))
 
     linked, created = network.from_introductions(p.get("people_introduced"), moment_id)
+    created_ids = {x["_id"] for x in created}
+    met_again = [x for x in linked if x["_id"] not in created_ids]
     if not linked and partner:
         linked = [partner]
     person_ids = [x["_id"] for x in linked]
@@ -113,10 +115,13 @@ def ingest(body: dict) -> dict:
 
     events.publish("moment.created", contract.moment(doc))
     network.announce(created)
+    network.announce_met_again(met_again)
     focus = created[0] if created else (linked[0] if linked else None)
     new_promises = promises.from_perception(p.get("promises"), doc, focus)
     suggest.from_perception(p.get("suggestions"), store.get_moment(moment_id) or doc)
     lists.from_moment(doc)
+    for pid in person_ids:
+        background.run(brief.prewarm, pid)  # demo rule: the brief is warm before anyone asks
 
     if doc["source"] == "call":
         what = caption or transcript or "the caller's camera"

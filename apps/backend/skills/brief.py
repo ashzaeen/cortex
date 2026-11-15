@@ -1,12 +1,15 @@
 """Pre-meeting brief (D-6): about 20 seconds spoken, three bullets, open promises and source moments.
 The model writes it from stored data only; if its output is unusable a template built from the same data
 is used, so the brief never fails on stage. Results are cached until that person's data changes."""
+import logging
+
 from core import contract, db
 from core.llm import get_llm
 from core.timeutil import human, human_date, now
 from memory import store
 from skills import network, promises
 
+log = logging.getLogger(__name__)
 _cache: dict[str, tuple[tuple, dict]] = {}
 
 
@@ -69,6 +72,14 @@ def brief(person_id: str) -> dict:
     }
     _cache[person_id] = (key, result)
     return result
+
+
+def prewarm(person_id: str):
+    """Build and cache a person's brief in the background so "brief me on <name>" answers at once."""
+    try:
+        brief(person_id)
+    except Exception:  # noqa: BLE001 - a failed pre-warm must never break capture
+        log.exception("brief pre-warm failed for %s", person_id)
 
 
 def clear_cache():

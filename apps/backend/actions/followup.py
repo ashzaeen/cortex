@@ -23,6 +23,8 @@ _timers: dict[str, threading.Timer] = {}
 
 
 def _guess_email(person: dict) -> str:
+    if settings.followup_email_to:  # demo hardcode: one inbox we control receives every follow-up
+        return settings.followup_email_to
     first = re.sub(r"[^a-z]", "", person["name"].split()[0].lower()) or "contact"
     company = re.sub(r"[^a-z0-9]", "", (person.get("company") or "").lower())
     return f"{first}@{company}.example" if company else ""

@@ -1,6 +1,6 @@
 import AVFoundation
 import Observation
-import Speech
+@preconcurrency import Speech
 
 enum VoiceAssistantState: Equatable {
   case idle
@@ -62,24 +62,28 @@ final class VoiceAssistant {
         throw VoiceAssistantError.noAudioInput
       }
       removeAudioTapIfNeeded()
-      inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+      inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { @Sendable buffer, _ in
         request.append(buffer)
       }
       isTapInstalled = true
       audioEngine.prepare()
       try audioEngine.start()
       state = .listening
+      scheduleListeningTimeout()
 
-      recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
+      recognitionTask = speechRecognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
+        let transcription = result?.bestTranscription.formattedString
+        let isFinal = result?.isFinal == true
+        let failed = error != nil
         Task { @MainActor in
           guard let self else { return }
-          if let result {
-            self.transcript = result.bestTranscription.formattedString
+          if let transcription {
+            self.transcript = transcription
             self.scheduleSubmission()
-            if result.isFinal {
+            if isFinal {
               self.submitTranscript()
             }
-          } else if error != nil {
+          } else if failed {
             self.stop(submit: false)
             self.state = .unavailable("I couldn't understand that. Tap Ask Cornea and try again.")
           }
@@ -149,6 +153,16 @@ final class VoiceAssistant {
       try? await Task.sleep(for: .seconds(1.3))
       guard !Task.isCancelled else { return }
       self?.submitTranscript()
+    }
+  }
+
+  private func scheduleListeningTimeout() {
+    silenceTask?.cancel()
+    silenceTask = Task { [weak self] in
+      try? await Task.sleep(for: .seconds(10))
+      guard !Task.isCancelled, let self, self.state == .listening else { return }
+      self.stop(submit: false)
+      self.state = .unavailable("I didn't hear anything. Check the Ray-Ban microphone and try again.")
     }
   }
 

@@ -17,6 +17,7 @@ mock:
 test: $(DEPS)
 	node mock/test.mjs
 	node mock/profile-test.mjs
+	node scripts/build-tokens.mjs --check
 
 lint: $(DEPS)
 	npx tsc --noEmit

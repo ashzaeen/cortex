@@ -371,7 +371,7 @@ export interface components {
                 message: string;
             };
         };
-        /** @description What capture sends. At least one of transcript, audio_base64, snapshot_base64 or snapshot_url. */
+        /** @description What capture sends. At least one of transcript, audio_base64, snapshot_base64, snapshot_url or video_base64. */
         MomentIngest: {
             /** Format: date-time */
             ts: string;
@@ -386,6 +386,8 @@ export interface components {
             /** @description JPEG snapshot. */
             snapshot_base64?: string | null;
             snapshot_url?: string | null;
+            /** @description QuickTime or MP4 clip, at most 10 seconds and 20 MB decoded. */
+            video_base64?: string | null;
             /** @description Set by the call agent for caller-camera moments. */
             call_id?: string | null;
         };
@@ -445,6 +447,8 @@ export interface components {
             caption: string | null;
             /** @description URL or repo-relative path of the stored snapshot. */
             snapshot_url: string | null;
+            /** @description URL of a stored video clip, capped at 10 seconds. */
+            video_url?: string | null;
             place?: string | null;
             /** @description People linked by introduction or consent. Never by face recognition. */
             person_ids: string[];

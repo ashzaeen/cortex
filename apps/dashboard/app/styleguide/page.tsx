@@ -77,7 +77,7 @@ export default function Styleguide() {
           <ProofRow m={moments[1]} sid="m2" note="Ash owes you: send the deck, due Friday." />
         </Block>
         <Block title="Moment rows">
-          {moments.map((m, i) => <MomentRow key={m.id} m={m} sid={ids.get(m.id)!} tag={["Network", "Waiting On", "Snapshot"][i]} selected={i === 1} onSelect={() => {}} onOpen={() => {}} />)}
+          {moments.map((m, i) => <MomentRow key={m.id} m={m} sid={ids.get(m.id)!} tag={["Network", "Waiting On", "Snapshot"][i]} selected={i === 1} onSelect={() => {}} onOpen={() => {}} onDelete={() => {}} />)}
           <p className="t-footnote">Waiting on: {people[0].name}, {promises[0].what.toLowerCase()}</p>
         </Block>
         <Block title="Loading">

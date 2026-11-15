@@ -612,7 +612,7 @@ components:
             message: { type: string }
     MomentIngest:
       type: object
-      description: What capture sends. At least one of transcript, audio_base64, snapshot_base64 or snapshot_url.
+      description: What capture sends. At least one of transcript, audio_base64, snapshot_base64, snapshot_url or video_base64.
       required: [ts, source]
       properties:
         ts: { type: string, format: date-time }
@@ -622,6 +622,7 @@ components:
         audio_base64: { type: [string, "null"], description: "Short audio clip if not transcribed on device." }
         snapshot_base64: { type: [string, "null"], description: "JPEG snapshot." }
         snapshot_url: { type: [string, "null"] }
+        video_base64: { type: [string, "null"], description: "QuickTime or MP4 clip, at most 10 seconds and 20 MB decoded." }
         call_id: { type: [string, "null"], description: "Set by the call agent for caller-camera moments." }
     AskAnswer:
       type: object

@@ -177,6 +177,14 @@ html[data-solid="true"] .glass { background: var(--glass-solid); -webkit-backdro
 }
 @keyframes vf-in { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: none; } }
 
+/* Call connect (design.md 11.11): three brass rings out of the call button, once per connection. */
+.ripple-ring {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  border: 1.5px solid var(--brass); opacity: 0;
+  animation: ripple 1.6s var(--ease-out) both;
+}
+@keyframes ripple { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
+
 /* Brass shimmer for loading and thinking (design.md 12.5) */
 .shimmer { position: relative; overflow: hidden; }
 .shimmer::after {
@@ -235,5 +243,6 @@ html[data-solid="true"] .glass { background: var(--glass-solid); -webkit-backdro
   .ambient__light { transition: opacity 200ms linear; }
   .rise { animation: fade-in 160ms linear both; }
   .vf { animation: none; }
+  .ripple-ring { display: none; }
 }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }

@@ -3,7 +3,7 @@
 Removed: the moment (transcript, caption, embedding), its snapshot file, promises sourced from it, people
 introduced by it (and their promises), its Tiger Data timeline row, and its id from other records.
 Proposed or derived actions left with no source are deleted. Returns a deletion receipt."""
-from core import db, events, receipts, snapshots, tiger
+from core import db, events, receipts, snapshots, tiger, videos
 from core.errors import not_found
 
 
@@ -13,6 +13,7 @@ def delete_moment(moment_id: str) -> dict:
         raise not_found("moment")
 
     snap = snapshots.delete_url(doc.get("snapshot_url"))
+    video = videos.delete_url(doc.get("video_url"))
     db.col("moments").delete_one({"_id": moment_id})
     n_promises = db.col("promises").delete_many({"source_moment_id": moment_id}).deleted_count
 
@@ -29,6 +30,8 @@ def delete_moment(moment_id: str) -> dict:
     tiger.delete_timeline([moment_id])
 
     parts = ["transcript", "caption", "embedding"] + (["snapshot"] if snap or doc.get("snapshot_url") else [])
+    if video or doc.get("video_url"):
+        parts.append("video")
     summary = f"Deleted 1 moment and its {', '.join(parts[:-1])} and {parts[-1]}."
     if n_promises:
         summary += f" Also removed {n_promises} promise{'s' if n_promises != 1 else ''} derived from it."

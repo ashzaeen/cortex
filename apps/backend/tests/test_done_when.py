@@ -1,6 +1,7 @@
 """Tier 0 done-when tests (docs/PLAN.md) for the backend: T0-1 to T0-7 and T0-9, following the hero demo.
 Offline: mongomock + mock LLM. Every response is validated against the contract."""
 import base64
+import struct
 import time
 
 import pytest
@@ -10,6 +11,14 @@ from tests.contract_check import validate
 
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 600 + b"\xff\xd9"
 TS = "2026-11-15T14:02:11-06:00"
+
+
+def mov(seconds: float) -> bytes:
+    timescale = 1_000
+    duration = int(seconds * timescale)
+    ftyp = struct.pack(">I4s4sI", 16, b"ftyp", b"qt  ", 0)
+    mvhd_payload = b"\x00\x00\x00\x00" + struct.pack(">IIII", 0, 0, timescale, duration) + b"\x00" * 16
+    return ftyp + struct.pack(">I4s", len(mvhd_payload) + 8, b"mvhd") + mvhd_payload
 
 
 def post_moment(c, transcript=None, snapshot=None, source="glasses", status=201):
@@ -46,6 +55,35 @@ def test_t0_1_image_only_capture_creates_gemini_insight_and_event(client):
     assert moment["snapshot_url"].startswith("http://testserver/snapshots/")
     assert events.history[-1]["type"] == "moment.created"
     assert events.history[-1]["data"]["id"] == moment["id"]
+
+
+def test_t0_1_short_video_creates_insight_file_and_event(client):
+    clip = mov(10)
+    response = client.post("/moments", json={
+        "ts": TS,
+        "source": "glasses",
+        "video_base64": base64.b64encode(clip).decode(),
+    })
+    moment = validate(response, "/moments", "post", 201)
+
+    assert moment["caption"] == "A short video from the wearer's point of view."
+    assert moment["video_url"].startswith("http://testserver/videos/")
+    assert client.get(moment["video_url"].replace("http://testserver", "")).content == clip
+    assert events.history[-1]["type"] == "moment.created"
+    assert events.history[-1]["data"]["video_url"] == moment["video_url"]
+    validate(client.delete(f"/moments/{moment['id']}"), "/moments/{id}", "delete", 200)
+    assert client.get(moment["video_url"].replace("http://testserver", "")).status_code == 404
+
+
+def test_t0_1_video_over_ten_seconds_is_rejected(client):
+    response = client.post("/moments", json={
+        "ts": TS,
+        "source": "glasses",
+        "video_base64": base64.b64encode(mov(10.5)).decode(),
+    })
+
+    error = validate(response, "/moments", "post", 400)
+    assert error["error"]["code"] == "video_too_long"
 
 
 @pytest.mark.parametrize("question,expected", [

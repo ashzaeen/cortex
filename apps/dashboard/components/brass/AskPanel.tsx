@@ -61,7 +61,7 @@ export function AskPanel({ question, answer, thinking, searched, proof, ids, onO
     <section id="ask" aria-labelledby="ask-label" className="glass flex h-full flex-col gap-3 overflow-hidden p-6 md:p-7">
       <Label as="h2" id="ask-label" className="flex-none">Ask Your Memory</Label>
       <div className="flex flex-none items-center gap-3">
-        <button type="button" onClick={onOpenAsk} className={`press min-w-0 flex-1 rounded-md text-left ${thinking ? "shimmer shimmer-once" : ""}`}>
+        <button type="button" onClick={onOpenAsk} className={`press min-h-11 min-w-0 flex-1 rounded-md text-left ${thinking ? "shimmer shimmer-once" : ""}`}>
           <span className="t-question block truncate">{question}</span>
         </button>
         <IconButton label="Ask by voice or text" onClick={onOpenAsk}><Mic size={20} strokeWidth={1.5} /></IconButton>

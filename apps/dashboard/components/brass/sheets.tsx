@@ -3,7 +3,7 @@
 // Receipts history, Call Cortex. Reading surfaces are matte; floating ones are glass.
 import { ChevronRight, Glasses, Send } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, snapshotSrc, type Brief, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "@/lib/api";
+import { api, snapshotSrc, videoSrc, type Brief, type Moment, type Person, type PrivacyState, type Promise_, type Receipt } from "@/lib/api";
 import { isDemo } from "@/lib/demo";
 import { clock, curly, dayLabel, dueChip, receiptId, timecode } from "@/lib/format";
 import type { CortexData } from "@/lib/useCortex";
@@ -62,6 +62,16 @@ export function MomentSheet({ m, sid, people, onClose, onDelete }: { m: Moment |
     <Sheet open={!!m} onClose={onClose} label="Moment" title={m ? `Moment ${sid}` : ""} detent="full">
       {m && (
         <div className="flex flex-col gap-6">
+          {m.video_url && (
+            <video
+              src={videoSrc(m.video_url) ?? undefined}
+              controls
+              playsInline
+              preload="metadata"
+              aria-label={m.caption ?? "Captured video"}
+              className="aspect-video w-full rounded-sm bg-black object-contain"
+            />
+          )}
           {m.snapshot_url && <Frame src={snapshotSrc(m.snapshot_url)} alt={m.caption ?? "Captured frame"} selected className="w-full" ratio="16 / 10" />}
           {m.transcript && <blockquote className="t-display">{curly(m.transcript)}</blockquote>}
           <span className="t-data text-brass">{sid} - {timecode(m.ts)} - {sourceLabel(m)}</span>
@@ -74,7 +84,7 @@ export function MomentSheet({ m, sid, people, onClose, onDelete }: { m: Moment |
             <dt className="t-label">ID</dt><dd className="t-data break-all text-text-3">{m.id}</dd>
           </dl>
           <div><Button variant="destructive" onClick={() => onDelete(m)}>Delete Moment</Button></div>
-          <p className="t-footnote">Deleting removes the transcript, snapshot and anything found in it, such as promises.</p>
+          <p className="t-footnote">Deleting removes the transcript, captured media and anything found in it, such as promises.</p>
         </div>
       )}
     </Sheet>

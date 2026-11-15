@@ -46,6 +46,7 @@ Other commands, from this folder:
 | `npm run mock` | Stateful mock only |
 | `npm test` | Runs the Ash script against the mock and checks every response against `contracts/schemas/` |
 | `npm run typecheck` | TypeScript check (`make lint` runs it) |
+| `npm run tokens` | Regenerates `tokens.json` (Brass tokens for the native iOS app, design.md 20) from `app/globals.css`; `npm test` fails if it is stale |
 | `npm run types` | Regenerates `lib/api-types.ts` from `contracts/openapi.yaml`; run it after a contract change |
 | `npm run build` | Production build |
 

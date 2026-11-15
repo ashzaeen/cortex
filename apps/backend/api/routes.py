@@ -3,11 +3,11 @@ Handlers are sync (FastAPI runs them in a thread pool), so blocking model and DB
 import asyncio
 
 from fastapi import APIRouter, Header, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from actions import doers, followup
 from api import models
-from core import db, events, receipts, tiger
+from core import db, events, receipts, snapshots, tiger
 from core.config import REPO_ROOT, settings
 from core.errors import ApiError, not_found
 from core.llm import get_llm
@@ -174,10 +174,20 @@ async def stream_events(request: Request):
 # ---------- snapshot files (additive, outside the contract: lets clients load snapshot_url) ----------
 @router.get("/snapshots/{name}", include_in_schema=False)
 def get_snapshot(name: str):
-    path = settings.snapshot_store / name
-    if path.parent != settings.snapshot_store or not path.is_file():
+    found = snapshots.read(name)
+    if not found:
         raise not_found("snapshot")
-    return FileResponse(path)
+    data, content_type = found
+    # Names are unique and never reused, so the bytes behind a URL never change.
+    return Response(content=data, media_type=content_type, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
+@router.get("/videos/{name}", include_in_schema=False)
+def get_video(name: str):
+    path = settings.video_store / name
+    if path.parent != settings.video_store or not path.is_file():
+        raise not_found("video")
+    return FileResponse(path, media_type="video/quicktime")
 
 
 @router.get("/fixtures/snapshots/{name}", include_in_schema=False)

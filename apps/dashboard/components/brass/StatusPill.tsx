@@ -56,7 +56,10 @@ export function StatusPill({ state, modeLabel, onToggle, onOpenSettings, onCaptu
           </nav>
         )}
         <IconButton label="Capture with the phone camera" onClick={onCapture}><Camera size={20} strokeWidth={1.5} /></IconButton>
-        <IconButton label="Call Cortex on FaceTime" onClick={onCall}><Phone size={20} strokeWidth={1.5} /></IconButton>
+        <span className="relative inline-flex">
+          {state === "on_call" && [0, 1, 2].map((i) => <span key={i} className="ripple-ring" aria-hidden style={{ animationDelay: `${i * 200}ms` }} />)}
+          <IconButton label="Call Cortex on FaceTime" onClick={onCall}><Phone size={20} strokeWidth={1.5} /></IconButton>
+        </span>
         <Button variant="secondary" onClick={onToggle} aria-label={capturing ? "Pause capture" : "Resume capture"}>
           {capturing ? "Pause" : "Resume"}
           {!compact && <span className="-ml-1 hidden sm:inline">Capture</span>}

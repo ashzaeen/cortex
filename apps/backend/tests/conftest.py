@@ -16,6 +16,7 @@ from core.config import reload_settings  # noqa: E402
 def client(tmp_path):
     reload_settings(use_mongomock=True, database_url="", tiger_url="", llm_mock=True, llm_api_key="",
                     email_dry_run=True, email_provider="", snapshot_store=tmp_path / "snapshots",
+                    video_store=tmp_path / "videos",
                     public_url="http://testserver", undo_seconds=30)
     llm.reset()
     tiger._pool = None

@@ -45,7 +45,8 @@ class MockLLM:
     def transcribe(self, audio: bytes) -> str:
         return ""
 
-    def perceive(self, *, transcript: str, image, mode: str, now_local: str, context: str, speaker_rule: str) -> dict:
+    def perceive(self, *, transcript: str, image, video, mode: str, now_local: str, context: str,
+                 speaker_rule: str) -> dict:
         t = transcript or ""
         people, promises = [], []
         m = re.search(r"\b(?i:this is|i'm|i am|my name is|meet)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?)"
@@ -74,7 +75,9 @@ class MockLLM:
                              "due_text": m.group(3), "due_date": next_weekday(d) if d in DAYS else None,
                              "due_inferred": False, "confidence": 0.9})
         topics = [w for w in words(t) if len(w) > 4][:3]
-        return {"caption": "A scene from the wearer's point of view." if image else None, "topics": topics,
+        caption = "A short video from the wearer's point of view." if video else (
+            "A scene from the wearer's point of view." if image else None)
+        return {"caption": caption, "topics": topics,
                 "people_introduced": people, "promises": promises}
 
     def answer(self, *, question: str, moments: str, promises: str, **_) -> dict:

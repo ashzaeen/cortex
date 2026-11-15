@@ -19,7 +19,7 @@ export function ModeDock({ active, onChange }: { active: Mode["id"]; onChange: (
       style={{ bottom: "max(12px, var(--safe-bottom))" }}
       aria-label="Mode"
     >
-      <div role="radiogroup" aria-label="Mode" onKeyDown={onKey} className="glass glass--pill glass--float rise flex gap-1.5 p-2" style={{ animationDelay: "520ms" }}>
+      <div role="radiogroup" aria-label="Mode" onKeyDown={onKey} className="dock glass glass--pill glass--float rise flex w-full max-w-[26rem] gap-1 p-2 sm:w-auto sm:max-w-none sm:gap-1.5" style={{ animationDelay: "520ms" }}>
         {MODE_ORDER.map((m) => {
           const on = m === active;
           return (
@@ -30,7 +30,7 @@ export function ModeDock({ active, onChange }: { active: Mode["id"]; onChange: (
               aria-checked={on}
               tabIndex={on ? 0 : -1}
               onClick={() => onChange(m)}
-              className={`press relative min-h-12 min-w-[68px] rounded-pill px-4 text-[0.9375rem] font-semibold sm:min-w-[76px] sm:px-[26px] ${on ? "text-ink" : "text-text active:bg-fill-press"}`}
+              className={`dock-seg press relative min-h-12 min-w-0 flex-1 rounded-pill px-1 text-sm font-semibold min-[360px]:text-[0.9375rem] sm:min-w-[76px] sm:flex-none sm:px-[26px] ${on ? "text-ink" : "text-text hover:bg-fill-soft active:bg-fill-press"}`}
             >
               {on && (
                 <motion.span

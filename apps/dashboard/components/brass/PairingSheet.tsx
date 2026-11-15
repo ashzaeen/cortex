@@ -49,7 +49,7 @@ export function PairingSheet({ open, onClose, live }: { open: boolean; onClose: 
             </li>
           ))}
         </ol>
-        <Label>Glasses capture needs the iOS app (#36). Until then, use the phone camera.</Label>
+        <Label>Glasses capture needs the Cortex iOS app. Until then, use the phone camera.</Label>
       </div>
     </Sheet>
   );

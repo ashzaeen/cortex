@@ -49,6 +49,7 @@ export function useCortex() {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false); // the first fetch has finished, so empty states are real
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seq = useRef(0);
 
@@ -62,6 +63,8 @@ export function useCortex() {
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cannot load data.");
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -112,5 +115,5 @@ export function useCortex() {
     };
   }, [refresh, refreshSoon]);
 
-  return { data, feed, connected, error, refresh };
+  return { data, feed, connected, error, loaded, refresh };
 }

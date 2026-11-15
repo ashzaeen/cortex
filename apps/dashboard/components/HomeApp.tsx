@@ -2,9 +2,11 @@
 // Home (design.md 10, decision D1): one vertical flow - status pill, ask and proof, suggestion,
 // timeline - with the mode dock and everything else as sheets.
 import { signOutAction } from "@/app/actions";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type AskAnswer, type Mode, type Moment, type Person, type Promise_, type Receipt } from "@/lib/api";
 import { isDemo } from "@/lib/demo";
+import { friendly } from "@/lib/errors";
 import { lightSeed, shortIds } from "@/lib/format";
 import { useCortex } from "@/lib/useCortex";
 import { Ambient } from "@/components/brass/Ambient";
@@ -13,7 +15,7 @@ import { CaptureSheet } from "@/components/brass/CaptureSheet";
 import { DemoPanel } from "@/components/brass/DemoPanel";
 import { MODE_LABEL, MODE_ORDER, ModeDock } from "@/components/brass/ModeDock";
 import { PairingSheet } from "@/components/brass/PairingSheet";
-import { AskSheet, CallSheet, MomentSheet, PeopleSheet, ReceiptsSheet, SettingsSheet, speak, WaitingOnSheet } from "@/components/brass/sheets";
+import { AskSheet, CallSheet, MomentSheet, PeopleSheet, primeSpeech, ReceiptsSheet, SettingsSheet, speak, WaitingOnSheet } from "@/components/brass/sheets";
 import { StatusPill } from "@/components/brass/StatusPill";
 import { SuggestionCard } from "@/components/brass/SuggestionCard";
 import { TimelinePanel } from "@/components/brass/TimelinePanel";
@@ -31,12 +33,13 @@ export default function HomeApp({ user = null }: { user?: AppUser | null }) {
 }
 
 function Home({ user }: { user: AppUser | null }) {
-  const { data, feed, connected, error, refresh } = useCortex();
+  const { data, feed, connected, error, loaded, refresh } = useCortex();
+  const loading = !loaded && !error;
   const toast = useToast();
   const [modeLocal, setModeLocal] = useState<Mode["id"] | null>(null);
   const mode: Mode["id"] = modeLocal ?? data.modes.find((m) => m.active)?.id ?? "focus";
   const [selected, setSelected] = useState<string | null>(null);
-  const [question, setQuestion] = useState("What did Ash promise me?");
+  const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
   const [thinking, setThinking] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
@@ -52,6 +55,12 @@ function Home({ user }: { user: AppUser | null }) {
     setDemoOn(isDemo() || read("cortex.demo") || new URLSearchParams(location.search).get("demo") === "1");
   }, []);
   useEffect(() => { document.documentElement.dataset.solid = String(solid); }, [solid]);
+  // iOS only lets speech start from a tap: unlock it on the first one, so answers that arrive after a
+  // network call can still be spoken.
+  useEffect(() => {
+    window.addEventListener("pointerdown", primeSpeech, { once: true, passive: true });
+    return () => window.removeEventListener("pointerdown", primeSpeech);
+  }, []);
 
   const moments = useMemo(() => data.moments.filter((m) => !pendingDelete.has(m.id)), [data.moments, pendingDelete]);
   const ids = useMemo(() => shortIds(data.moments), [data.moments]);
@@ -67,7 +76,7 @@ function Home({ user }: { user: AppUser | null }) {
   }, [feed]);
 
   const run = useCallback(async (fn: () => Promise<unknown>) => {
-    try { await fn(); await refresh(); } catch (e) { toast({ text: e instanceof Error ? e.message : "That didn't work.", tone: "danger" }); }
+    try { await fn(); await refresh(); } catch (e) { toast({ text: friendly(e), tone: "danger" }); }
   }, [refresh, toast]);
 
   // ---------- modes
@@ -87,7 +96,7 @@ function Home({ user }: { user: AppUser | null }) {
       if (a.sources[0]) { autoFollow.current = false; setSelected(a.sources[0].id); }
       speak(a.spoken);
       refresh();
-    } catch (e) { toast({ text: e instanceof Error ? e.message : "Couldn't ask right now.", tone: "danger" }); }
+    } catch (e) { toast({ text: friendly(e, "Couldn't ask right now. Try again."), tone: "danger" }); }
     finally { setThinking(false); }
   }, [refresh, toast]);
 
@@ -158,11 +167,11 @@ function Home({ user }: { user: AppUser | null }) {
           />
 
         <main
-          className="mx-auto grid w-full max-w-[1280px] grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-6 md:px-6 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-5 lg:px-10 lg:pt-5"
-          style={{ paddingBottom: "calc(var(--dock-h) + max(12px, var(--safe-bottom)) + 32px)" }}
+          className="home-main mx-auto grid w-full max-w-[1280px] grid-cols-[minmax(0,1fr)] items-start gap-4 px-4 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-6 md:px-6 lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)] lg:items-stretch lg:gap-5 lg:px-10 lg:pt-5"
+          style={{ paddingBottom: "calc(var(--dock-h) + max(12px, var(--safe-bottom)) + 32px + var(--driver-offset, 0px))" }}
         >
           <div className="rise min-w-0 lg:h-full lg:min-h-0" style={{ animationDelay: "350ms" }}>
-            <TimelinePanel max={20}
+            <TimelinePanel max={20} loading={loading}
               moments={moments} people={data.people} promises={data.promises} ids={ids} selected={selected}
               onSelect={(id) => { autoFollow.current = false; setSelected(id); }}
               onOpen={(id) => setMomentId(id)}
@@ -175,6 +184,7 @@ function Home({ user }: { user: AppUser | null }) {
             <div className="rise flex-none" style={{ animationDelay: "390ms" }}>
               <SuggestionCard
                 mode={mode}
+                loading={loading}
                 action={suggestion}
                 sourceIds={ids}
                 onChanged={refresh}
@@ -186,7 +196,7 @@ function Home({ user }: { user: AppUser | null }) {
               />
             </div>
             <div className="rise h-[400px] lg:h-auto lg:min-h-0 lg:flex-1" style={{ animationDelay: "430ms" }}>
-              <AskPanel question={question} answer={answer} thinking={thinking} searched={moments.length} proof={proof} ids={ids} onOpenAsk={() => setSheet("ask")} onOpenMoment={(id) => setMomentId(id)} />
+              <AskPanel question={question} answer={answer} thinking={thinking} searched={moments.length} proof={proof} loading={loading} ids={ids} onOpenAsk={() => setSheet("ask")} onOpenMoment={(id) => setMomentId(id)} />
             </div>
             <div className="rise flex flex-wrap gap-2 lg:hidden" style={{ animationDelay: "470ms" }}>
               <button type="button" className="press min-h-11 rounded-pill bg-fill-soft px-4 text-[0.8125rem] font-medium text-text-2" onClick={() => { setPersonFocus(null); setSheet("people"); }}>People</button>
@@ -212,7 +222,7 @@ function Home({ user }: { user: AppUser | null }) {
       <SettingsSheet open={sheet === "settings"} onClose={() => setSheet(null)} privacy={privacy}
         onPrivacy={(s) => run(() => api.setPrivacy(s))}
         solid={solid} onSolid={(v) => { setSolid(v); write("cortex.solid", v); }}
-        demo={demoOn} onDemo={(v) => { setDemoOn(v); write("cortex.demo", v); }}
+        demoAvailable={!!data.demo} demo={demoOn} onDemo={(v) => { setDemoOn(v); write("cortex.demo", v); }}
         onPairing={() => setSheet("pairing")} onReceipts={() => setSheet("receipts")} onPeople={() => setSheet("people")}
         user={user} onSignOut={() => { void signOutAction(); }} />
       <ReceiptsSheet open={sheet === "receipts"} onClose={() => setSheet(null)} receipts={data.receipts} ids={ids}
@@ -221,7 +231,7 @@ function Home({ user }: { user: AppUser | null }) {
       <CaptureSheet open={sheet === "capture"} onClose={() => setSheet(null)} privacy={privacy} onSaved={(t) => { toast({ text: t }); refresh(); autoFollow.current = true; }} />
       <PairingSheet open={sheet === "pairing"} onClose={() => setSheet(null)} live={privacy === "capturing"} />
 
-      {/* Proposed promises surface as a confirm chip right above the dock (T0-4 one-tap confirm). */}
+      {/* Proposed promises surface as a confirm chip right above the dock (D-4 one-tap confirm). */}
       <PromiseChip promises={data.promises} people={data.people} onConfirm={(p) => run(() => api.confirmPromise(p.id))} />
     </>
   );
@@ -229,15 +239,32 @@ function Home({ user }: { user: AppUser | null }) {
 
 function PromiseChip({ promises, people, onConfirm }: { promises: Promise_[]; people: Person[]; onConfirm: (p: Promise_) => void }) {
   const p = promises.filter((x) => x.status === "proposed").at(-1);
-  if (!p) return null;
-  const who = people.find((x) => x.id === p.person_id)?.name.split(" ")[0] ?? "Someone";
+  const has = !!p;
+  // Tell the toast layer to sit above the chip while it shows (the two share the spot above the dock).
+  useEffect(() => {
+    document.documentElement.style.setProperty("--chip-offset", has ? "64px" : "0px");
+    return () => { document.documentElement.style.removeProperty("--chip-offset"); };
+  }, [has]);
+  const who = p ? people.find((x) => x.id === p.person_id)?.name.split(" ")[0] ?? "Someone" : "";
   return (
-    <div className="fixed inset-x-0 z-[25] flex justify-center px-4" style={{ bottom: "calc(max(12px, var(--safe-bottom)) + var(--dock-h) + 16px)" }}>
-      <div className="glass glass--pill glass--float rise flex items-center gap-3 py-2 pl-5 pr-2" role="status">
-        <span className="tally-ring" />
-        <span className="text-[0.9375rem]">{who} will {p.what.toLowerCase()}{p.due.text ? ` by ${p.due.text}` : ""}</span>
-        <button type="button" className="press min-h-11 rounded-pill bg-fill-soft px-5 text-[0.9375rem] font-semibold" onClick={() => onConfirm(p)}>Track It</button>
-      </div>
+    <div className="pointer-events-none fixed inset-x-0 z-[25] flex justify-center px-4" style={{ bottom: "calc(max(12px, var(--safe-bottom)) + var(--dock-h) + 16px + var(--driver-offset, 0px))" }}>
+      <AnimatePresence>
+        {p && (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8, transition: { duration: 0.16 } }}
+            transition={{ type: "spring", stiffness: 220, damping: 26 }}
+            className="glass glass--pill glass--float pointer-events-auto flex max-w-full items-center gap-3 py-2 pl-5 pr-2"
+            role="status"
+          >
+            <span className="tally-ring" />
+            <span className="line-clamp-2 min-w-0 text-[0.9375rem]">{who} will {p.what.toLowerCase()}{p.due.text ? ` by ${p.due.text}` : ""}</span>
+            <button type="button" className="press min-h-11 flex-none rounded-pill bg-fill-soft px-5 text-[0.9375rem] font-semibold hover:bg-fill-press" onClick={() => onConfirm(p)}>Track It</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

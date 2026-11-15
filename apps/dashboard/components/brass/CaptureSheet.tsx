@@ -1,9 +1,10 @@
 "use client";
-// Phone capture (#4), the T0-1 fallback: iPhone camera plus what was said becomes a "phone" moment,
+// Phone capture (#4), the D-1 fallback: iPhone camera plus what was said becomes a "phone" moment,
 // the same payload the glasses app sends. Live camera needs HTTPS; plain http uses the photo picker.
 import { Camera, ImagePlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api, type PrivacyState } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { Button, Label } from "./primitives";
 import { Sheet } from "./Sheet";
 
@@ -66,7 +67,7 @@ export function CaptureSheet({ open, onClose, privacy, onSaved }: { open: boolea
       await api.capture({ transcript, snapshot_base64: snap });
       onSaved(transcript ? "Moment Saved" : "Snapshot Saved");
       setSaid(""); setPhoto(null); stop(); onClose();
-    } catch (e) { setMsg(e instanceof Error ? e.message : "Couldn't save. Nothing was stored."); }
+    } catch (e) { setMsg(friendly(e, "Couldn't save. Nothing was stored.")); }
     finally { setBusy(false); }
   }
 

@@ -24,7 +24,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         className="pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4"
-        style={{ bottom: "calc(max(12px, var(--safe-bottom)) + var(--dock-h) + 16px)" }}
+        // --chip-offset is set while the promise chip is showing, so the two never share a spot
+        style={{ bottom: "calc(max(12px, var(--safe-bottom)) + var(--dock-h) + 16px + var(--driver-offset, 0px) + var(--chip-offset, 0px))" }}
         aria-live="polite"
       >
         <AnimatePresence>
@@ -35,13 +36,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8, transition: { duration: 0.16 } }}
               transition={{ type: "spring", stiffness: 220, damping: 26 }}
-              className="glass glass--pill glass--float pointer-events-auto flex items-center gap-3 py-2 pl-5 pr-2"
+              className="glass glass--pill glass--float pointer-events-auto flex max-w-full items-center gap-3 py-2 pl-5 pr-2"
             >
-              <span className={`text-[0.9375rem] ${toast.tone === "danger" ? "text-danger" : "text-text"}`}>{toast.text}</span>
+              <span className={`line-clamp-2 min-w-0 text-[0.9375rem] ${toast.tone === "danger" ? "text-danger" : "text-text"} ${toast.undo ? "" : "pr-3"}`}>{toast.text}</span>
               {toast.undo && (
                 <button
                   type="button"
-                  className="press min-h-11 rounded-pill border border-edge bg-fill-soft px-5 text-[0.9375rem] font-semibold"
+                  className="press min-h-11 flex-none rounded-pill border border-edge bg-fill-soft px-5 text-[0.9375rem] font-semibold hover:bg-fill-press"
                   onClick={() => { toast.undo?.(); setToast(null); }}
                 >
                   Undo

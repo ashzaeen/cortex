@@ -6,9 +6,9 @@ type Variant = "primary" | "secondary" | "ghost" | "destructive";
 const base = "press inline-flex items-center justify-center gap-2 rounded-pill whitespace-nowrap select-none";
 const variants: Record<Variant, string> = {
   primary: "press-primary min-h-12 px-[26px] bg-brass text-ink font-bold text-[0.9375rem] hover:bg-brass-hi",
-  secondary: "min-h-11 px-5 bg-fill-soft border border-edge text-text font-semibold text-[0.9375rem] active:bg-fill-press",
-  ghost: "min-h-11 px-4 text-text font-semibold text-[0.9375rem] active:bg-fill-soft",
-  destructive: "min-h-11 px-5 bg-fill-soft border border-edge text-danger font-semibold text-[0.9375rem] active:bg-fill-press",
+  secondary: "min-h-11 px-5 bg-fill-soft border border-edge text-text font-semibold text-[0.9375rem] hover:bg-fill-press active:bg-fill-press",
+  ghost: "min-h-11 px-4 text-text font-semibold text-[0.9375rem] hover:bg-fill-soft active:bg-fill-soft",
+  destructive: "min-h-11 px-5 bg-fill-soft border border-edge text-danger font-semibold text-[0.9375rem] hover:bg-fill-press active:bg-fill-press",
 };
 
 export function Button({ variant = "secondary", className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
@@ -21,7 +21,7 @@ export function IconButton({ label, children, className = "", ...props }: Button
       type="button"
       aria-label={label}
       title={label}
-      className={`press inline-flex size-11 flex-none items-center justify-center rounded-pill bg-fill-soft text-text active:bg-fill-press ${className}`}
+      className={`press inline-flex size-11 flex-none items-center justify-center rounded-pill bg-fill-soft text-text hover:bg-fill-press active:bg-fill-press ${className}`}
       {...props}
     >
       {children}
@@ -34,8 +34,8 @@ export function Chip({ selected = false, className = "", ...props }: ButtonHTMLA
     <button
       type="button"
       aria-pressed={selected}
-      className={`press inline-flex min-h-9 items-center rounded-pill border px-4 text-[0.8125rem] font-medium ${
-        selected ? "border-brass bg-brass-wash text-brass" : "border-transparent bg-fill-soft text-text-2"
+      className={`press inline-flex min-h-9 flex-none items-center whitespace-nowrap rounded-pill border px-4 text-[0.8125rem] font-medium ${
+        selected ? "border-brass bg-brass-wash text-brass" : "border-transparent bg-fill-soft text-text-2 hover:bg-fill-press"
       } ${className}`}
       {...props}
     />
@@ -75,18 +75,20 @@ export function Frame({ src, alt, selected = false, className = "", ratio = "7 /
 }
 
 /** Circular progress and check used by the approve morph (design.md 11.7). */
-export function ProgressRing({ done = false, size = 28 }: { done?: boolean; size?: number }) {
+export function ProgressRing({ done = false, size = 28, tone = "brass" }: { done?: boolean; size?: number; tone?: "brass" | "ink" }) {
+  const stroke = tone === "ink" ? "var(--ink)" : "var(--brass)";
+  const wash = tone === "ink" ? "rgba(11, 23, 18, 0.25)" : "var(--brass-wash)";
   const r = size / 2 - 2.5;
   const c = 2 * Math.PI * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className={done ? "" : "animate-spin"} style={{ animationDuration: "900ms" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--brass-wash)" strokeWidth="2.5" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={wash} strokeWidth="2.5" />
       <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--brass)" strokeWidth="2.5" strokeLinecap="round"
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round"
         strokeDasharray={c} strokeDashoffset={done ? 0 : c * 0.7}
         style={{ transition: "stroke-dashoffset 300ms var(--ease-out)", transform: "rotate(-90deg)", transformOrigin: "center" }}
       />
-      {done && <path d={`M${size * 0.32} ${size * 0.52} l${size * 0.12} ${size * 0.12} l${size * 0.24} -${size * 0.26}`} fill="none" stroke="var(--brass)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+      {done && <path d={`M${size * 0.32} ${size * 0.52} l${size * 0.12} ${size * 0.12} l${size * 0.24} -${size * 0.26}`} fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
     </svg>
   );
 }

@@ -127,8 +127,8 @@ def ingest(body: dict) -> dict:
     network.announce_met_again(met_again)
     focus = created[0] if created else (linked[0] if linked else None)
     new_promises = promises.from_perception(p.get("promises"), doc, focus)
-    suggest.from_perception(p.get("suggestions"), store.get_moment(moment_id) or doc)
-    lists.from_moment(doc)
+    suggest.from_perception(p.get("suggestions"), store.get_moment(moment_id) or doc, body.get("google_token"))
+    lists.from_moment(doc, as_actions=True)
     if not switched:
         modes.suggest_from(doc)  # MODE-2 auto-suggest: pending until the user says yes
     for pid in person_ids:

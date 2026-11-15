@@ -114,6 +114,12 @@ def ask(question: str, channel: str) -> dict:
     if routed:
         return routed
 
+    from skills import action_ask  # actions (#52): yes, save a draft, skip, undo, edit on the pending action
+
+    acted = action_ask.route(q, channel, _result)
+    if acted:
+        return acted
+
     from skills import skills_ask  # skills (#51): got it, contact search, world, translate, immersion, coach
 
     skilled = skills_ask.route(q, channel, _result)

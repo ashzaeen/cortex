@@ -30,7 +30,7 @@ def person(doc: dict) -> dict:
         "topics": list(doc.get("topics", [])),
         "notes": doc.get("notes"),
         "name_confidence": float(doc.get("name_confidence", 1.0)),
-    }
+    } | ({"phone": doc["phone"]} if doc.get("phone") else {})
 
 
 def promise(doc: dict) -> dict:
@@ -60,9 +60,11 @@ def action(doc: dict) -> dict:
     if doc["type"] in {"follow_up_email", "caregiver_summary"}:
         d = doc.get("draft") or {}
         out["draft"] = {"to": d.get("to", ""), "subject": d.get("subject", ""), "body": d.get("body", "")}
-    for k in ("event", "task", "doc", "message"):
+    for k in ("event", "task", "doc", "message", "expense"):
         if doc.get(k):
             out[k] = doc[k]
+    if doc.get("auto"):
+        out["auto"] = True
     if "external" in doc:
         out["external"] = doc["external"]
     return out
@@ -84,7 +86,8 @@ def receipt(doc: dict) -> dict:
 def mode(doc: dict) -> dict:
     out = {k: doc[k] for k in ("captures", "speaks", "proposes", "allowed_actions", "active")} | {
         "id": doc["_id"], "name": doc["name"], "auto_suggest": bool(doc.get("auto_suggest", True)),
-        "retention_days": doc.get("retention_days"), "custom": bool(doc.get("custom", False))}
+        "retention_days": doc.get("retention_days"), "custom": bool(doc.get("custom", False)),
+        "auto_run": list(doc.get("auto_run") or [])}
     if doc.get("description"):
         out["description"] = doc["description"]
     return out

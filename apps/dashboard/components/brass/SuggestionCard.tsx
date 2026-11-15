@@ -3,30 +3,12 @@
 // undo -> settled. One brass button per view. Undo lasts until the server's undo.until (decision D17).
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import { api, type Action, type Mode, type Receipt } from "@/lib/api";
+import { api, type Action, type ActionEdits, type Mode, type Receipt } from "@/lib/api";
 import { receiptId, timecode, titleCase } from "@/lib/format";
 import { modeLabel, SPRING_SNAPPY } from "./ModeDock";
+import { ActionEditSheet, EDITABLE } from "./actions/ActionEditSheet";
+import { target, VERB } from "./actions/meta";
 import { Button, Label, ProgressRing } from "./primitives";
-
-const VERB: Record<Action["type"], string> = {
-  follow_up_email: "Approve and Send",
-  flashcards: "Add to My Deck",
-  reminder: "Set Reminder",
-  read_aloud: "Read Aloud",
-  calendar_event: "Add to Calendar",
-  notes: "Save to Drive",
-  message: "Approve and Text",
-  caregiver_summary: "Approve and Send",
-};
-
-// One plain line under the summary: who or where it goes, so nothing leaves unseen.
-function target(a: Action): string | null {
-  if (a.type === "follow_up_email" && a.draft) return `TO ${a.draft.to || "NO ADDRESS YET"}`;
-  if (a.type === "message" && a.message) return `TEXT ${a.message.to}`;
-  if (a.type === "calendar_event" && a.event) return `${new Date(a.event.start).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).toUpperCase()}${a.event.location ? ` · ${a.event.location.toUpperCase()}` : ""}`;
-  if (a.type === "reminder" && a.task?.due) return `DUE ${a.task.due}`;
-  return null;
-}
 
 /** Types a mono line in (design.md 12.3: 24ms per character, capped at 400ms). Instant with reduced motion. */
 function useTyped(text: string, on: boolean) {
@@ -51,10 +33,13 @@ type Props = {
   loading?: boolean;
   onDone?: (a: Action) => void;
   onChanged: () => void;
+  /** Skip this suggestion (ACT-11): the parent hides it, offers undo, then tells the server. */
+  onSkip?: (a: Action) => void;
 };
 
-export function SuggestionCard({ mode, action, sourceIds, loading = false, onDone, onChanged }: Props) {
+export function SuggestionCard({ mode, action, sourceIds, loading = false, onDone, onChanged, onSkip }: Props) {
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  const [editing, setEditing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // A mode switch starts fresh; a new suggestion in the same mode keeps the last receipt on screen.
@@ -75,16 +60,18 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
     : "";
   const typed = useTyped(receiptText, phase.kind === "done");
 
-  async function approve(deliver: "send" | "draft" | "do") {
+  async function approve(deliver: "send" | "draft" | "do", edits?: ActionEdits) {
     if (!action) return;
     setPhase({ kind: "approving" });
     try {
-      const [res] = await Promise.all([api.confirmAction(action.id, deliver), new Promise((r) => setTimeout(r, 600))]);
+      const [res] = await Promise.all([api.confirmAction(action.id, deliver, edits), new Promise((r) => setTimeout(r, 600))]);
+      onChanged();
+      if (res.action.status === "failed") { setPhase({ kind: "failed", message: "That didn't go through. Nothing was changed. You can retry." }); return; }
       setPhase({ kind: "done", receipt: res.receipt, action: res.action });
       onDone?.(res.action);
-      onChanged();
     } catch (e) {
-      setPhase({ kind: "failed", message: e instanceof Error && /reach/i.test(e.message) ? "Couldn't reach Cortex. Nothing was changed." : "Couldn't do that. Nothing was changed." });
+      const msg = e instanceof Error ? e.message : "";
+      setPhase({ kind: "failed", message: /reach/i.test(msg) ? "Couldn't reach Cortex. Nothing was changed." : /^(A text|The event|The due|The text)/.test(msg) ? msg : "Couldn't do that. Nothing was changed." });
     }
   }
 
@@ -100,7 +87,8 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
   }
 
   const label = `Suggested in ${modeLabel(mode)}`;
-  const primaryVerb = action ? (phase.kind === "failed" ? "Retry" : VERB[action.type]) : "";
+  const retrying = !!action && (phase.kind === "failed" || action.status === "failed");
+  const primaryVerb = action ? (retrying ? "Retry" : VERB[action.type]) : "";
 
   return (
     <section id="now" aria-labelledby="sug-label" aria-busy={loading} className="sug-card glass flex min-h-[236px] flex-col gap-3 overflow-hidden p-6 md:p-7 lg:h-[272px] lg:min-h-0">
@@ -153,7 +141,9 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
               <h3 className="t-title sug-title line-clamp-2">{titleCase(action.title ?? "Suggested action")}</h3>
               {action.summary && <p className={`t-callout sug-summary ${action.type === "follow_up_email" ? "line-clamp-1" : "line-clamp-2"}`}>{action.summary}</p>}
               {target(action) && <p className="t-data sug-to truncate text-text-3">{target(action)}</p>}
-              {phase.kind === "failed" && <p className="line-clamp-2 text-[0.9375rem] text-danger" role="alert">{phase.message}</p>}
+              {(phase.kind === "failed" || action.status === "failed") && (
+                <p className="line-clamp-2 text-[0.9375rem] text-danger" role="alert">{phase.kind === "failed" ? phase.message : "That didn't go through. Nothing was changed. You can retry."}</p>
+              )}
               <div className="mt-auto flex flex-none flex-wrap items-center gap-2">
                 {phase.kind === "approving" ? (
                   // The button morphs into a brass progress ring (design.md 11.7, 12.3).
@@ -179,7 +169,8 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
                     >
                       <motion.span layout="position">{primaryVerb}</motion.span>
                     </motion.button>
-                    {action.type === "follow_up_email" && <Button variant="ghost" onClick={() => approve("draft")}>Save Draft</Button>}
+                    {EDITABLE.includes(action.type) && <Button variant="ghost" onClick={() => setEditing(true)}>Edit</Button>}
+                    {onSkip && <Button variant="ghost" onClick={() => onSkip(action)}>Skip</Button>}
                   </>
                 )}
               </div>
@@ -192,6 +183,13 @@ export function SuggestionCard({ mode, action, sourceIds, loading = false, onDon
           )}
         </motion.div>
       </AnimatePresence>
+      <ActionEditSheet
+        open={editing}
+        onClose={() => setEditing(false)}
+        action={action}
+        verb={primaryVerb || "Approve"}
+        onApprove={(deliver, edits) => { setEditing(false); void approve(deliver, edits); }}
+      />
     </section>
   );
 }

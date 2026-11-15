@@ -105,6 +105,47 @@ for (const [mode, type] of [["student", "flashcards"], ["life", "reminder"], ["a
 const cards = (await call("GET", "/actions?status=proposed&mode=student")).body.items[0];
 r = await call("POST", `/actions/${cards.id}/confirm`, { deliver: "do" });
 ok(r.body.action.status === "done" && /deck/.test(r.body.receipt.summary) && r.body.receipt.undo.available, "non-email action is done with an undo receipt");
+{
+  const src = (await call("GET", "/moments")).body.items[0].id;
+  let x = (await call("POST", "/actions/propose", { type: "calendar_event", title: "Demo", source_moment_ids: [src], event: { title: "Demo", start: "2026-11-19T10:00:00-06:00", end: "2026-11-19T11:00:00-06:00" } })).body;
+  r = await call("POST", `/actions/${x.id}/confirm`, { deliver: "do", event: { end: "2026-11-19T09:00:00-06:00" } });
+  ok(r.status === 400, "an event that ends before it starts is refused");
+  r = await call("POST", `/actions/${x.id}/confirm`, { deliver: "do", event: { title: "Demo with Ash", location: "ERB 129" } });
+  ok(r.body.action.title === "Demo with Ash" && r.body.action.event.location === "ERB 129", "edits are applied before the action runs");
+  x = (await call("POST", "/actions/propose", { type: "reminder", title: "Chase Sam", source_moment_ids: [src] })).body;
+  r = await call("POST", `/actions/${x.id}/dismiss`);
+  ok(r.body.action.status === "dismissed" && !r.body.receipt.undo.available, "dismiss skips with a receipt (ACT-11)");
+  r = await call("PATCH", "/modes/life", { auto_run: ["calendar_event"] });
+  ok(r.status === 400, "calendar events can never run without asking (ACT-4)");
+  r = await call("PATCH", "/modes/life", { auto_run: ["reminder"] });
+  ok(r.status === 200 && r.body.auto_run[0] === "reminder", "a mode can run reminders on its own");
+  await call("PATCH", "/modes/life", { auto_run: [] });
+  // ACT-8: an expense is proposed, logged to the Expenses list on approval, and removed again by undo.
+  const before = (await call("GET", "/lists")).body.items.find((l) => l.id === "expenses").items.length;
+  x = (await call("POST", "/actions/propose", { type: "expense", title: "Lunch", source_moment_ids: [src], expense: { label: "Lunch", amount: 12.4 } })).body;
+  ok(x.type === "expense" && x.status === "proposed" && x.expense.amount === 12.4, "an expense is proposed with its payload");
+  r = await call("POST", `/actions/${x.id}/confirm`, { deliver: "do", expense: { amount: -2 } });
+  ok(r.status === 400, "a negative amount is refused");
+  r = await call("POST", `/actions/${x.id}/confirm`, { deliver: "do", expense: { label: "Team lunch", amount: 18.75 } });
+  const exp = () => call("GET", "/lists").then((l) => l.body.items.find((i) => i.id === "expenses").items);
+  ok(r.body.action.status === "done" && r.body.action.title === "Log $18.75 for Team lunch" && (await exp()).length === before + 1, "approving logs it to the Expenses list");
+  r = await call("POST", `/actions/${x.id}/undo`);
+  ok(r.body.action.status === "undone" && (await exp()).length === before, "undo removes it from the list");
+  ok((await call("POST", `/actions/${x.id}/confirm`, { deliver: "do" })).status === 409, "a skipped action cannot be confirmed");
+  // ACT-9: a person's number, and a text drafted from their card.
+  r = await call("POST", "/actions/propose", { type: "message", person_id: ash.id });
+  ok(r.status === 400 && r.body.error.code === "no_phone", "a text needs a number on the card");
+  r = await call("PATCH", `/people/${ash.id}`, { phone: "555-0123" });
+  ok(r.status === 400, "a malformed number is refused");
+  r = await call("PATCH", `/people/${ash.id}`, { phone: "+15555550123" });
+  ok(r.status === 200 && r.body.phone === "+15555550123", "the number is saved on the card"); valid("Person", r.body, "person with a phone");
+  r = await call("POST", "/actions/propose", { type: "message", person_id: ash.id });
+  ok(r.status === 201 && r.body.message.to === "+15555550123" && r.body.summary.includes(r.body.message.text), "a text is drafted with exactly what goes out"); valid("Action", r.body, "proposed text");
+  const again = await call("POST", "/actions/propose", { type: "message", person_id: ash.id });
+  ok(again.body.id === r.body.id, "one waiting text per person");
+  r = await call("PATCH", `/people/${ash.id}`, { phone: "" });
+  ok(r.body.phone === undefined, "an empty number clears it");
+}
 // ACT-5 to ACT-9 in the mock: proposed with their payload, confirmed as a dry run (external: null).
 const src = (await call("GET", "/moments?limit=1")).body.items[0].id;
 for (const [type, extra, deliver, status] of [

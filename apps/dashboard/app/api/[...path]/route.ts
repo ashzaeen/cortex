@@ -6,7 +6,8 @@ import { googleAccessToken } from "@/lib/google-token";
 export const dynamic = "force-dynamic";
 
 // Approving or undoing an action may write to the user's Google account (Calendar, Tasks, Drive).
-const GOOGLE_ACTION = /^actions\/[^/]+\/(confirm|undo)$/;
+// A new moment can also trigger one: a mode that runs reminders or notes on its own (ACT-4).
+const GOOGLE_ACTION = /^(actions\/[^/]+\/(confirm|undo)|moments)$/;
 
 const API = (process.env.CORTEX_API_URL ?? "http://127.0.0.1:4010").replace(/\/$/, "");
 

@@ -4,7 +4,7 @@
 
 export type SheetKey =
   | "ask" | "timeline" | "people" | "waiting" | "settings" | "receipts" | "call" | "capture" | "pairing"
-  | "recap" | "decisions" | "lists" | "digest" | "rewind" | "routines" | "caregiver" | "look" | "limits" | "proposals" | "modesettings" | "skills";
+  | "recap" | "decisions" | "lists" | "digest" | "rewind" | "routines" | "caregiver" | "look" | "limits" | "proposals" | "modesettings" | "skills" | "actions";
 
 export type CapturePreset = {
   title: string;

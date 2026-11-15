@@ -17,9 +17,11 @@ from memory import store
 
 BUILTIN = ("focus", "student", "life", "assist")
 ACTION_TYPES = {"follow_up_email", "flashcards", "reminder", "read_aloud", "calendar_event", "notes", "message",
-                "caregiver_summary"}
+                "caregiver_summary", "expense"}
 SLUG = re.compile(r"^[a-z][a-z0-9_-]{1,31}$")
-EDITABLE = {"name", "description", "captures", "speaks", "proposes", "allowed_actions", "auto_suggest", "retention_days"}
+AUTO_ELIGIBLE = ("reminder", "notes", "flashcards", "expense")  # low-risk types a mode may run without asking (ACT-4)
+EDITABLE = {"name", "description", "captures", "speaks", "proposes", "allowed_actions", "auto_suggest", "auto_run",
+            "retention_days"}
 SUGGEST_COOLDOWN = timedelta(minutes=30)
 PENDING_TTL = timedelta(minutes=10)
 
@@ -50,6 +52,20 @@ def allows(kind: str, mode_id: str | None) -> bool:
     if not doc:
         return True
     return bool(doc.get("auto_suggest", True)) and kind in (doc.get("allowed_actions") or [])
+
+
+def auto_runs(kind: str, mode_id: str | None) -> bool:
+    """Does this mode run this suggestion without asking? Only low-risk types, only when also allowed (ACT-4)."""
+    doc = get(mode_id or store.active_mode())
+    return bool(doc) and kind in AUTO_ELIGIBLE and kind in (doc.get("auto_run") or []) and allows(kind, mode_id)
+
+
+def _check_auto(types) -> list[str]:
+    bad = [a for a in types or [] if a not in AUTO_ELIGIBLE]
+    if bad:
+        raise ApiError(400, "bad_request",
+                       f"{', '.join(bad)} always needs your yes. Only {', '.join(AUTO_ELIGIBLE)} can run on their own.")
+    return list(dict.fromkeys(types or []))
 
 
 def spoken_label(mode_id: str) -> str:
@@ -170,6 +186,8 @@ def update(mode_id: str, fields: dict) -> dict:
     changes = {k: v for k, v in fields.items() if k in EDITABLE}
     if "allowed_actions" in changes:
         changes["allowed_actions"] = _check_actions(changes["allowed_actions"])
+    if "auto_run" in changes:
+        changes["auto_run"] = _check_auto(changes["auto_run"])
     if "name" in changes and not (changes["name"] or "").strip():
         raise ApiError(400, "bad_request", "name cannot be empty.")
     if changes:
@@ -191,7 +209,8 @@ def create(body: dict) -> dict:
     doc = {"_id": mode_id, "name": name, "description": (body.get("description") or "").strip() or None,
            "captures": list(body.get("captures") or []), "speaks": body.get("speaks") or "on request",
            "proposes": list(body.get("proposes") or []), "allowed_actions": _check_actions(body.get("allowed_actions")),
-           "auto_suggest": bool(body.get("auto_suggest", True)), "retention_days": body.get("retention_days"),
+           "auto_suggest": bool(body.get("auto_suggest", True)), "auto_run": _check_auto(body.get("auto_run")),
+           "retention_days": body.get("retention_days"),
            "custom": True, "active": False, "created_at": now()}
     db.col("modes").insert_one(doc)
     return contract.mode(doc)

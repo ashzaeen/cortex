@@ -90,38 +90,126 @@ def auto_propose(person_id: str):
         log.info("auto-propose skipped: %s", exc.message)
 
 
+def _deliver(action_id: str):
+    """Send a confirmed email whose undo window has closed. Safe to call twice: delivered_at guards it."""
+    _timers.pop(action_id, None)
+    doc = db.col("actions").find_one({"_id": action_id})
+    if not doc or doc["status"] != "sent" or doc.get("delivered_at"):
+        return
+    try:
+        from actions import email
+
+        email.send(doc["draft"]["to"], doc["draft"]["subject"], doc["draft"]["body"])
+        db.col("actions").update_one({"_id": action_id}, {"$set": {"delivered_at": now()}})
+        receipts.close_undo(action_id)
+    except Exception as exc:  # noqa: BLE001
+        log.error("follow-up delivery failed: %s", exc)
+        receipts.close_undo(action_id)
+        _publish(_set(action_id, status="failed", error=str(exc)[:300]))
+        receipts.create("action", f"Could not send the follow-up email: {exc}", doc["source_moment_ids"], action_id)
+
+
 def _deliver_later(action_id: str):
-    def fire():
-        _timers.pop(action_id, None)
-        doc = db.col("actions").find_one({"_id": action_id})
-        if not doc or doc["status"] != "sent":
-            return
-        try:
-            from actions import email
-
-            email.send(doc["draft"]["to"], doc["draft"]["subject"], doc["draft"]["body"])
-            receipts.close_undo(action_id)
-        except Exception as exc:  # noqa: BLE001
-            log.error("follow-up delivery failed: %s", exc)
-            _publish(_set(action_id, status="failed", error=str(exc)[:300]))
-            receipts.create("action", f"Could not send the follow-up email: {exc}", doc["source_moment_ids"], action_id)
-
-    t = threading.Timer(settings.undo_seconds, user.carry(fire))  # keeps the request's user
+    t = threading.Timer(settings.undo_seconds, user.carry(_deliver), args=(action_id,))  # keeps the request's user
     t.daemon = True
     _timers[action_id] = t
     t.start()
 
 
-def confirm(action_id: str, deliver: str, draft_edits: dict | None, google_token: str | None = None) -> dict:
+def sweep_held() -> int:
+    """Deliver held emails and texts whose undo window closed while no timer was running (a restart or
+    redeploy lost it). Called by the ticker for each user this process has served. Returns how many it sent."""
+    from actions import doers
+
+    done = 0
+    for doc in db.col("actions").find({"status": "sent", "type": {"$in": ["follow_up_email", "message"]},
+                                        "delivered_at": {"$exists": False}}):
+        aid = doc["_id"]
+        if aid in _timers or aid in doers._timers:
+            continue  # its timer is still running
+        rcp = db.col("receipts").find_one({"action_id": aid, "undo.available": True})
+        if not rcp or (rcp["undo"].get("until") and rcp["undo"]["until"] > now()):
+            continue  # undone or already closed, or still inside the window
+        (_deliver if doc["type"] == "follow_up_email" else doers._send)(aid)
+        done += 1
+    return done
+
+
+def dismiss(action_id: str) -> dict:
+    """ACT-11: skip a proposal. Nothing runs; the action becomes dismissed and a receipt records it."""
+    doc = db.col("actions").find_one({"_id": action_id})
+    if not doc:
+        raise not_found("action")
+    if doc["status"] not in {"proposed", "failed"}:
+        raise ApiError(409, "not_proposed", f"Action is {doc['status']}, so it can't be skipped.")
+    doc = _set(action_id, status="dismissed", dismissed_at=now())
+    _publish(doc)
+    rcp = receipts.create("action", f"Skipped “{doc.get('title') or doc['type']}”. Nothing was done.",
+                          doc["source_moment_ids"], action_id)
+    return {"action": contract.action(doc), "receipt": rcp}
+
+
+_E164 = re.compile(r"^\+[1-9][0-9]{6,14}$")
+_TITLE_OF = {"event": "event", "task": "task", "doc": "doc"}  # payload keys whose title is also the card title
+
+
+def _apply_edits(doc: dict, edits: dict) -> dict:
+    """The user's changes in the edit sheet, applied before anything runs. Only the payload this type carries."""
+    from datetime import datetime
+
+    key = {"calendar_event": "event", "reminder": "task", "flashcards": "doc", "notes": "doc",
+           "message": "message", "expense": "expense"}.get(doc["type"])
+    patch = {k: (v.strip() if isinstance(v, str) else v) for k, v in (edits.get(key) or {}).items()}
+    patch = {k: v for k, v in patch.items() if v not in ("", None) or k in {"location", "description", "notes"}}
+    if not key or not patch:
+        return doc
+    merged = {**(doc.get(key) or {}), **patch}
+    if key == "message" and not _E164.match(merged.get("to", "")):
+        raise ApiError(400, "bad_request", "A text needs a phone number like +15555550123.")
+    if key == "message" and not merged.get("text"):
+        raise ApiError(400, "bad_request", "The text can't be empty.")
+    if key == "event":
+        try:
+            start, end = datetime.fromisoformat(merged["start"]), datetime.fromisoformat(merged["end"])
+        except (KeyError, ValueError) as exc:
+            raise ApiError(400, "bad_request", "The event needs a start and end time.") from exc
+        if (start.tzinfo is None) != (end.tzinfo is None) or end <= start:
+            raise ApiError(400, "bad_request", "The event must end after it starts.")
+    if key == "expense":
+        amount = merged.get("amount")
+        if amount is not None and (not isinstance(amount, (int, float)) or amount < 0):
+            raise ApiError(400, "bad_request", "The amount must be a number of dollars, 0 or more.")
+        if not merged.get("label"):
+            raise ApiError(400, "bad_request", "The expense needs a label.")
+    if key == "task" and merged.get("due"):
+        try:
+            datetime.fromisoformat(str(merged["due"])[:10])
+        except ValueError as exc:
+            raise ApiError(400, "bad_request", "The due date must look like 2026-11-20.") from exc
+    fields = {key: merged}
+    if key == "expense":
+        from actions import doers
+
+        fields["title"] = doers.expense_title(merged)
+    if key in _TITLE_OF and patch.get("title"):
+        fields["title"] = patch["title"]
+    db.col("actions").update_one({"_id": doc["_id"]}, {"$set": fields})
+    return db.col("actions").find_one({"_id": doc["_id"]})
+
+
+def confirm(action_id: str, deliver: str, draft_edits: dict | None, google_token: str | None = None,
+            edits: dict | None = None) -> dict:
     from actions import doers, email
 
     doc = db.col("actions").find_one({"_id": action_id})
     if not doc:
         raise not_found("action")
-    if doc["status"] != "proposed":
+    if doc["status"] not in {"proposed", "failed"}:  # failed can be retried: the user's yes still stands
         raise ApiError(409, "not_proposed", f"Action is {doc['status']}, not proposed.")
+    if doc["status"] == "failed":
+        db.col("actions").update_one({"_id": action_id}, {"$unset": {"error": ""}})
     if doc["type"] != "follow_up_email":
-        return doers.confirm(doc, deliver, google_token)
+        return doers.confirm(_apply_edits(doc, edits or {}), deliver, google_token)
     if deliver not in {"send", "draft"}:
         raise ApiError(400, "bad_request", "A follow-up email is confirmed with deliver: send or draft.")
     draft = {**doc["draft"], **{k: v for k, v in (draft_edits or {}).items() if k in {"to", "subject", "body"} and v is not None}}

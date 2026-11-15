@@ -13,6 +13,7 @@
     "amount": { "type": ["number", "null"], "description": "Expenses only: the amount in the user's currency." },
     "done": { "type": "boolean", "description": "Shopping: bought. Expenses: reconciled." },
     "source_moment_id": { "type": ["string", "null"], "pattern": "^mom_", "description": "The moment that added it (proof); null when added by hand. Deleting that moment deletes the item." },
+    "action_id": { "type": ["string", "null"], "pattern": "^act_", "description": "The expense action that logged this item (ACT-8), so its receipt can undo it. Absent otherwise." },
     "created_at": { "type": "string", "format": "date-time" }
   }
 }

@@ -121,6 +121,7 @@ def tick(ref: datetime | None = None) -> list[dict]:
 
 
 def _loop(interval: float):
+    from actions import followup
     from core import user
     from skills import caregiver
 
@@ -130,6 +131,7 @@ def _loop(interval: float):
             try:
                 tick()
                 caregiver.maybe_send_daily()
+                followup.sweep_held()  # ACT-2/9: a held send whose timer a restart lost
             except Exception:  # noqa: BLE001
                 log.exception("routine ticker failed for a user")
             finally:

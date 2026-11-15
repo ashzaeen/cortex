@@ -41,8 +41,8 @@ def recap(mode: str | None = None, kind: str = "meeting") -> dict:
     if not docs:
         what = "lecture" if kind == "lecture" else "meeting"
         return {"kind": kind, "mode": mode, "title": f"No {what} yet", "spoken": f"I don't have a {what} in memory yet.",
-                "bullets": [], "notes": [], "decisions": [], "follow_ups": [], "started_at": None, "ended_at": None,
-                "moment_count": 0, "source_moment_ids": []}
+                "bullets": [], "notes": [], "decisions": [], "follow_ups": [], "auto_actions": [],
+                "started_at": None, "ended_at": None, "moment_count": 0, "source_moment_ids": []}
     ids = {m["_id"] for m in docs}
     by_id = {m["_id"]: m for m in docs}
     notes = [_rl(_line(m), m) for m in docs if _line(m)]
@@ -74,6 +74,12 @@ def recap(mode: str | None = None, kind: str = "meeting") -> dict:
     decisions += [d for d in cited(data.get("decisions")) if d["text"] not in known]
     known = {f["text"] for f in follow_ups}
     follow_ups += [f for f in cited(data.get("follow_ups")) if f["text"] not in known]
+    auto_actions = []
+    for a in db.col("actions").find({"auto": True, "status": {"$in": ["done", "sent", "draft_saved"]},
+                                     "source_moment_ids": {"$in": list(ids)}}):
+        rcp = db.col("receipts").find_one({"action_id": a["_id"]}, sort=[("created_at", -1)])
+        mid = next(i for i in a["source_moment_ids"] if i in ids)
+        auto_actions.append(_rl(rcp["summary"] if rcp else a.get("title", "Done"), by_id[mid]))
     label = "lecture" if kind == "lecture" else "meeting"
     start, end = docs[0]["ts"], docs[-1]["ts"]
     spoken = (data.get("spoken") or "").strip() or (
@@ -82,5 +88,5 @@ def recap(mode: str | None = None, kind: str = "meeting") -> dict:
     bullets = bullets or [n["text"] for n in notes[:4]]
     return {"kind": kind, "mode": mode, "title": (data.get("title") or f"Your {label}").strip()[:80], "spoken": spoken,
             "bullets": bullets, "notes": notes, "decisions": decisions, "follow_ups": follow_ups,
-            "started_at": iso(start), "ended_at": iso(end), "moment_count": len(docs),
+            "auto_actions": auto_actions, "started_at": iso(start), "ended_at": iso(end), "moment_count": len(docs),
             "source_moment_ids": [m["_id"] for m in docs]}
